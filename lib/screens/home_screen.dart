@@ -1,9 +1,11 @@
+cat lib/screens/home_screen.dart
 import 'dart:convert';
 
 import 'comparison_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../database/database.dart';
 import '../matching/matching_engine.dart';
 import '../matching/models.dart';
 
@@ -49,9 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final text = utf8.decode(file.bytes!);
       final decoded = jsonDecode(text);
-      
+
       final List<dynamic> rows;
-      
+
       if (decoded is List) {
         rows = decoded;
       } else if (decoded is Map<String, dynamic> &&
@@ -70,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Expected JSON array, data[], result[], or result.data[].',
         );
       }
-      
+
       final students = rows
           .whereType<Map>()
           .map(
@@ -79,11 +81,18 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
           .toList();
-      
+
       if (students.isEmpty) {
         throw Exception('No valid PSP student records found.');
       }
-      
+
+      final dbRows = rows
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+
+      await AppDatabase.instance.replacePspRows(dbRows);
+
       setState(() {
         _psp = students;
         _pspFileName = file.name;
@@ -124,9 +133,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final text = utf8.decode(file.bytes!);
       final decoded = jsonDecode(text);
-      
+
       final List<dynamic> rows;
-      
+
       if (decoded is List) {
         rows = decoded;
       } else if (decoded is Map<String, dynamic> &&
@@ -145,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Expected JSON array, data[], result[], or result.data[].',
         );
       }
-      
+
       final students = rows
           .whereType<Map>()
           .map(
@@ -154,11 +163,18 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
           .toList();
-      
+
       if (students.isEmpty) {
         throw Exception('No valid UDISE student records found.');
       }
-      
+
+      final dbRows = rows
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+
+      await AppDatabase.instance.replaceUdiseRows(dbRows);
+
       setState(() {
         _udise = students;
         _udiseFileName = file.name;
