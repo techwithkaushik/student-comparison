@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'comparison_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -182,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ComparisonPreviewScreen(
+        builder: (_) => ComparisonDashboardScreen(
           rows: rows,
           pspCount: _psp.length,
           udiseCount: _udise.length,
