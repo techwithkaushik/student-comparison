@@ -112,6 +112,54 @@ void main() {
       );
     });
 
+    test('class Eight, VIII and 8 should normalize to the same class', () {
+      final p = psp(
+        studentClass: 'Eight',
+      );
+    
+      final u1 = udise(
+        classId: 'VIII',
+        classDesc: 'VIII',
+      );
+    
+      final u2 = udise(
+        classId: '8',
+        classDesc: '8',
+      );
+    
+      expect(p.classCanonValue, '8');
+    
+      expect(
+        u1.classIdCanon,
+        '8',
+      );
+    
+      expect(
+        u1.classDescCanon,
+        '8',
+      );
+    
+      expect(
+        u2.classIdCanon,
+        '8',
+      );
+    
+      expect(
+        u2.classDescCanon,
+        '8',
+      );
+    
+      expect(
+        p.classCanonValue,
+        u1.classDescCanon,
+      );
+    
+      expect(
+        p.classCanonValue,
+        u2.classIdCanon,
+      );
+    });
+    
     test('Aadhaar mismatch should not by itself make identity mismatch', () {
       final rows = runMatchingEngine(
         [

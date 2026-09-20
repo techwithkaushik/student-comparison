@@ -43,16 +43,18 @@ String normalizeDob(dynamic value) {
 }
 
 int? classNum(dynamic value) {
-  final raw = norm(value);
-  if (raw.isEmpty) return null;
+  final x = norm(value)
+      .replaceFirst(RegExp(r'^(CLASS|GRADE)\s*'), '')
+      .replaceAll('.', '')
+      .trim();
 
-  const names = <String, int>{
+  const map = <String, int>{
     'PREPRIMARY': 0,
-    'PRE PRIMARY': 0,
     'NURSERY': 0,
     'KG': 0,
     'LKG': 0,
     'UKG': 0,
+
     'FIRST': 1,
     'SECOND': 2,
     'THIRD': 3,
@@ -60,11 +62,18 @@ int? classNum(dynamic value) {
     'FIFTH': 5,
     'SIXTH': 6,
     'SEVENTH': 7,
+
+    // Class 8
+    'EIGHT': 8,
     'EIGHTH': 8,
+    'VIII': 8,
+
     'NINTH': 9,
     'TENTH': 10,
     'ELEVENTH': 11,
     'TWELFTH': 12,
+
+    // Roman numerals
     'I': 1,
     'II': 2,
     'III': 3,
@@ -72,20 +81,29 @@ int? classNum(dynamic value) {
     'V': 5,
     'VI': 6,
     'VII': 7,
-    'VIII': 8,
     'IX': 9,
     'X': 10,
     'XI': 11,
     'XII': 12,
   };
 
-  if (names.containsKey(raw)) {
-    return names[raw];
+  final numeric = double.tryParse(x);
+  if (numeric != null &&
+      numeric == numeric.truncateToDouble()) {
+    return numeric.toInt();
   }
 
-  final match = RegExp(r'^\s*(\d+)(?:ST|ND|RD|TH)?\s*$').firstMatch(raw);
-  if (match != null) {
-    return int.tryParse(match.group(1)!);
+  final mapped = map[x];
+  if (mapped != null) {
+    return mapped;
+  }
+
+  final ordinal = RegExp(
+    r'^(\d{1,2})(ST|ND|RD|TH)?$',
+  ).firstMatch(x);
+
+  if (ordinal != null) {
+    return int.tryParse(ordinal.group(1)!);
   }
 
   return null;
