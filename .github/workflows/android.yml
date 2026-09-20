@@ -37,7 +37,23 @@ jobs:
             --platforms=android \
             --project-name=student_comparison \
             .
+            
+      - name: Configure release signing
+        env:
+          SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        run: |
+          echo "$SIGNING_KEYSTORE" | base64 --decode > android/app/signing-key.jks
 
+          cat > android/key.properties <<EOF
+          storeFile=signing-key.jks
+          storePassword=$SIGNING_STORE_PASSWORD
+          keyAlias=$SIGNING_KEY_ALIAS
+          keyPassword=$SIGNING_KEY_PASSWORD
+          EOF
+          
       - name: Remove generated widget test
         run: rm -f test/widget_test.dart
 
