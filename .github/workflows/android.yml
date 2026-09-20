@@ -1,0 +1,45 @@
+name: Flutter Android
+
+on:
+  push:
+    branches:
+      - flutter-android
+  pull_request:
+    branches:
+      - flutter-android
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.5"
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build ARM32 APK
+        run: flutter build apk --release --target-platform android-arm
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-comparison-arm32
+          path: build/app/outputs/flutter-apk/app-release.apk
