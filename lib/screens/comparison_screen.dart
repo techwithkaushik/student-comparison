@@ -575,7 +575,7 @@ class _StatChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          width: 78,
+          width: 82,
           height: 42,
           padding: const EdgeInsets.symmetric(
             horizontal: 7,
@@ -648,32 +648,36 @@ class _DiffChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(9),
-        child: Container(
+        child: SizedBox(
+          width: 102,
           height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: selected
-                ? scheme.primaryContainer
-                : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: BoxDecoration(
               color: selected
-                  ? scheme.primary
-                  : scheme.outlineVariant,
-              width: selected ? 1.2 : .6,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              '$label $value',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                  ? scheme.primaryContainer
+                  : scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
                 color: selected
-                    ? scheme.onPrimaryContainer
-                    : scheme.onSurface,
+                    ? scheme.primary
+                    : scheme.outlineVariant,
+                width: selected ? 1.2 : .6,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                '$label $value',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurface,
+                ),
               ),
             ),
           ),
