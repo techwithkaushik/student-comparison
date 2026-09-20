@@ -23,12 +23,20 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Verify project structure
+      - name: Verify project
         run: |
           pwd
           ls -la
           test -f pubspec.yaml
-          echo "pubspec.yaml found"
+          test -f lib/main.dart
+          echo "Flutter project files found"
+
+      - name: Generate Android project
+        run: |
+          flutter create \
+            --platforms=android \
+            --project-name=student_comparison \
+            .
 
       - name: Flutter version
         run: flutter --version
