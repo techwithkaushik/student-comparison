@@ -1045,7 +1045,7 @@ class _ComparisonTable extends StatelessWidget {
       case 'DOB':
         return u.dob.isEmpty ? '—' : u.dob;
       case 'Gender':
-        return u.gender.isEmpty ? '—' : u.gender;
+        return u.gender.isEmpty ? '—' : u.genderNormValue;
       case 'Class':
         return _classText(u);
       case 'Mobile':
@@ -1101,7 +1101,7 @@ class _ComparisonTable extends StatelessWidget {
                     child: Text(
                       'FIELD',
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 10,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1112,7 +1112,7 @@ class _ComparisonTable extends StatelessWidget {
                         'PSP',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1124,7 +1124,7 @@ class _ComparisonTable extends StatelessWidget {
                         'UDISE',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1158,7 +1158,7 @@ class _ComparisonTable extends StatelessWidget {
                   ),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
                       width: 68,
@@ -1170,7 +1170,7 @@ class _ComparisonTable extends StatelessWidget {
                         child: Text(
                           field,
                           style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: scheme.onSurfaceVariant,
                           ),
