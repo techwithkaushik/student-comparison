@@ -48,12 +48,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final text = utf8.decode(file.bytes!);
       final decoded = jsonDecode(text);
-
-      if (decoded is! List) {
-        throw Exception('PSP JSON must contain an array of students.');
+      
+      final List<dynamic> rows;
+      
+      if (decoded is List) {
+        rows = decoded;
+      } else if (decoded is Map<String, dynamic> &&
+          decoded['data'] is List) {
+        rows = decoded['data'] as List;
+      } else if (decoded is Map<String, dynamic> &&
+          decoded['result'] is List) {
+        rows = decoded['result'] as List;
+      } else if (decoded is Map<String, dynamic> &&
+          decoded['result'] is Map<String, dynamic> &&
+          decoded['result']['data'] is List) {
+        rows = decoded['result']['data'] as List;
+      } else {
+        throw Exception(
+          'No PSP student records found. '
+          'Expected JSON array, data[], result[], or result.data[].',
+        );
       }
-
-      final students = decoded
+      
+      final students = rows
           .whereType<Map>()
           .map(
             (row) => PspStudent.fromJson(
@@ -61,7 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
           .toList();
-
+      
+      if (students.isEmpty) {
+        throw Exception('No valid PSP student records found.');
+      }
+      
       setState(() {
         _psp = students;
         _pspFileName = file.name;
@@ -102,12 +123,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final text = utf8.decode(file.bytes!);
       final decoded = jsonDecode(text);
-
-      if (decoded is! List) {
-        throw Exception('UDISE JSON must contain an array of students.');
+      
+      final List<dynamic> rows;
+      
+      if (decoded is List) {
+        rows = decoded;
+      } else if (decoded is Map<String, dynamic> &&
+          decoded['data'] is List) {
+        rows = decoded['data'] as List;
+      } else if (decoded is Map<String, dynamic> &&
+          decoded['result'] is List) {
+        rows = decoded['result'] as List;
+      } else if (decoded is Map<String, dynamic> &&
+          decoded['result'] is Map<String, dynamic> &&
+          decoded['result']['data'] is List) {
+        rows = decoded['result']['data'] as List;
+      } else {
+        throw Exception(
+          'No UDISE student records found. '
+          'Expected JSON array, data[], result[], or result.data[].',
+        );
       }
-
-      final students = decoded
+      
+      final students = rows
           .whereType<Map>()
           .map(
             (row) => UdiseStudent.fromJson(
@@ -115,7 +153,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
           .toList();
-
+      
+      if (students.isEmpty) {
+        throw Exception('No valid UDISE student records found.');
+      }
+      
       setState(() {
         _udise = students;
         _udiseFileName = file.name;
