@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../matching/models.dart';
+                                                                                        import '../matching/models.dart';
 
 class ComparisonDashboardScreen extends StatefulWidget {
   final List<ComparisonRow> rows;
@@ -20,8 +19,7 @@ class ComparisonDashboardScreen extends StatefulWidget {
 }
 
 class _ComparisonDashboardScreenState
-    extends State<ComparisonDashboardScreen> {
-  String _filter = 'ALL';
+    extends State<ComparisonDashboardScreen> {                                            String _filter = 'ALL';
   String _classFilter = '';
   String _search = '';
 
@@ -406,91 +404,72 @@ class _SummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 104,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          10,
-          7,
-          10,
-          3,
-        ),
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _StatChip(
-              label: 'All',
-              value: all,
-              selected: selected == 'ALL',
-              onTap: () => onSelected('ALL'),
-            ),
-            _StatChip(
-              label: 'Matched',
-              value: matched,
-              color: Colors.green,
-              selected: selected == 'MATCHED',
-              onTap: () =>
-                  onSelected('MATCHED'),
-            ),
-            _StatChip(
-              label: 'Mismatch',
-              value: mismatch,
-              color: Colors.red,
-              selected: selected == 'MISMATCH',
-              onTap: () =>
-                  onSelected('MISMATCH'),
-            ),
-            _StatChip(
-              label: 'PSP only',
-              value: pspOnly,
-              color: Colors.blue,
-              selected: selected == 'PSP_ONLY',
-              onTap: () =>
-                  onSelected('PSP_ONLY'),
-            ),
-            _StatChip(
-              label: 'UDISE only',
-              value: udiseOnly,
-              color: Colors.blue,
-              selected: selected == 'UDISE_ONLY',
-              onTap: () =>
-                  onSelected('UDISE_ONLY'),
-            ),
-
-            _DiffChip(label: 'Name', value: name),
-            _DiffChip(label: 'DOB', value: dob),
-            _DiffChip(label: 'Father', value: father),
-            _DiffChip(label: 'Mother', value: mother),
-            _DiffChip(
-              label: 'Class',
-              value: classMismatch,
-            ),
-            _DiffChip(
-              label: 'Gender',
-              value: gender,
-            ),
-            _DiffChip(
-              label: 'Category',
-              value: category,
-            ),
-            _DiffChip(
-              label: 'Religion',
-              value: religion,
-            ),
-            _DiffChip(
-              label: 'Aadhaar ✗',
-              value: aadhaar,
-            ),
-            _DiffChip(
-              label: 'Aadhaar —',
-              value: aadhaarMissing,
-            ),
-            _DiffChip(
-              label: 'Mobile',
-              value: mobile,
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Summary/status chips wrap to the next line instead of scrolling.
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _StatChip(
+                label: 'All',
+                value: all,
+                selected: selected == 'ALL',
+                onTap: () => onSelected('ALL'),
+              ),
+              _StatChip(
+                label: 'Matched',
+                value: matched,
+                color: Colors.green,
+                selected: selected == 'MATCHED',
+                onTap: () => onSelected('MATCHED'),
+              ),
+              _StatChip(
+                label: 'Mismatch',
+                value: mismatch,
+                color: Colors.red,
+                selected: selected == 'MISMATCH',
+                onTap: () => onSelected('MISMATCH'),
+              ),
+              _StatChip(
+                label: 'PSP only',
+                value: pspOnly,
+                color: Colors.blue,
+                selected: selected == 'PSP_ONLY',
+                onTap: () => onSelected('PSP_ONLY'),
+              ),
+              _StatChip(
+                label: 'UDISE only',
+                value: udiseOnly,
+                color: Colors.blue,
+                selected: selected == 'UDISE_ONLY',
+                onTap: () => onSelected('UDISE_ONLY'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          // Difference chips also wrap vertically. No horizontal scrolling.
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: [
+              _DiffChip(label: 'Name', value: name),
+              _DiffChip(label: 'DOB', value: dob),
+              _DiffChip(label: 'Father', value: father),
+              _DiffChip(label: 'Mother', value: mother),
+              _DiffChip(label: 'Class', value: classMismatch),
+              _DiffChip(label: 'Gender', value: gender),
+              _DiffChip(label: 'Category', value: category),
+              _DiffChip(label: 'Religion', value: religion),
+              _DiffChip(label: 'Aadhaar ✗', value: aadhaar),
+              _DiffChip(label: 'Aadhaar —', value: aadhaarMissing),
+              _DiffChip(label: 'Mobile', value: mobile),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -851,95 +830,20 @@ class _StudentDetails extends StatelessWidget {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          14,
-          0,
-          14,
-          20,
-        ),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              p?.studentName ??
-                  u?.studentName ??
-                  'Student',
+              p?.studentName ?? u?.studentName ?? 'Student',
               style: const TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 10),
-            _DetailRow(
-              'PSP NIC',
-              p?.nicId ?? '—',
-            ),
-            _DetailRow(
-              'UDISE PEN',
-              u?.studentCodeNat ?? '—',
-            ),
-            _DetailRow(
-              'PSP Name',
-              p?.studentName ?? '—',
-            ),
-            _DetailRow(
-              'UDISE Name',
-              u?.studentName ?? '—',
-            ),
-            _DetailRow(
-              'PSP Father',
-              p?.fatherName ?? '—',
-            ),
-            _DetailRow(
-              'UDISE Father',
-              u?.fatherName ?? '—',
-            ),
-            _DetailRow(
-              'PSP Mother',
-              p?.motherName ?? '—',
-            ),
-            _DetailRow(
-              'UDISE Mother',
-              u?.motherName ?? '—',
-            ),
-            _DetailRow(
-              'PSP DOB',
-              p?.dob ?? '—',
-            ),
-            _DetailRow(
-              'UDISE DOB',
-              u?.dob ?? '—',
-            ),
-            _DetailRow(
-              'PSP Class',
-              p?.studyingClass ?? '—',
-            ),
-            _DetailRow(
-              'UDISE Class',
-              u?.classDesc ?? u?.classId ?? '—',
-            ),
-            _DetailRow(
-              'PSP Mobile',
-              p?.mobile ?? '—',
-            ),
-            _DetailRow(
-              'UDISE Mobile',
-              u?.mobile ?? '—',
-            ),
-            _DetailRow(
-              'PSP Aadhaar',
-              p?.aadhaarLast4.isEmpty == true
-                  ? '—'
-                  : '•••• ${p!.aadhaarLast4}',
-            ),
-            _DetailRow(
-              'UDISE Aadhaar',
-              u?.uuidLast4.isEmpty == true
-                  ? '—'
-                  : '•••• ${u!.uuidLast4}',
-            ),
-            const SizedBox(height: 8),
+            _ComparisonTable(row: row),
+            const SizedBox(height: 10),
             const Text(
               'Differences',
               style: TextStyle(
@@ -954,10 +858,7 @@ class _StudentDetails extends StatelessWidget {
               children: row.diffs
                   .map(
                     (e) => _MiniBadge(
-                      text: e.replaceAll(
-                        '_',
-                        ' ',
-                      ),
+                      text: e.replaceAll('_', ' '),
                     ),
                   )
                   .toList(),
@@ -969,47 +870,222 @@ class _StudentDetails extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
+class _ComparisonTable extends StatelessWidget {
+  final ComparisonRow row;
 
-  const _DetailRow(
-    this.label,
-    this.value,
-  );
+  const _ComparisonTable({required this.row});
+
+  bool _isDiff(String key) {
+    return row.diffs.contains(key);
+  }
+
+  String _pspValue(String key) {
+    final p = row.psp;
+    if (p == null) return '—';
+    switch (key) {
+      case 'NIC / PEN':
+        return p.nicId.isEmpty ? '—' : p.nicId;
+      case 'Name':
+        return p.studentName.isEmpty ? '—' : p.studentName;
+      case 'Father':
+        return p.fatherName.isEmpty ? '—' : p.fatherName;
+      case 'Mother':
+        return p.motherName.isEmpty ? '—' : p.motherName;
+      case 'DOB':
+        return p.dob.isEmpty ? '—' : p.dob;
+      case 'Gender':
+        return p.gender.isEmpty ? '—' : p.gender;
+      case 'Class':
+        return p.studyingClass.isEmpty ? '—' : p.studyingClass;
+      case 'Mobile':
+        return p.mobile.isEmpty ? '—' : p.mobile;
+      case 'Aadhaar':
+        return p.aadhaarLast4.isEmpty ? '—' : '•••• ${p.aadhaarLast4}';
+      case 'Category':
+        return p.socialCategory.isEmpty ? '—' : p.socialCategory;
+      case 'Religion':
+        return p.religion.isEmpty ? '—' : p.religion;
+      default:
+        return '—';
+    }
+  }
+
+  String _udiseValue(String key) {
+    final u = row.udise;
+    if (u == null) return '—';
+    switch (key) {
+      case 'NIC / PEN':
+        return u.studentCodeNat.isEmpty ? '—' : u.studentCodeNat;
+      case 'Name':
+        return u.studentName.isEmpty ? '—' : u.studentName;
+      case 'Father':
+        return u.fatherName.isEmpty ? '—' : u.fatherName;
+      case 'Mother':
+        return u.motherName.isEmpty ? '—' : u.motherName;
+      case 'DOB':
+        return u.dob.isEmpty ? '—' : u.dob;
+      case 'Gender':
+        return u.gender.isEmpty ? '—' : u.gender;
+      case 'Class':
+        return u.classDesc.isNotEmpty ? u.classDesc : (u.classId.isEmpty ? '—' : u.classId);
+      case 'Mobile':
+        return u.mobile.isEmpty ? '—' : u.mobile;
+      case 'Aadhaar':
+        return u.uuidLast4.isEmpty ? '—' : '•••• ${u.uuidLast4}';
+      case 'Category':
+        return u.socialCategory.isEmpty ? '—' : u.socialCategory;
+      case 'Religion':
+        return u.religion.isEmpty ? '—' : u.religion;
+      default:
+        return '—';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 3,
+    const fields = [
+      'NIC / PEN',
+      'Name',
+      'Father',
+      'Mother',
+      'DOB',
+      'Gender',
+      'Class',
+      'Mobile',
+      'Aadhaar',
+      'Category',
+      'Religion',
+    ];
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: const Row(
+                children: [
+                  SizedBox(
+                    width: 62,
+                    child: Text(
+                      'FIELD',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'PSP',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'UDISE',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...fields.map((field) {
+              final diffKey = switch (field) {
+                'NIC / PEN' => null,
+                'Name' => 'NAME_MISMATCH',
+                'Father' => 'FATHER_MISMATCH',
+                'Mother' => 'MOTHER_MISMATCH',
+                'DOB' => 'DOB_MISMATCH',
+                'Gender' => 'GENDER_MISMATCH',
+                'Class' => 'CLASS_MISMATCH',
+                'Mobile' => 'MOBILE_MISMATCH',
+                'Aadhaar' => 'AADHAAR_MISMATCH',
+                'Category' => 'CATEGORY_MISMATCH',
+                'Religion' => 'RELIGION_MISMATCH',
+                _ => null,
+              };
+              final different = diffKey != null && _isDiff(diffKey);
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 62,
+                      child: Text(
+                        field,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _ValueCell(
+                        value: _pspValue(field),
+                        mismatch: different,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _ValueCell(
+                        value: _udiseValue(field),
+                        mismatch: different,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
-      child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 105,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
+    );
+  }
+}
+
+class _ValueCell extends StatelessWidget {
+  final String value;
+  final bool mismatch;
+
+  const _ValueCell({
+    required this.value,
+    required this.mismatch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: mismatch ? scheme.errorContainer.withValues(alpha: .55) : null,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        value,
+        softWrap: true,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: mismatch ? FontWeight.w700 : FontWeight.w500,
+          color: mismatch ? scheme.onErrorContainer : scheme.onSurface,
+        ),
       ),
     );
   }
