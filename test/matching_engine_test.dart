@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/matching/matching_engine.dart';
-import '../lib/matching/models.dart';
+import 'package:student_comparison/matching/matching_engine.dart';
+import 'package:student_comparison/matching/models.dart';
 
 PspStudent psp({
   String nic = 'P001',
