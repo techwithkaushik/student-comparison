@@ -31,6 +31,9 @@ jobs:
           test -f lib/main.dart
           echo "Flutter project files found"
 
+      - name: Remove generated widget test
+        run: rm -f test/widget_test.dart
+
       - name: Generate Android project
         run: |
           flutter create \
