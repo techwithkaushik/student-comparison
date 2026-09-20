@@ -103,7 +103,7 @@ void main() {
 
       expect(
         rows.first.type,
-        MatchType.matched,
+        MatchType.mismatch,
       );
 
       expect(
