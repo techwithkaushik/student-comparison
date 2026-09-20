@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="hi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PSP ↔ UDISE Student Compare</title>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f8;
+            color: #17202a;
+            font-size: 20px
+        }
+
+        .wrap {
+            max-width: 1600px;
+            margin: auto;
+            padding: 16px
+        }
+
+        .top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 26px
+        }
+
+        .title p {
+            margin: 6px 0;
+            color: #68737d
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #dde2e7;
+            border-radius: 12px;
+            padding: 13px;
+            margin: 11px 0;
+            box-shadow: 0 2px 8px #00000008
+        }
+
+        .imports {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        .imp {
+            border: 1px dashed #b8c1ca;
+            padding: 13px;
+            border-radius: 10px
+        }
+
+        .imp h3 {
+            margin: 0 0 7px
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 9px 13px;
+            font-size: 18px;
+            background: #1769aa;
+            color: #fff;
+            cursor: pointer
+        }
+
+        .btn.secondary {
+            background: #5d6872
+        }
+
+        .btn.green {
+            background: #248a45
+        }
+
+        .btn.warn {
+            background: #a46a00
+        }
+
+        .btn:disabled {
+            opacity: .55;
+            cursor: not-allowed
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 7px
+        }
+
+        .stat {
+            padding: 10px;
+            border-radius: 9px;
+            background: #f7f8fa;
+            border: 1px solid #e1e5e8;
+            cursor: pointer
+        }
+
+        .stat b {
+            font-size: 22px;
+            display: block
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .toolbar input,
+        .toolbar select {
+            padding: 9px;
+            font-size: 18px;
+            border: 1px solid #ccd3d9;
+            border-radius: 8px
+        }
+
+        .toolbar input {
+            min-width: 230px
+        }
+
+        .tablewrap {
+            overflow: auto;
+            max-height: 70vh
+        }
+
+        .compare {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 18px
+        }
+
+        .compare th,
+        .compare td {
+            border-bottom: 1px solid #e4e7ea;
+            padding: 9px;
+            text-align: left;
+            vertical-align: top
+        }
+
+        .compare th {
+            position: sticky;
+            top: 0;
+            background: #eef2f5;
+            z-index: 2
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 5px
+        }
+
+        .filter-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            flex: 1 1 100%;
+            margin-top: 4px
+        }
+
+        .filter-badge {
+            border: 1px solid #d7dde2;
+            background: #f7f8fa;
+            color: #3d4650;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .12s ease
+        }
+
+        .filter-badge:hover {
+            transform: translateY(-1px);
+            border-color: #9eabb6
+        }
+
+        .filter-badge.active {
+            background: #1769aa;
+            color: #fff;
+            border-color: #1769aa
+        }
+
+        .filter-badge .count {
+            opacity: .8;
+            margin-left: 4px
+        }
+
+        .matched {
+            color: #176b31;
+            background: #eaf7ee
+        }
+
+        .mismatch {
+            color: #805b00;
+            background: #fff7dc
+        }
+
+        .possible {
+            color: #165a93;
+            background: #e8f3fc
+        }
+
+        .missing {
+            color: #9a2020;
+            background: #fdecec
+        }
+
+        .muted {
+            color: #7b858e
+        }
+
+        .diff {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px
+        }
+
+        .diff span {
+            background: #f3f4f6;
+            border: 1px solid #ddd;
+            padding: 3px 6px;
+            border-radius: 5px;
+            font-size: 18px
+        }
+
+        .two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px
+        }
+
+        .student {
+            min-width: 260px
+        }
+
+        .field-mismatch {
+            color: #a31313;
+            font-weight: 600
+        }
+
+        .field-missing {
+            color: #805b00;
+            font-weight: 600
+        }
+
+        .student strong {
+            display: block
+        }
+
+        .small {
+            font-size: 14px
+        }
+
+        .msg {
+            margin-top: 7px;
+            color: #1769aa;
+            white-space: pre-wrap
+        }
+
+        .err {
+            color: #9a2020
+        }
+
+        .ok {
+            color: #176b31
+        }
+
+        .progress {
+            height: 5px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 7px
+        }
+
+        .progress i {
+            display: block;
+            width: 0;
+            height: 100%;
+            background: #1769aa;
+            transition: width .2s
+        }
+
+        .remark-box {
+            margin-top: 9px;
+            padding-top: 7px;
+            border-top: 1px dashed #d5dadd
+        }
+
+        .remark-box textarea {
+            width: 100%;
+            min-height: 58px;
+            padding: 7px;
+            border: 1px solid #ccd3d9;
+            border-radius: 7px;
+            font: 16px Arial;
+            resize: vertical
+        }
+
+        .remark-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 5px;
+            flex-wrap: wrap
+        }
+
+        .remark-actions .btn {
+            padding: 5px 9px;
+            font-size: 18px
+        }
+
+        .remark-status {
+            font-size: 18px
+        }
+
+        .confidence {
+            font-size: 18px;
+            margin-top: 3px
+        }
+
+        @media(max-width:1100px) {
+            .stats {
+                grid-template-columns: repeat(4, 1fr)
+            }
+        }
+
+        @media(max-width:800px) {
+
+            .imports,
+            .two {
+                grid-template-columns: 1fr
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .title h1 {
+                font-size: 22px
+            }
+
+            .toolbar input {
+                min-width: 100%
+            }
+        }
+
+        .detail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .58);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            z-index: 9999
+        }
+
+        .detail-overlay.open {
+            display: flex
+        }
+
+        .detail-dialog {
+            width: min(1100px, 100%);
+            max-height: 92vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 60px #00000040
+        }
+
+        .detail-head {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #fff;
+            border-bottom: 1px solid #e1e5e8;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px
+        }
+
+        .detail-head h2 {
+            margin: 0;
+            font-size: 22px
+        }
+
+        .detail-close {
+            border: 0;
+            background: #eef2f5;
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            font-size: 24px;
+            cursor: pointer
+        }
+
+        .detail-body {
+            padding: 14px 16px 20px
+        }
+
+        .detail-source {
+            border: 1px solid #dde2e7;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0
+        }
+
+        .detail-source h3 {
+            margin: 0;
+            padding: 10px 12px;
+            background: #f4f6f8;
+            font-size: 18px
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+
+        .detail-field {
+            padding: 9px 11px;
+            border-top: 1px solid #edf0f2;
+            min-width: 0
+        }
+
+        .detail-field:nth-child(odd) {
+            border-right: 1px solid #edf0f2
+        }
+
+        .detail-label {
+            color: #68737d;
+            font-size: 18px;
+            margin-bottom: 3px
+        }
+
+        .detail-value {
+            font-size: 18px;
+            white-space: pre-wrap;
+            word-break: break-word
+        }
+
+        .detail-diff {
+            background: #fff8e1
+        }
+
+        .student.clickable {
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 5px
+        }
+
+        .student.clickable:hover {
+            background: #f4f8fb;
+            box-shadow: inset 0 0 0 1px #d9e5ee
+        }
+
+        .tap-hint {
+            font-size: 14px;
+            color: #1769aa;
+            margin-top: 5px
+        }
+
+        @media(max-width:700px) {
+            .detail-grid {
+                grid-template-columns: 1fr
+            }
+
+            .detail-field:nth-child(odd) {
+                border-right: 0
+            }
+
+            .detail-dialog {
+                max-height: 95vh
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="top">
+            <div class="title">
+                <h1>PSP ↔ UDISE Student Data Comparator</h1>
+                <p><b>PSP data authoritative है</b> — UDISE को PSP के हिसाब से जाँचा जाता है।</p>
+            </div>
+            <div>
+                <button id="compareBtn" class="btn green" onclick="compare()">🔄 Compare Now</button>
+                <button class="btn secondary" onclick="location.href='/api/backup'">💾 Backup DB</button>
+            </div>
+        </div>
+
+        <div class="card imports">
+            <div class="imp">
+                <h3>1. PSP Student Data</h3>
+                <div class="small">PSP JSON report import करें — सभी source fields DB में अलग columns में save होंगे।</div>
+                <input id="pspFile" type="file" accept=".json,application/json">
+                <button id="pspBtn" class="btn" onclick="imp('psp')">Import PSP</button>
+                <div id="pspMsg" class="msg"></div>
+                <div class="progress"><i id="pspProg"></i></div>
+            </div>
+            <div class="imp">
+                <h3>2. UDISE Data</h3>
+                <div class="small">UDISE API JSON — <b>{ data: [...] }</b> भी supported है। सभी source fields DB में अलग columns में save होंगे।</div>
+                <input id="udFile" type="file" accept=".json,application/json">
+                <button id="udBtn" class="btn" onclick="imp('udise')">Import UDISE</button>
+                <div id="udMsg" class="msg"></div>
+                <div class="progress"><i id="udProg"></i></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="stats" id="stats"></div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <input id="q" placeholder="नाम / पिता / माता / NIC / PEN / SR / Mobile" autocomplete="off">
+                <button class="btn" id="searchBtn" type="button">🔎 Search</button>
+                <!-- 🎓 Dynamic Class Filter Dropdown -->
+                <select id="classFilter">
+                    <option value="">All Classes (सभी कक्षाएं)</option>
+                    <option value="1">Class 1</option>
+                    <option value="2">Class 2</option>
+                    <option value="3">Class 3</option>
+                    <option value="4">Class 4</option>
+                    <option value="5">Class 5</option>
+                    <option value="6">Class 6</option>
+                    <option value="7">Class 7</option>
+                    <option value="8">Class 8</option>
+                </select>
+
+                <select id="filter" aria-label="Mismatch filter">
+                    <option value="ALL">सभी</option>
+                    <option value="MATCHED">✓ Matched</option>
+                    <option value="MISMATCH">⚠ Mismatch</option>
+                    <option value="NAME_MISMATCH">Name mismatch</option>
+                    <option value="DOB_MISMATCH">DOB mismatch</option>
+                    <option value="FATHER_MISMATCH">Father mismatch</option>
+                    <option value="MOTHER_MISMATCH">Mother mismatch</option>
+                    <option value="CLASS_MISMATCH">Class mismatch</option>
+                    <option value="GENDER_MISMATCH">Gender mismatch</option>
+                    <option value="CATEGORY_MISMATCH">Category mismatch</option>
+                    <option value="RELIGION_MISMATCH">Religion mismatch</option>
+                    <option value="AADHAAR_MISMATCH">Aadhaar mismatch</option>
+                    <option value="AADHAAR_NOT_FOUND">Aadhaar not found</option>
+                    <option value="MOBILE_MISMATCH">Mobile mismatch</option>
+                    <option value="MOBILE_NOT_FOUND">Mobile not found</option>
+                    <option value="POSSIBLE_MATCH">Possible review</option>
+                    <option value="NOT_IN_UDISE">PSP only</option>
+                    <option value="NOT_IN_PSP">UDISE only</option>
+                </select>
+                <div id="filterBadges" class="filter-badges" aria-label="Quick filters"></div>
+                <div id="classBadges" class="filter-badges class-badges" aria-label="Class filters"></div>
+                <b class="stat" id="filterCount">0</b>
+                <button class="btn secondary" onclick="load(true)">Refresh</button>
+                <button class="btn" id="exportBtn">⬇️ Export Current CSV</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tablewrap">
+                <table class="compare">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>PSP — Correct Data</th>
+                            <th>UDISE — Current Data</th>
+                            <th>Differences / Review</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <tr>
+                            <td colspan="4" class="muted">पहले दोनों JSON import करें और Compare Now दबाएँ।</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailOverlay" class="detail-overlay" onclick="closeDetail(event)">
+        <div class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+            <div class="detail-head">
+                <h2 id="detailTitle">Student Details</h2><button class="detail-close" onclick="closeDetail()" aria-label="Close">×</button>
+            </div>
+            <div id="detailBody" class="detail-body"></div>
+        </div>
+    </div>
+    <script>
+        let data = [],
+            counts = {};
+
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        } [c]));
+        const js = s => JSON.stringify(String(s ?? ''));
+
+        async function imp(type) {
+            const id = type === 'psp' ? 'psp' : 'ud';
+            const file = document.getElementById(type === 'psp' ? 'pspFile' : 'udFile').files[0];
+            const msg = document.getElementById(id + 'Msg'),
+                btn = document.getElementById(id + 'Btn'),
+                prog = document.getElementById(id + 'Prog');
+            if (!file) {
+                msg.textContent = 'JSON file चुनें';
+                msg.className = 'msg err';
+                return
+            }
+            btn.disabled = true;
+            prog.style.width = '20%';
+            msg.textContent = 'Import हो रहा है…';
+            msg.className = 'msg';
+            try {
+                const fd = new FormData();
+                fd.append('file', file);
+                const r = await fetch('/api/import/' + type, {
+                    method: 'POST',
+                    body: fd
+                });
+                prog.style.width = '80%';
+                const j = await r.json();
+                if (!r.ok) throw new Error(j.error || 'Import failed');
+                msg.className = 'msg ok';
+                msg.textContent = `Imported: ${j.count} / ${j.total} records\nDB columns: ${j.storedFields}\n${j.invalid?`Invalid/Duplicate skipped: ${j.invalid}`:''}`;
+                prog.style.width = '100%';
+                await load(true);
+            } catch (e) {
+                msg.className = 'msg err';
+                msg.textContent = e.message;
+                prog.style.width = '0%'
+            } finally {
+                btn.disabled = false
+            }
+        }
+
+// =========================================================
+        // CLIENT STATE & FILTERING
+        // =========================================================
+        let cachedMasterRecords = [];
+        let cachedCounts = {};
+        let activeSearch = '';
+
+        const filterEl = document.getElementById('filter');
+        const filterBadgesEl = document.getElementById('filterBadges');
+        const classBadgesEl = document.getElementById('classBadges');
+        const classFilterEl = document.getElementById('classFilter');
+        const searchEl = document.getElementById('q');
+        const searchBtnEl = document.getElementById('searchBtn');
+
+        function norm(v) {
+            return String(v ?? '')
+                .trim()
+                .toUpperCase()
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function buildClientSearchIndex(rows) {
+            for (const row of rows) {
+                const p = row.psp || {};
+                const u = row.udise || {};
+                row._searchText = norm([
+                    p.psp_nic_id, p.sr_no, p.student_name, p.father_name,
+                    p.mother_name, p.mobile, p.aadhaar_last4, p.studying_class,
+                    p.social_category, p.religion,
+                    u.student_id, u.student_code_nat, u.student_name,
+                    u.father_name, u.mother_name, u.mobile, u.uuid_last4,
+                    u.class_id, u.class_desc, u.social_category, u.religion
+                ].filter(Boolean).join(' '));
+            }
+            return rows;
+        }
+
+        function localClassNum(v) {
+            if (!v) return null;
+            const x = String(v).trim().toUpperCase()
+                .replace(/^(CLASS|GRADE)\s*/, '').replace(/\./g, '').trim();
+            const map = {
+                I:1,FIRST:1,II:2,SECOND:2,III:3,THIRD:3,IV:4,FOURTH:4,
+                V:5,FIFTH:5,VI:6,SIXTH:6,VII:7,SEVENTH:7,
+                VIII:8,EIGHT:8,EIGHTH:8
+            };
+            if (/^\d+$/.test(x)) return Number(x);
+            return map[x] !== undefined ? map[x] : x;
+        }
+
+        function localClassCanon(v) {
+            const n = localClassNum(v);
+            return n === null ? String(v).trim().toUpperCase() : String(n);
+        }
+
+        function matchesActiveFilters(row) {
+            const filter = filterEl.value || 'ALL';
+            const classValue = classFilterEl.value || '';
+
+            if (filter !== 'ALL' &&
+                row.type !== filter &&
+                !(row.diffs || []).includes(filter)) return false;
+
+            if (classValue) {
+                const wanted = localClassCanon(classValue);
+                const pClass = row.psp ? localClassCanon(row.psp.studying_class) : '';
+                const uClass = row.udise ? localClassCanon(row.udise.class_desc || row.udise.class_id) : '';
+                if (pClass !== wanted && uClass !== wanted) return false;
+            }
+
+            return !activeSearch || row._searchText?.includes(activeSearch);
+        }
+
+        function applyClientSideFilters() {
+            data = cachedMasterRecords.filter(matchesActiveFilters);
+            render();
+        }
+
+        async function load(force = false) {
+            try {
+                const statsPromise = fetch('/api/stats').then(r => r.json());
+
+                if (force || cachedMasterRecords.length === 0) {
+                    document.getElementById('tbody').innerHTML =
+                        '<tr><td colspan="4" class="muted">Loading comparison data…</td></tr>';
+
+                    const response = await fetch('/api/compare');
+                    const result = await response.json();
+
+                    if (!response.ok || result.error) {
+                        throw new Error(result.error || 'Comparison load failed');
+                    }
+
+                    cachedMasterRecords = buildClientSearchIndex(result.rows || []);
+                    cachedCounts = result.counts || {};
+                }
+
+                renderStats(await statsPromise);
+                applyClientSideFilters();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('tbody').innerHTML =
+                    `<tr><td colspan="4" class="err">${esc(e.message)}</td></tr>`;
+            }
+        }
+
+        function performSearch() {
+            activeSearch = norm(searchEl.value || '');
+            applyClientSideFilters();
+        }
+
+        searchBtnEl.addEventListener('click', performSearch);
+        searchEl.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+
+        filterEl.addEventListener('change', () => {
+            renderFilterBadges();
+            applyClientSideFilters();
+        });
+        classFilterEl.addEventListener('change', () => { renderClassBadges(); applyClientSideFilters(); });
+
+        function renderStats(s) {
+            const items = [
+                ['PSP', s.psp ?? '-', 'ALL'],
+                ['UDISE', s.udise ?? '-', 'ALL'],
+                ['MATCHED', cachedCounts.MATCHED || 0, 'MATCHED'],
+                ['MISMATCH', cachedCounts.MISMATCH || 0, 'MISMATCH'],
+                ['POSSIBLE', cachedCounts.POSSIBLE_MATCH || 0, 'POSSIBLE_MATCH'],
+                ['PSP Missing UDISE', cachedCounts.NOT_IN_UDISE || 0, 'NOT_IN_UDISE'],
+                ['UDISE Extra', cachedCounts.NOT_IN_PSP || 0, 'NOT_IN_PSP'],
+                ['Aadhaar Issues', (cachedCounts.AADHAAR_MISMATCH || 0) + (cachedCounts.AADHAAR_NOT_FOUND || 0), 'AADHAAR_MISMATCH']
+            ];
+
+            document.getElementById('stats').innerHTML = items.map(x => `
+                <div class="stat" data-filter-value="${x[2]}">
+                    <div style="font-size:20px;color:#666;font-weight:bold;text-transform:uppercase">${esc(x[0])}</div>
+                    <div style="font-size:20px;font-weight:bold;color:#111;margin-top:4px">${esc(x[1])}</div>
+                </div>
+            `).join('');
+
+            renderFilterBadges();
+            renderClassBadges();
+        }
+
+        function renderFilterBadges() {
+            const filters = [
+                ['ALL', 'All', cachedMasterRecords.length],
+                ['MATCHED', '✓ Matched', cachedCounts.MATCHED],
+                ['MISMATCH', '⚠ Mismatch', cachedCounts.MISMATCH],
+                ['NAME_MISMATCH', 'Name', cachedCounts.NAME_MISMATCH],
+                ['DOB_MISMATCH', 'DOB', cachedCounts.DOB_MISMATCH],
+                ['FATHER_MISMATCH', 'Father', cachedCounts.FATHER_MISMATCH],
+                ['MOTHER_MISMATCH', 'Mother', cachedCounts.MOTHER_MISMATCH],
+                ['CLASS_MISMATCH', 'Class', cachedCounts.CLASS_MISMATCH],
+                ['GENDER_MISMATCH', 'Gender', cachedCounts.GENDER_MISMATCH],
+                ['CATEGORY_MISMATCH', 'Category', cachedCounts.CATEGORY_MISMATCH],
+                ['RELIGION_MISMATCH', 'Religion', cachedCounts.RELIGION_MISMATCH],
+                ['AADHAAR_MISMATCH', 'Aadhaar ✗', cachedCounts.AADHAAR_MISMATCH],
+                ['AADHAAR_NOT_FOUND', 'Aadhaar —', cachedCounts.AADHAAR_NOT_FOUND],
+                ['MOBILE_MISMATCH', 'Mobile ✗', cachedCounts.MOBILE_MISMATCH],
+                ['MOBILE_NOT_FOUND', 'Mobile —', cachedCounts.MOBILE_NOT_FOUND],
+                ['POSSIBLE_MATCH', 'Possible Review', cachedCounts.POSSIBLE_MATCH],
+                ['NOT_IN_UDISE', 'PSP only', cachedCounts.NOT_IN_UDISE],
+                ['NOT_IN_PSP', 'UDISE only', cachedCounts.NOT_IN_PSP]
+            ];
+
+            const active = filterEl.value || 'ALL';
+            filterBadgesEl.innerHTML = filters.map(([value, label, count]) => `
+                <button type="button" class="filter-badge ${active === value ? 'active' : ''}"
+                        data-filter-value="${esc(value)}">
+                    ${esc(label)} <span class="count">${Number(count || 0)}</span>
+                </button>
+            `).join('');
+
+            // Buttons are handled by one delegated listener below.
+
+        }
+
+        filterBadgesEl.addEventListener('click', e => {
+            const button = e.target.closest('button[data-filter-value]');
+            if (!button || !filterBadgesEl.contains(button)) return;
+            e.preventDefault();
+            setFilter(button.dataset.filterValue || 'ALL');
+        });
+
+        function renderClassBadges() {
+            const classCounts = new Map();
+            for (const row of cachedMasterRecords) {
+                const value = row.psp?.studying_class;
+                if (!value) continue;
+                const key = localClassCanon(value);
+                classCounts.set(key, (classCounts.get(key) || 0) + 1);
+            }
+
+            const classes = [...classCounts.entries()].sort((a, b) => {
+                const na = Number(a[0]), nb = Number(b[0]);
+                if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+                return String(a[0]).localeCompare(String(b[0]));
+            });
+
+            const active = classFilterEl.value || '';
+            classBadgesEl.innerHTML = [
+                `<button type="button" class="filter-badge ${!active ? 'active' : ''}" data-class-value="">All Classes <span class="count">${cachedMasterRecords.length}</span></button>`,
+                ...classes.map(([value, count]) => `
+                    <button type="button" class="filter-badge ${active === String(value) ? 'active' : ''}" data-class-value="${esc(value)}">
+                        Class ${esc(value)} <span class="count">${count}</span>
+                    </button>`)
+            ].join('');
+        }
+
+        // Class badges are also rebuilt dynamically, so keep their delegated
+        // handler separate from the filter badges above.
+        classBadgesEl.addEventListener('click', e => {
+            const button = e.target.closest('[data-class-value]');
+            if (!button) return;
+            classFilterEl.value = button.dataset.classValue || '';
+            renderClassBadges();
+            applyClientSideFilters();
+        });
+
+        document.getElementById('stats').addEventListener('click', e => {
+            const card = e.target.closest('[data-filter-value]');
+            if (!card) return;
+            setFilter(card.dataset.filterValue);
+        });
+
+// Intermediary event bridge function to parse properties safely
+function handleBadgeClick(element) {
+    const filterValue = element.getAttribute('data-filter-value');
+    if (filterValue) {
+        setFilter(filterValue);
+    }
+}
+
+function setFilter(v) {
+    const value = String(v || 'ALL');
+    const option = Array.from(filterEl.options).find(o => o.value === value);
+    filterEl.value = option ? value : 'ALL';
+    renderFilterBadges();
+    applyClientSideFilters();
+}
+
+        function badge(t) {
+            const c = t === 'MATCHED' ? 'matched' : t === 'MISMATCH' ? 'mismatch' : t === 'POSSIBLE_MATCH' ? 'possible' : 'missing';
+            const txt = {
+                MATCHED: 'MATCHED',
+                MISMATCH: 'MISMATCH',
+                POSSIBLE_MATCH: 'POSSIBLE MATCH',
+                CATEGORY_MISMATCH: 'CATEGORY_MISMATCH',
+                RELIGION_MISMATCH: 'RELIGION_MISMATCH',
+                NOT_IN_UDISE: 'NOT IN UDISE',
+                NOT_IN_PSP: 'NOT IN PSP'
+            } [t] || t;
+            return `<span class="badge ${c}">${esc(txt)}</span>`;
+        }
+
+        function aadhaarBadge(x, ud) {
+            if (!x) return '';
+            const v = ud ? x.uuid_last4 : x.aadhaar_last4;
+            if (!v) return '<span class="badge missing">AADHAAR NOT FOUND</span>';
+            let html = `<span class="badge possible">AADHAAR ****${esc(v)}</span>`;
+            if (ud) {
+                const st = Number(x.uuidStatus ?? x.uuid_status ?? 0);
+                const labels = {
+                    1: '✓',
+                    2: '✗',
+                    0: '•'
+                };
+                if (labels[st]) html += ` <span class="badge ${st===1?'matched':st===2?'missing':'possible'}">${labels[st]}</span>`;
+                const n = String(x.name_as_uuid ?? '').trim();
+                if ((st === 1 || st === 2) && n) html += `<span class="small"><br>Name in Aadhaar: <b>${esc(n)}</b></span>`;
+            }
+            return html;
+        }
+
+        function displayValue(v) {
+            if (v === null || v === undefined || v === '') return '—';
+            if (typeof v === 'object') {
+                try {
+                    return JSON.stringify(v, null, 2)
+                } catch {}
+            }
+            return String(v);
+        }
+
+        function sourceFields(obj, ud, diffs) {
+            if (!obj) return '';
+            const raw = obj.raw && typeof obj.raw === 'object' ? obj.raw : obj;
+            const bad = new Set(diffs || []);
+            const map = ud ?
+                {
+                    studentName: 'NAME_MISMATCH',
+                    fatherName: 'FATHER_MISMATCH',
+                    motherName: 'MOTHER_MISMATCH',
+                    dob: 'DOB_MISMATCH',
+                    classId: 'CLASS_MISMATCH',
+                    classDesc: 'CLASS_MISMATCH',
+                    gender: 'GENDER_MISMATCH',
+                    genderDesc: 'GENDER_MISMATCH',
+                    primaryMobile: 'MOBILE_MISMATCH',
+                    secondaryMobile: 'MOBILE_MISMATCH',
+                    uuid: 'AADHAAR_MISMATCH',
+                    socCatId: 'CATEGORY_MISMATCH',
+                    minorityId: 'RELIGION_MISMATCH'
+                } :
+                {
+                    'Student Name': 'NAME_MISMATCH',
+                    'Father Name': 'FATHER_MISMATCH',
+                    'Mother Name': 'MOTHER_MISMATCH',
+                    'DOB': 'DOB_MISMATCH',
+                    'Studying in Class': 'CLASS_MISMATCH',
+                    'Gender': 'GENDER_MISMATCH',
+                    'Mobile Number': 'MOBILE_MISMATCH',
+                    'Aadhar Number': 'AADHAAR_MISMATCH',
+                    'Social Category': 'CATEGORY_MISMATCH',
+                    'Religion': 'RELIGION_MISMATCH'
+                };
+            return Object.entries(raw).map(([key, value]) => {
+                const extra = map[key] && bad.has(map[key]) ? ' detail-diff' : '';
+                return `<div class="detail-field${extra}"><div class="detail-label">${esc(key)}</div><div class="detail-value">${esc(displayValue(value))}</div></div>`;
+            }).join('');
+        }
+
+// ==========================================================
+// 1. DATA CARD WRAPPER (Saves entire row snapshot as Base64)
+// ==========================================================
+function card(x, ud, d, fullRowObject) {
+    if (!x) return '<div class="muted">—</div>';
+    const bad = new Set(d || []);
+    const cls = k => bad.has(k) ? 'field field-mismatch' : 'field';
+    const side = ud ? 'UDISE' : 'PSP';
+
+    const rowKey = fullRowObject.psp?.psp_nic_id || fullRowObject.udise?.student_code_nat || '';
+
+    return `<div class="student clickable" role="button" tabindex="0"
+            onclick="openDetailByKey(this, '${side}')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openDetailByKey(this, '${side}')}"
+            data-side="${side}"
+            data-row-key="${esc(rowKey)}">
+            <strong class="${cls('NAME_MISMATCH')}">${esc(x.student_name)}</strong>
+            <div class="${cls('FATHER_MISMATCH')}"><b>Father:</b> ${esc(x.father_name)}</div>
+            <div class="${cls('MOTHER_MISMATCH')}"><b>Mother:</b> ${esc(x.mother_name)}</div>
+            <div class="${cls('DOB_MISMATCH')}"><b>DOB:</b> ${esc(x.dob)}</div>
+            <div class="${cls('CLASS_MISMATCH')}"><b>Class:</b> ${esc(ud?x.class_desc:x.studying_class)}</div>
+            <div class="${cls('GENDER_MISMATCH')}"><b>Gender:</b> ${esc(x.gender)}</div>
+            <div class="${cls('CATEGORY_MISMATCH')}"><b>Category:</b> ${esc(x.social_category)}</div>
+            <div class="${cls('RELIGION_MISMATCH')}"><b>Religion:</b> ${esc(x.religion)}</div>
+            <div>${!ud?'<b>NIC ID:</b> '+esc(x.psp_nic_id)+' | <b>SR:</b> '+esc(x.sr_no):'<b>PEN:</b> '+esc(x.student_code_nat)}</div>
+            <div class="${cls('MOBILE_MISMATCH')}"><b>Mobile:</b> ${esc(x.mobile)}</div>
+            <div>${aadhaarBadge(x,ud)}</div>
+            </div>`;
+}
+
+// ==========================================================
+// 2. STABLE ID-BASED ELEMENT PAYLOAD DECODER
+// ==========================================================
+function openDetailByKey(element, activeSide) {
+    const rowKey = element.getAttribute('data-row-key');
+    if (!rowKey) return;
+
+    const row = data.find(x =>
+        (x.psp?.psp_nic_id || x.udise?.student_code_nat || '') === rowKey
+    );
+
+    if (row) renderDetailModal(row, activeSide);
+}
+
+// ==========================================================
+// 3. TARGET OVERLAY POPUP DOM POPULATION (Strict Mismatch Cards)
+// ==========================================================
+function renderDetailModal(row, activeSide) {
+    const modal = document.getElementById('detailModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    if (!modal || !modalBody) {
+        console.error("Modal component target wrapper keys missing in document outline!");
+        return;
+    }
+
+    modalTitle.innerHTML = `${activeSide} Student Profile Review — <span class="badge-${row.type}">${row.type}</span>`;
+    
+    const flags = new Set(row.diffs || []);
+    const themeColor = activeSide === 'PSP' ? '#0056b3' : '#28a745';
+
+    const buildDynamicGrid = (rawDataObject, isUdise) => {
+        if (!rawDataObject) return '<p class="muted" style="color:#777; font-style:italic;">No profile data context found.</p>';
+        
+        let htmlBuffer = `
+            <style>
+                .modal-data-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+                @media (min-width: 768px) { .modal-data-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+            </style>
+            <div class="modal-data-grid" style="max-height: 460px; overflow-y: auto; padding: 10px 5px;">`;
+        
+        for (const [key, value] of Object.entries(rawDataObject)) {
+            // Trim down column keys to run safe exact comparisons
+            const cleanKey = key.trim();
+            let isMismatch = false;
+
+            // STRICT MAP ARCHITECTURE: Pin warning flags strictly to their exact single field keys
+            if (isUdise) {
+                if (cleanKey === 'studentName') isMismatch = flags.has('NAME_MISMATCH');
+                else if (cleanKey === 'fatherName') isMismatch = flags.has('FATHER_MISMATCH');
+                else if (cleanKey === 'motherName') isMismatch = flags.has('MOTHER_MISMATCH');
+                else if (cleanKey === 'dob') isMismatch = flags.has('DOB_MISMATCH');
+                else if (cleanKey === 'classId' || cleanKey === 'classDesc') isMismatch = flags.has('CLASS_MISMATCH');
+                else if (cleanKey === 'gender' || cleanKey === 'genderDesc') isMismatch = flags.has('GENDER_MISMATCH');
+                else if (cleanKey === 'primaryMobile') isMismatch = flags.has('MOBILE_MISMATCH');
+                else if (cleanKey === 'uuid') isMismatch = flags.has('AADHAAR_MISMATCH');
+                else if (cleanKey === 'socCatId') isMismatch = flags.has('CATEGORY_MISMATCH');
+                else if (cleanKey === 'minorityId') isMismatch = flags.has('RELIGION_MISMATCH');
+            } else {
+                if (cleanKey === 'Student Name') isMismatch = flags.has('NAME_MISMATCH');
+                else if (cleanKey === 'Father Name') isMismatch = flags.has('FATHER_MISMATCH');
+                else if (cleanKey === 'Mother Name') isMismatch = flags.has('MOTHER_MISMATCH');
+                else if (cleanKey === 'DOB') isMismatch = flags.has('DOB_MISMATCH');
+                else if (cleanKey === 'Studying in Class') isMismatch = flags.has('CLASS_MISMATCH');
+                else if (cleanKey === 'Gender') isMismatch = flags.has('GENDER_MISMATCH');
+                else if (cleanKey === 'Mobile Number') isMismatch = flags.has('MOBILE_MISMATCH');
+                else if (cleanKey === 'Aadhar Number') isMismatch = flags.has('AADHAAR_MISMATCH');
+                else if (cleanKey === 'Social Categiry') isMismatch = flags.has('CATEGORY_MISMATCH');
+                else if (cleanKey === 'Religion') isMismatch = flags.has('RELIGION_MISMATCH');
+            }
+
+            const cellBorder = isMismatch ? 'border: 1px solid #dc3545; border-left: 5px solid #dc3545; background-color: #fff5f5;' : 'border: 1px solid #eef0f2; background-color: #ffffff;';
+            const labelColor = isMismatch ? '#b31c1c' : '#666';
+            const valueWeight = isMismatch ? 'font-weight: bold; color: #b31c1c;' : 'color: #111;';
+
+            const humanKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            const displayValue = (value === null || value === undefined || String(value).trim() === "") ? '<span style="color:#bbb; font-style:italic;">empty</span>' : esc(value);
+            
+            htmlBuffer += `
+                <div class="grid-card-cell" style="display: flex; flex-direction: column; padding: 10px 14px; border-radius: 6px; font-family: sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,0.01); box-sizing: border-box; ${cellBorder}">
+                    <span style="font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; color: ${labelColor};">
+                        ${esc(humanKey)} ${isMismatch ? '⚠️ Mismatch' : ''}
+                    </span>
+                    <span style="font-size: 18px; word-break: break-word; ${valueWeight}">
+                        ${displayValue}
+                    </span>
+                </div>`;
+        }
+        
+        htmlBuffer += '</div>';
+        return htmlBuffer;
+    };
+
+    const rawPspData = row.psp && row.psp.raw ? row.psp.raw : row.psp;
+    const rawUdiseData = row.udise && row.udise.raw ? row.udise.raw : row.udise;
+    
+    const isUdiseSide = activeSide === 'UDISE';
+    const targetData = isUdiseSide ? rawUdiseData : rawPspData;
+
+    modalBody.innerHTML = `
+        <div class="panel-container" style="border-top: 4px solid ${themeColor}; padding: 12px 0 5px 0; margin-top: 10px;">
+            <h3 style="margin: 0 0 15px 5px; color: ${themeColor}; font-family: sans-serif; font-size: 20px;">
+                Verified ${activeSide} Database Attributes
+            </h3>
+            ${buildDynamicGrid(targetData, isUdiseSide)}
+        </div>
+        
+        <div class="modal-audit-summary" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #6c757d; font-family: sans-serif; font-size: 13px;">
+            <p style="margin: 0 0 5px 0;"><b>Active Conflict Flags:</b> <span style="color: #dc3545; font-weight:bold;">${row.diffs && row.diffs.length ? esc(row.diffs.join(', ')) : 'None (Clean Match)'}</span></p>
+            <p style="margin: 0;"><b>Cross-System Match Confidence Score:</b> <strong style="color: #007bff;">${row.score}%</strong></p>
+        </div>
+    `;
+
+    modal.style.display = 'block';
+}
+
+        function closeDetail(event) {
+            if (event && event.target && event.target.id !== 'detailOverlay') return;
+            document.getElementById('detailOverlay').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeDetail()
+        });
+
+
+        function render() {
+            const rows = data;
+            document.getElementById('filterCount').textContent = rows.length;
+            document.getElementById('tbody').innerHTML = rows.map((x, i) => `
+    <tr data-key="${esc(x.psp?.psp_nic_id||x.udise?.student_code_nat||('row-'+i))}">
+      <td>${badge(x.type)}<div class="confidence">Score: <b>${x.score||0}%</b></div>
+      ${x.matchMethod?`<div class="small muted">${esc(x.matchMethod)}</div>`:''}</td>
+      <td>${card(x.psp,false,x.diffs,x)}</td>
+      <td>${card(x.udise,true,x.diffs,x)}</td>
+      <td>
+        <div class="diff">${(x.diffs||[]).map(d=>`<span>${esc(d==='AADHAAR_NOT_FOUND'?'AADHAAR NOT FOUND':d==='MOBILE_NOT_FOUND'?'MOBILE NOT FOUND':d)}</span>`).join('')}</div>
+        ${x.type==='POSSIBLE_MATCH'?'<div class="small">⚠️ Automatic final match नहीं है। Manually verify करें।</div>':''}
+        <div class="remark-box">
+          <textarea class="remark-text" placeholder="Remark लिखें...">${esc(x.remark?.remark||'')}</textarea>
+          <div class="remark-actions">
+            <select class="review-status">
+              ${['PENDING','VERIFIED','CORRECTION_REQUIRED'].map(s=>`<option value="${s}" ${x.remark?.review_status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('')}
+            </select>
+            <button class="btn secondary" onclick="saveRemark(this)">💾 Save</button>
+            <span class="remark-status"></span>
+          </div>
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="4">कोई record नहीं मिला।</td></tr>';
+        }
+        async function saveRemark(button) {
+            const tr = button.closest('tr'),
+                box = button.closest('.remark-box');
+            const rowKey = tr.dataset.key,
+                row = data.find(x => (x.psp?.psp_nic_id || x.udise?.student_code_nat) === rowKey);
+            if (!row) return;
+            const status = box.querySelector('.remark-status'),
+                remark = box.querySelector('.remark-text').value.trim();
+            const review_status = box.querySelector('.review-status').value;
+            button.disabled = true;
+            status.textContent = 'Saving...';
+            status.className = 'remark-status muted';
+            try {
+                const r = await fetch('/api/remark', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        remark_id: row.remark?.remark_id || null,
+                        psp_nic: row.psp?.psp_nic_id || null,
+                        udise_pen: row.udise?.student_code_nat || null,
+                        remark,
+                        review_status
+                    })
+                });
+                const j = await r.json();
+                if (!r.ok) throw new Error(j.error || 'Remark save failed');
+                row.remark = j;
+                status.textContent = '✓ Saved';
+                status.className = 'remark-status ok';
+                setTimeout(() => status.textContent = '', 2000);
+            } catch (e) {
+                status.textContent = '✗ ' + e.message;
+                status.className = 'remark-status err'
+            } finally {
+                button.disabled = false
+            }
+        }
+
+        function csvCell(v) {
+            return '"' + String(v ?? '').replace(/"/g, '""') + '"'
+        }
+        load();
+    </script>
+<!-- 📊 Master Student Details Review Modal Overlay -->
+<div id="detailModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+    <div style="background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 70%; max-width: 800px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative;">
+        <!-- Close Button -->
+        <span onclick="document.getElementById('detailModal').style.display='none'" style="position: absolute; right: 20px; top: 15px; font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer;">&times;</span>
+        
+        <h2 id="modalTitle" style="margin-top: 0; font-family: sans-serif; color: #333;">Student Comparison Review</h2>
+        <div id="modalBody" style="font-family: sans-serif; line-height: 1.5; color: #444;"></div>
+        
+        <div style="margin-top: 25px; text-align: right;">
+            <button onclick="document.getElementById('detailModal').style.display='none'" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Close Review</button>
+        </div>
+    </div>
+</div>
+
+</body>
+
+</html>
