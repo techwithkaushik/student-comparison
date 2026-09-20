@@ -1,3 +1,4 @@
+cat lib/screens/home_screen.dart
 import 'dart:convert';
 
 import 'comparison_screen.dart';
@@ -24,8 +25,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _loadingPsp = false;
   bool _loadingUdise = false;
+  bool _restoring = true;
 
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSavedData();
+  }
+
+  Future<void> _restoreSavedData() async {
+    try {
+      final db = AppDatabase.instance;
+
+      final pspRows = await db.loadPspRows();
+      final udiseRows = await db.loadUdiseRows();
+
+      final pspStudents = pspRows
+          .map(PspStudent.fromJson)
+          .toList();
+
+      final udiseStudents = udiseRows
+          .map(UdiseStudent.fromJson)
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _psp = pspStudents;
+        _udise = udiseStudents;
+        _pspFileName =
+            pspStudents.isEmpty ? null : 'Saved PSP data';
+        _udiseFileName =
+            udiseStudents.isEmpty ? null : 'Saved UDISE data';
+        _restoring = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _restoring = false;
+        _error = 'Unable to restore saved data: $e';
+      });
+    }
+  }
 
   Future<void> _pickPsp() async {
     setState(() {
@@ -227,6 +271,11 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
           children: [
+            if (_restoring)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
             _FileCard(
               title: 'PSP JSON',
               icon: Icons.account_balance_outlined,

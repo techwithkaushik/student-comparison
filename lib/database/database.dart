@@ -204,6 +204,55 @@ class AppDatabase {
     });
   }
 
+
+  Future<List<Map<String, dynamic>>> loadPspRows() async {
+    final db = await database;
+    final records = await db.query(
+      'psp_students',
+      orderBy: 'id ASC',
+    );
+
+    final rows = <Map<String, dynamic>>[];
+
+    for (final record in records) {
+      final raw = record['raw_json']?.toString() ?? '';
+      if (raw.isEmpty) continue;
+
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          rows.add(Map<String, dynamic>.from(decoded));
+        }
+      } catch (_) {}
+    }
+
+    return rows;
+  }
+
+  Future<List<Map<String, dynamic>>> loadUdiseRows() async {
+    final db = await database;
+    final records = await db.query(
+      'udise_students',
+      orderBy: 'id ASC',
+    );
+
+    final rows = <Map<String, dynamic>>[];
+
+    for (final record in records) {
+      final raw = record['raw_json']?.toString() ?? '';
+      if (raw.isEmpty) continue;
+
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          rows.add(Map<String, dynamic>.from(decoded));
+        }
+      } catch (_) {}
+    }
+
+    return rows;
+  }
+
   Future<Map<String, dynamic>?> getRemark({
     String? pspNic,
     String? udisePen,

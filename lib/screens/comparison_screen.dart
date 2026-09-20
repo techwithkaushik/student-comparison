@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../database/remark_repository.dart';
                                                                                         import '../matching/models.dart';
 
 class ComparisonDashboardScreen extends StatefulWidget {
@@ -910,7 +911,7 @@ class _MiniBadge extends StatelessWidget {
   }
 }
 
-class _StudentDetails extends StatelessWidget {
+class _StudentDetails extends StatefulWidget {
   final ComparisonRow row;
 
   const _StudentDetails({
@@ -918,9 +919,114 @@ class _StudentDetails extends StatelessWidget {
   });
 
   @override
+  State<_StudentDetails> createState() => _StudentDetailsState();
+}
+
+class _StudentDetailsState extends State<_StudentDetails> {
+  final _remarkController = TextEditingController();
+  final _remarkRepository = RemarkRepository();
+
+  bool _loadingRemark = true;
+  bool _savingRemark = false;
+  String? _remarkError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRemark();
+  }
+
+  @override
+  void dispose() {
+    _remarkController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadRemark() async {
+    try {
+      final saved = await _remarkRepository.get(
+        pspNic: widget.row.psp?.nicId,
+        udisePen: widget.row.udise?.studentCodeNat,
+      );
+
+      if (!mounted) return;
+
+      _remarkController.text =
+          saved?['remark']?.toString() ?? '';
+
+      setState(() {
+        _loadingRemark = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadingRemark = false;
+        _remarkError = 'Could not load remark: $e';
+      });
+    }
+  }
+
+  Future<void> _saveRemark() async {
+    final remark = _remarkController.text.trim();
+
+    final pspNic = widget.row.psp?.nicId ?? '';
+    final udisePen = widget.row.udise?.studentCodeNat ?? '';
+
+    if (pspNic.isEmpty && udisePen.isEmpty) {
+      setState(() {
+        _remarkError = 'No stable NIC/PEN identifier is available.';
+      });
+      return;
+    }
+
+    setState(() {
+      _savingRemark = true;
+      _remarkError = null;
+    });
+
+    try {
+      if (remark.isEmpty) {
+        await _remarkRepository.delete(
+          pspNic: pspNic,
+          udisePen: udisePen,
+        );
+      } else {
+        await _remarkRepository.save(
+          pspNic: pspNic,
+          udisePen: udisePen,
+          remark: remark,
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _savingRemark = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            remark.isEmpty ? 'Remark removed' : 'Remark saved',
+          ),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _savingRemark = false;
+        _remarkError = 'Could not save remark: $e';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final p = row.psp;
-    final u = row.udise;
+    final p = widget.row.psp;
+    final u = widget.row.udise;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -936,9 +1042,91 @@ class _StudentDetails extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 5),
-            _ComparisonTable(row: row),
-            if (row.diffs.isNotEmpty) ...[
-              const SizedBox(height: 6),
+            _ComparisonTable(row: widget.row),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                const Icon(Icons.notes_rounded, size: 16),
+                const SizedBox(width: 5),
+                const Text(
+                  'Remark',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                if (_loadingRemark)
+                  const SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.8,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            TextField(
+              controller: _remarkController,
+              minLines: 2,
+              maxLines: 3,
+              enabled: !_loadingRemark && !_savingRemark,
+              decoration: InputDecoration(
+                hintText: 'Add a remark for this student...',
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 8,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(9),
+                ),
+              ),
+            ),
+            if (_remarkError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(
+                  _remarkError!,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 5),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed:
+                    _loadingRemark || _savingRemark
+                        ? null
+                        : _saveRemark,
+                icon: _savingRemark
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.8,
+                        ),
+                      )
+                    : const Icon(Icons.save_rounded, size: 16),
+                label: const Text(
+                  'SAVE REMARK',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ),
+            ),
+            if (widget.row.diffs.isNotEmpty) ...[
+              const SizedBox(height: 4),
               const Text(
                 'Differences',
                 style: TextStyle(
@@ -950,7 +1138,7 @@ class _StudentDetails extends StatelessWidget {
               Wrap(
                 spacing: 4,
                 runSpacing: 4,
-                children: row.diffs
+                children: widget.row.diffs
                     .map(
                       (e) => _MiniBadge(
                         text: e.replaceAll('_', ' '),
@@ -1101,7 +1289,7 @@ class _ComparisonTable extends StatelessWidget {
                     child: Text(
                       'FIELD',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1112,7 +1300,7 @@ class _ComparisonTable extends StatelessWidget {
                         'PSP',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1124,7 +1312,7 @@ class _ComparisonTable extends StatelessWidget {
                         'UDISE',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -1158,7 +1346,7 @@ class _ComparisonTable extends StatelessWidget {
                   ),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
                       width: 68,
@@ -1170,7 +1358,7 @@ class _ComparisonTable extends StatelessWidget {
                         child: Text(
                           field,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.w700,
                             color: scheme.onSurfaceVariant,
                           ),
