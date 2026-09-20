@@ -27,7 +27,7 @@ class _ComparisonDashboardScreenState
     final q = _search.trim().toLowerCase();
 
     return widget.rows.where((row) {
-      // Status filter
+      // Status / difference filter
       if (_filter == 'MATCHED' &&
           row.type != MatchType.matched) {
         return false;
@@ -46,6 +46,13 @@ class _ComparisonDashboardScreenState
       if (_filter == 'UDISE_ONLY' &&
           row.type != MatchType.notInPsp) {
         return false;
+      }
+
+      if (_filter.startsWith('DIFF:')) {
+        final diff = _filter.substring(5);
+        if (!row.diffs.contains(diff)) {
+          return false;
+        }
       }
 
       // Class filter
@@ -241,6 +248,13 @@ class _ComparisonDashboardScreenState
                 _filter = value;
               });
             },
+            onDiffSelected: (diff) {
+              setState(() {
+                _filter = _filter == 'DIFF:$diff'
+                    ? 'ALL'
+                    : 'DIFF:$diff';
+              });
+            },
           ),
 
           Padding(
@@ -380,6 +394,7 @@ class _SummarySection extends StatelessWidget {
 
   final String selected;
   final ValueChanged<String> onSelected;
+  final ValueChanged<String> onDiffSelected;
 
   const _SummarySection({
     required this.all,
@@ -400,6 +415,7 @@ class _SummarySection extends StatelessWidget {
     required this.mobile,
     required this.selected,
     required this.onSelected,
+    required this.onDiffSelected,
   });
 
   @override
@@ -456,17 +472,72 @@ class _SummarySection extends StatelessWidget {
             spacing: 5,
             runSpacing: 5,
             children: [
-              _DiffChip(label: 'Name', value: name),
-              _DiffChip(label: 'DOB', value: dob),
-              _DiffChip(label: 'Father', value: father),
-              _DiffChip(label: 'Mother', value: mother),
-              _DiffChip(label: 'Class', value: classMismatch),
-              _DiffChip(label: 'Gender', value: gender),
-              _DiffChip(label: 'Category', value: category),
-              _DiffChip(label: 'Religion', value: religion),
-              _DiffChip(label: 'Aadhaar ✗', value: aadhaar),
-              _DiffChip(label: 'Aadhaar —', value: aadhaarMissing),
-              _DiffChip(label: 'Mobile', value: mobile),
+              _DiffChip(
+                label: 'Name',
+                value: name,
+                selected: selected == 'DIFF:NAME_MISMATCH',
+                onTap: () => onDiffSelected('NAME_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'DOB',
+                value: dob,
+                selected: selected == 'DIFF:DOB_MISMATCH',
+                onTap: () => onDiffSelected('DOB_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Father',
+                value: father,
+                selected: selected == 'DIFF:FATHER_MISMATCH',
+                onTap: () => onDiffSelected('FATHER_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Mother',
+                value: mother,
+                selected: selected == 'DIFF:MOTHER_MISMATCH',
+                onTap: () => onDiffSelected('MOTHER_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Class',
+                value: classMismatch,
+                selected: selected == 'DIFF:CLASS_MISMATCH',
+                onTap: () => onDiffSelected('CLASS_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Gender',
+                value: gender,
+                selected: selected == 'DIFF:GENDER_MISMATCH',
+                onTap: () => onDiffSelected('GENDER_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Category',
+                value: category,
+                selected: selected == 'DIFF:CATEGORY_MISMATCH',
+                onTap: () => onDiffSelected('CATEGORY_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Religion',
+                value: religion,
+                selected: selected == 'DIFF:RELIGION_MISMATCH',
+                onTap: () => onDiffSelected('RELIGION_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Aadhaar ✗',
+                value: aadhaar,
+                selected: selected == 'DIFF:AADHAAR_MISMATCH',
+                onTap: () => onDiffSelected('AADHAAR_MISMATCH'),
+              ),
+              _DiffChip(
+                label: 'Aadhaar —',
+                value: aadhaarMissing,
+                selected: selected == 'DIFF:AADHAAR_NOT_FOUND',
+                onTap: () => onDiffSelected('AADHAAR_NOT_FOUND'),
+              ),
+              _DiffChip(
+                label: 'Mobile',
+                value: mobile,
+                selected: selected == 'DIFF:MOBILE_MISMATCH',
+                onTap: () => onDiffSelected('MOBILE_MISMATCH'),
+              ),
             ],
           ),
         ],
@@ -504,7 +575,7 @@ class _StatChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          width: 82,
+          width: 78,
           height: 42,
           padding: const EdgeInsets.symmetric(
             horizontal: 7,
@@ -558,35 +629,52 @@ class _StatChip extends StatelessWidget {
 class _DiffChip extends StatelessWidget {
   final String label;
   final int value;
+  final bool selected;
+  final VoidCallback onTap;
 
   const _DiffChip({
     required this.label,
     required this.value,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme =
-        Theme.of(context).colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: Container(
-        height: 32,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 9,
-        ),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          borderRadius:
-              BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            '$label $value',
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? scheme.primaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: selected
+                  ? scheme.primary
+                  : scheme.outlineVariant,
+              width: selected ? 1.2 : .6,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              '$label $value',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurface,
+              ),
             ),
           ),
         ),
