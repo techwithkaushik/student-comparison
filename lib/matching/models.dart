@@ -93,10 +93,28 @@ class UdiseStudent {
   });
 
   factory UdiseStudent.fromJson(Map<String, dynamic> r) {
+    final uuidRaw = clean(r['uuid']);
+  
+    String normalizeUuidLast4(String value) {
+      if (value.isEmpty) return '';
+  
+      final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+      if (digitsOnly.length < 4) return '';
+  
+      final last = digitsOnly.substring(digitsOnly.length - 4);
+  
+      if (last == '9999') return '';
+  
+      return last;
+    }
+  
+    final socialDesc = clean(r['socialCategoryDesc']);
+    final minorityDesc = clean(r['minorityDesc']);
+  
     return UdiseStudent(
       studentId: clean(r['studentId']),
       studentCodeNat: clean(r['studentCodeNat']),
-      uuidLast4: last4(r['uuid']),
+      uuidLast4: normalizeUuidLast4(uuidRaw),
       uuidStatus: clean(r['uuidStatus']),
       nameAsUuid: clean(r['nameAsUuid']),
       studentName: clean(r['studentName']),
@@ -107,11 +125,13 @@ class UdiseStudent {
       classId: clean(r['classId']),
       classDesc: clean(r['classDesc']),
       mobile: clean(r['primaryMobile']),
-      socialCategory: clean(r['socCatId']),
-      religion: clean(r['minorityId']),
+      socialCategory:
+          socialDesc.isNotEmpty ? socialDesc : clean(r['socCatId']),
+      religion:
+          minorityDesc.isNotEmpty ? minorityDesc : clean(r['minorityId']),
     );
   }
-
+  
   String get nameNorm => norm(studentName);
   String get nameUuidNorm => norm(nameAsUuid);
   String get fatherNorm => norm(fatherName);

@@ -84,6 +84,104 @@ void main() {
       expect(rows.first.udise?.studentCodeNat, 'PEN001');
     });
 
+    test('UDISE falls back to category and religion IDs', () {
+      final u = UdiseStudent.fromJson({
+        'studentId': '1',
+        'studentCodeNat': 'PEN1',
+        'uuid': '',
+        'uuidStatus': '0',
+        'nameAsUuid': '',
+        'studentName': 'Test Student',
+        'fatherName': '',
+        'motherName': '',
+        'dob': '',
+        'gender': '1',
+        'classId': '8',
+        'classDesc': 'VIII',
+        'primaryMobile': '',
+        'socialCategoryDesc': '',
+        'socCatId': '4',
+        'minorityDesc': '',
+        'minorityId': '7',
+      });
+    
+      expect(u.socialCategory, '4');
+      expect(u.religion, '7');
+    });
+
+    test('UDISE Aadhaar ending 9999 is treated as not found', () {
+      final u = UdiseStudent.fromJson({
+        'studentId': '1',
+        'studentCodeNat': 'PEN1',
+        'uuid': '123456789999',
+        'uuidStatus': '0',
+        'nameAsUuid': '',
+        'studentName': 'Test Student',
+        'fatherName': '',
+        'motherName': '',
+        'dob': '',
+        'gender': '1',
+        'classId': '8',
+        'classDesc': 'VIII',
+        'primaryMobile': '',
+        'socialCategoryDesc': '',
+        'socCatId': '4',
+        'minorityDesc': '',
+        'minorityId': '7',
+      });
+    
+      expect(u.uuidLast4, '');
+    });
+    
+    test('UDISE masked Aadhaar *****9999 is treated as not found', () {
+      final u = UdiseStudent.fromJson({
+        'studentId': '1',
+        'studentCodeNat': 'PEN1',
+        'uuid': '*****9999',
+        'uuidStatus': '0',
+        'nameAsUuid': '',
+        'studentName': 'Test Student',
+        'fatherName': '',
+        'motherName': '',
+        'dob': '',
+        'gender': '1',
+        'classId': '8',
+        'classDesc': 'VIII',
+        'primaryMobile': '',
+        'socialCategoryDesc': '',
+        'socCatId': '4',
+        'minorityDesc': '',
+        'minorityId': '7',
+      });
+    
+      expect(u.uuidLast4, '');
+    });
+    
+    test('UDISE social category prefers description over ID', () {
+      final u = UdiseStudent.fromJson({
+        'studentId': '1',
+        'studentCodeNat': 'PEN1',
+        'uuid': '',
+        'uuidStatus': '0',
+        'nameAsUuid': '',
+        'studentName': 'Test Student',
+        'fatherName': '',
+        'motherName': '',
+        'dob': '',
+        'gender': '1',
+        'classId': '8',
+        'classDesc': 'VIII',
+        'primaryMobile': '',
+        'socialCategoryDesc': 'OBC',
+        'socCatId': '4',
+        'minorityDesc': 'Hindu',
+        'minorityId': '7',
+      });
+    
+      expect(u.socialCategory, 'OBC');
+      expect(u.religion, 'Hindu');
+    });
+    
     test('class mismatch should NOT prevent identity matching', () {
       final rows = runMatchingEngine(
         [
