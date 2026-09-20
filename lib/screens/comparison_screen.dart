@@ -739,8 +739,10 @@ class _StudentRow extends StatelessWidget {
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
-            builder: (_) =>
-                _StudentDetails(row: row),
+            builder: (_) => FractionallySizedBox(
+              heightFactor: 0.68,
+              child: _StudentDetails(row: row),
+            ),
           );
         },
         child: Padding(
@@ -922,39 +924,41 @@ class _StudentDetails extends StatelessWidget {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               p?.studentName ?? u?.studentName ?? 'Student',
               style: const TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            _ComparisonTable(row: row),
-            const SizedBox(height: 10),
-            const Text(
-              'Differences',
-              style: TextStyle(
-                fontSize: 14,
+                fontSize: 17,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 5),
-            Wrap(
-              spacing: 5,
-              runSpacing: 5,
-              children: row.diffs
-                  .map(
-                    (e) => _MiniBadge(
-                      text: e.replaceAll('_', ' '),
-                    ),
-                  )
-                  .toList(),
-            ),
+            _ComparisonTable(row: row),
+            if (row.diffs.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              const Text(
+                'Differences',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: row.diffs
+                    .map(
+                      (e) => _MiniBadge(
+                        text: e.replaceAll('_', ' '),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
           ],
         ),
       ),
@@ -967,13 +971,12 @@ class _ComparisonTable extends StatelessWidget {
 
   const _ComparisonTable({required this.row});
 
-  bool _isDiff(String key) {
-    return row.diffs.contains(key);
-  }
+  bool _isDiff(String key) => row.diffs.contains(key);
 
   String _pspValue(String key) {
     final p = row.psp;
     if (p == null) return '—';
+
     switch (key) {
       case 'NIC / PEN':
         return p.nicId.isEmpty ? '—' : p.nicId;
@@ -1002,9 +1005,34 @@ class _ComparisonTable extends StatelessWidget {
     }
   }
 
+  String _classText(UdiseStudent u) {
+    final n = u.classDescCanon;
+    const names = <String, String>{
+      '0': 'Pre-primary',
+      '1': 'First',
+      '2': 'Second',
+      '3': 'Third',
+      '4': 'Fourth',
+      '5': 'Fifth',
+      '6': 'Sixth',
+      '7': 'Seventh',
+      '8': 'Eighth',
+      '9': 'Ninth',
+      '10': 'Tenth',
+      '11': 'Eleventh',
+      '12': 'Twelfth',
+    };
+
+    if (names.containsKey(n)) return names[n]!;
+
+    final id = u.classIdCanon;
+    return names[id] ?? (u.classDesc.isNotEmpty ? u.classDesc : '—');
+  }
+
   String _udiseValue(String key) {
     final u = row.udise;
     if (u == null) return '—';
+
     switch (key) {
       case 'NIC / PEN':
         return u.studentCodeNat.isEmpty ? '—' : u.studentCodeNat;
@@ -1019,15 +1047,15 @@ class _ComparisonTable extends StatelessWidget {
       case 'Gender':
         return u.gender.isEmpty ? '—' : u.gender;
       case 'Class':
-        return u.classDesc.isNotEmpty ? u.classDesc : (u.classId.isEmpty ? '—' : u.classId);
+        return _classText(u);
       case 'Mobile':
         return u.mobile.isEmpty ? '—' : u.mobile;
       case 'Aadhaar':
         return u.uuidLast4.isEmpty ? '—' : '•••• ${u.uuidLast4}';
       case 'Category':
-        return u.socialCategory.isEmpty ? '—' : u.socialCategory;
+        return u.categoryNorm.isEmpty ? '—' : u.categoryNorm;
       case 'Religion':
-        return u.religion.isEmpty ? '—' : u.religion;
+        return u.religionNormValue.isEmpty ? '—' : u.religionNormValue;
       default:
         return '—';
     }
@@ -1035,6 +1063,8 @@ class _ComparisonTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     const fields = [
       'NIC / PEN',
       'Name',
@@ -1050,38 +1080,54 @@ class _ComparisonTable extends StatelessWidget {
     ];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(11),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(11),
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 7,
+                vertical: 6,
+              ),
+              color: scheme.surfaceContainerHighest,
               child: const Row(
                 children: [
                   SizedBox(
-                    width: 62,
+                    width: 68,
                     child: Text(
                       'FIELD',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   Expanded(
-                    child: Text(
-                      'PSP',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                    child: Center(
+                      child: Text(
+                        'PSP',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
                   Expanded(
-                    child: Text(
-                      'UDISE',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                    child: Center(
+                      child: Text(
+                        'UDISE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1089,7 +1135,6 @@ class _ComparisonTable extends StatelessWidget {
             ),
             ...fields.map((field) {
               final diffKey = switch (field) {
-                'NIC / PEN' => null,
                 'Name' => 'NAME_MISMATCH',
                 'Father' => 'FATHER_MISMATCH',
                 'Mother' => 'MOTHER_MISMATCH',
@@ -1102,28 +1147,33 @@ class _ComparisonTable extends StatelessWidget {
                 'Religion' => 'RELIGION_MISMATCH',
                 _ => null,
               };
-              final different = diffKey != null && _isDiff(diffKey);
+
+              final different =
+                  diffKey != null && _isDiff(diffKey);
 
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
+                    top: BorderSide(color: scheme.outlineVariant),
                   ),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 62,
-                      child: Text(
-                        field,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      width: 68,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          field,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
@@ -1133,7 +1183,6 @@ class _ComparisonTable extends StatelessWidget {
                         mismatch: different,
                       ),
                     ),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: _ValueCell(
                         value: _udiseValue(field),
