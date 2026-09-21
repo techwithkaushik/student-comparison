@@ -1,18 +1,24 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../database/database.dart';
 import '../database/remark_repository.dart';
-                                                                                        import '../matching/models.dart';
+import '../matching/matching_engine.dart';
+import '../matching/models.dart';
 
 class ComparisonDashboardScreen extends StatefulWidget {
-  final List<ComparisonRow> rows;
-  final int pspCount;
-  final int udiseCount;
+  final List<ComparisonRow> initialRows;
+  final int initialPspCount;
+  final int initialUdiseCount;
 
   const ComparisonDashboardScreen({
     super.key,
-    required this.rows,
-    required this.pspCount,
-    required this.udiseCount,
+    this.initialRows = const <ComparisonRow>[],
+    this.initialPspCount = 0,
+    this.initialUdiseCount = 0,
   });
 
   @override
@@ -21,7 +27,14 @@ class ComparisonDashboardScreen extends StatefulWidget {
 }
 
 class _ComparisonDashboardScreenState
-    extends State<ComparisonDashboardScreen> {                                            String _filter = 'ALL';
+    extends State<ComparisonDashboardScreen> {
+  List<ComparisonRow> _rows = <ComparisonRow>[];
+  int _pspCount = 0;
+  int _udiseCount = 0;
+  bool _loadingData = true;
+  String? _dataError;
+
+  String _filter = 'ALL';
   String _classFilter = '';
   String _search = '';
   final Set<String> _remarkKeys = <String>{};
@@ -29,7 +42,161 @@ class _ComparisonDashboardScreenState
   @override
   void initState() {
     super.initState();
+    if (widget.initialRows.isNotEmpty) {
+      _rows = List<ComparisonRow>.from(widget.initialRows);
+      _pspCount = widget.initialPspCount;
+      _udiseCount = widget.initialUdiseCount;
+      _loadingData = false;
+    }
+    _loadData();
     _loadRemarkKeys();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final db = AppDatabase.instance;
+      final pspRows = await db.loadPspRows();
+      final udiseRows = await db.loadUdiseRows();
+      final psp = pspRows.map(PspStudent.fromJson).toList();
+      final udise = udiseRows.map(UdiseStudent.fromJson).toList();
+      final rows = psp.isEmpty || udise.isEmpty
+          ? <ComparisonRow>[]
+          : runMatchingEngine(psp, udise);
+      if (!mounted) return;
+      setState(() {
+        _pspCount = psp.length;
+        _udiseCount = udise.length;
+        _rows = rows;
+        _loadingData = false;
+        _dataError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingData = false;
+        _dataError = 'Unable to load saved data: $e';
+      });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _decodeJsonRows(Uint8List bytes, String label) async {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    List<dynamic> rows;
+    if (decoded is List) {
+      rows = decoded;
+    } else if (decoded is Map<String, dynamic> && decoded['data'] is List) {
+      rows = decoded['data'] as List;
+    } else if (decoded is Map<String, dynamic> && decoded['result'] is List) {
+      rows = decoded['result'] as List;
+    } else if (decoded is Map<String, dynamic> &&
+        decoded['result'] is Map<String, dynamic> &&
+        decoded['result']['data'] is List) {
+      rows = decoded['result']['data'] as List;
+    } else {
+      throw Exception('No $label student records found.');
+    }
+    final out = rows.whereType<Map>()
+        .map((r) => Map<String, dynamic>.from(r))
+        .toList();
+    if (out.isEmpty) throw Exception('No valid $label student records found.');
+    return out;
+  }
+
+  Future<void> _importJson(bool pspImport) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      if (result == null) return;
+      final bytes = result.files.single.bytes;
+      if (bytes == null) throw Exception('Unable to read selected JSON file.');
+      final rows = await _decodeJsonRows(bytes, pspImport ? 'PSP' : 'UDISE');
+      if (pspImport) {
+        await AppDatabase.instance.replacePspRows(rows);
+      } else {
+        await AppDatabase.instance.replaceUdiseRows(rows);
+      }
+      await _loadData();
+      await _loadRemarkKeys();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _dataError = 'JSON import failed: $e');
+    }
+  }
+
+  Future<void> _importSqlite() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['db', 'sqlite', 'sqlite3'],
+        withData: true,
+      );
+      if (result == null) return;
+      final bytes = result.files.single.bytes;
+      if (bytes == null) throw Exception('Unable to read selected SQLite file.');
+      final imported = await AppDatabase.instance.importSqliteBytes(bytes);
+      await _loadData();
+      await _loadRemarkKeys();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(
+          'SQLite imported: ${imported.pspCount} PSP, ${imported.udiseCount} UDISE'
+          '${imported.remarkCount > 0 ? ', ${imported.remarkCount} remarks' : ''}.',
+        )),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _dataError = 'SQLite import failed: $e');
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    try {
+      final rows = _filteredRows;
+      final data = <List<dynamic>>[
+        ['Status', 'PSP NIC ID', 'UDISE PEN', 'PSP Name', 'UDISE Name', 'PSP Class', 'UDISE Class', 'DOB PSP', 'DOB UDISE', 'Differences'],
+        ...rows.map((r) => [
+          _statusText(r), r.psp?.nicId ?? '', r.udise?.studentCodeNat ?? '',
+          r.psp?.studentName ?? '', r.udise?.studentName ?? '',
+          r.psp?.studyingClass ?? '', r.udise?.classDesc ?? r.udise?.classId ?? '',
+          r.psp?.dob ?? '', r.udise?.dob ?? '', r.diffs.join('; '),
+        ]),
+      ];
+      final bytes = Uint8List.fromList(utf8.encode('﻿${const ListToCsvConverter().convert(data)}'));
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export comparison CSV',
+        fileName: 'student_comparison.csv',
+        bytes: bytes,
+      );
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV exported successfully.')));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _dataError = 'CSV export failed: $e');
+    }
+  }
+
+  Future<void> _exportSourceJson(bool pspExport) async {
+    try {
+      final rows = pspExport
+          ? await AppDatabase.instance.loadPspRows()
+          : await AppDatabase.instance.loadUdiseRows();
+      final bytes = Uint8List.fromList(utf8.encode(
+        const JsonEncoder.withIndent('  ').convert(rows),
+      ));
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export ${pspExport ? 'PSP' : 'UDISE'} JSON',
+        fileName: '${pspExport ? 'psp' : 'udise'}_export.json',
+        bytes: bytes,
+      );
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSON exported successfully.')));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _dataError = 'JSON export failed: $e');
+    }
   }
 
   String _key(String value) => value.trim().toUpperCase();
@@ -68,7 +235,7 @@ class _ComparisonDashboardScreenState
   List<ComparisonRow> get _filteredRows {
     final q = _search.trim().toLowerCase();
 
-    return widget.rows.where((row) {
+    return _rows.where((row) {
       // Remark filter
       if (_filter == 'REMARKED' && !_hasRemark(row)) {
         return false;
@@ -147,13 +314,13 @@ class _ComparisonDashboardScreenState
   }
 
   int _countType(MatchType type) {
-    return widget.rows
+    return _rows
         .where((row) => row.type == type)
         .length;
   }
 
   int _countDiff(String diff) {
-    return widget.rows
+    return _rows
         .where((row) => row.diffs.contains(diff))
         .length;
   }
@@ -161,7 +328,7 @@ class _ComparisonDashboardScreenState
   Set<String> get _classes {
     final result = <String>{};
 
-    for (final row in widget.rows) {
+    for (final row in _rows) {
       final pClass =
           row.psp?.classCanonValue ?? '';
 
@@ -253,30 +420,62 @@ class _ComparisonDashboardScreenState
         actions: [
           Center(
             child: Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.only(right: 4),
               child: Text(
-                '${filtered.length}/${widget.rows.length}',
+                '${filtered.length}/${_rows.length}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
+          PopupMenuButton<String>(
+            tooltip: 'Import / Export',
+            onSelected: (value) {
+              switch (value) {
+                case 'import_psp': _importJson(true); break;
+                case 'import_udise': _importJson(false); break;
+                case 'import_sqlite': _importSqlite(); break;
+                case 'export_csv': _exportCsv(); break;
+                case 'export_psp': _exportSourceJson(true); break;
+                case 'export_udise': _exportSourceJson(false); break;
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'import_psp', child: Text('Import PSP JSON')),
+              PopupMenuItem(value: 'import_udise', child: Text('Import UDISE JSON')),
+              PopupMenuItem(value: 'import_sqlite', child: Text('Import SQLite database')),
+              PopupMenuDivider(),
+              PopupMenuItem(value: 'export_csv', child: Text('Export comparison CSV')),
+              PopupMenuItem(value: 'export_psp', child: Text('Export PSP JSON')),
+              PopupMenuItem(value: 'export_udise', child: Text('Export UDISE JSON')),
+            ],
+          ),
         ],
       ),
       body: Column(
         children: [
+          if (_loadingData) const LinearProgressIndicator(minHeight: 2),
+          if (_dataError != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+              child: Text(
+                _dataError!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
           _SummarySection(
-            all: widget.rows.length,
+            all: _rows.length,
             matched: _countType(MatchType.matched),
             mismatch: _countType(MatchType.mismatch),
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
-            remarks: widget.rows.where(_hasRemark).length,
+            remarks: _rows.where(_hasRemark).length,
             name: _countDiff('NAME_MISMATCH'),
             dob: _countDiff('DOB_MISMATCH'),
             father: _countDiff('FATHER_MISMATCH'),
