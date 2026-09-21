@@ -11,14 +11,10 @@ import '../matching/models.dart';
 
 class ComparisonDashboardScreen extends StatefulWidget {
   final List<ComparisonRow> initialRows;
-  // final int initialPspCount;
-  // final int initialUdiseCount;
 
   const ComparisonDashboardScreen({
     super.key,
     this.initialRows = const <ComparisonRow>[],
-    // this.initialPspCount = 0,
-    // this.initialUdiseCount = 0,
   });
 
   @override
@@ -29,23 +25,27 @@ class ComparisonDashboardScreen extends StatefulWidget {
 class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {
   List<ComparisonRow> _rows = <ComparisonRow>[];
-  // int _pspCount = 0;
-  // int _udiseCount = 0;
   bool _loadingData = true;
   String? _dataError;
 
   String _filter = 'ALL';
   String _classFilter = '';
   String _search = '';
+  bool _searchActive = false;
+  final TextEditingController _searchController = TextEditingController();
   final Set<String> _remarkKeys = <String>{};
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     if (widget.initialRows.isNotEmpty) {
       _rows = List<ComparisonRow>.from(widget.initialRows);
-      // _pspCount = widget.initialPspCount;
-      // _udiseCount = widget.initialUdiseCount;
       _loadingData = false;
     }
     _loadData();
@@ -64,8 +64,6 @@ class _ComparisonDashboardScreenState
           : runMatchingEngine(psp, udise);
       if (!mounted) return;
       setState(() {
-        // _pspCount = psp.length;
-        // _udiseCount = udise.length;
         _rows = rows;
         _loadingData = false;
         _dataError = null;
@@ -410,26 +408,58 @@ class _ComparisonDashboardScreenState
       appBar: AppBar(
         toolbarHeight: 52,
         titleSpacing: 14,
-        title: const Text(
-          'Comparison',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Text(
-                '${filtered.length}/${_rows.length}',
+        title: _searchActive
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                onChanged: (value) {
+                  setState(() => _search = value);
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Search name, NIC, PEN...',
+                  border: InputBorder.none,
+                  isDense: true,
+                ),
+              )
+            : const Text(
+                'Comparison',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+        actions: [
+          if (!_searchActive)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Text(
+                  '${filtered.length}/${_rows.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
+          IconButton(
+            tooltip: _searchActive ? 'Close search' : 'Search',
+            icon: Icon(
+              _searchActive
+                  ? Icons.close_rounded
+                  : Icons.search_rounded,
+            ),
+            onPressed: () {
+              setState(() {
+                _searchActive = !_searchActive;
+                if (!_searchActive) {
+                  _searchController.clear();
+                  _search = '';
+                }
+              });
+            },
           ),
           PopupMenuButton<String>(
             tooltip: 'Import / Export',
@@ -505,80 +535,44 @@ class _ComparisonDashboardScreenState
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              10,
-              6,
-              10,
-              5,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    textInputAction:
-                        TextInputAction.search,
-                    onChanged: (value) {
-                      setState(() {
-                        _search = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText:
-                          'Search name, NIC, PEN, mobile...',
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        size: 20,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 7),
-                SizedBox(
-                  width: 110,
-                  child: DropdownButtonFormField<String>(
-                    initialValue:
-                        _classFilter.isEmpty
-                            ? null
-                            : _classFilter,
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 5),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: 112,
+                height: 36,
+                child: DropdownButtonFormField<String>(
+                  initialValue:
+                      _classFilter.isEmpty ? null : _classFilter,
+                  isDense: true,
+                  decoration: InputDecoration(
+                    labelText: 'Class',
                     isDense: true,
-                    decoration:
-                        InputDecoration(
-                      labelText: 'Class',
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                  items: [
+                    const DropdownMenuItem(
+                      value: '',
+                      child: Text('All'),
+                    ),
+                    ...classes.map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text('Class $value'),
                       ),
                     ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: '',
-                        child: Text('All'),
-                      ),
-                      ...classes.map(
-                        (value) =>
-                            DropdownMenuItem(
-                          value: value,
-                          child: Text(
-                            'Class $value',
-                          ),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _classFilter =
-                            value ?? '';
-                      });
-                    },
-                  ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _classFilter = value ?? '');
+                  },
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -671,14 +665,14 @@ class _SummarySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
+      padding: const EdgeInsets.fromLTRB(10, 5, 10, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Summary/status chips wrap to the next line instead of scrolling.
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 5,
+            runSpacing: 4,
             children: [
               _StatChip(
                 label: 'All',
@@ -723,11 +717,11 @@ class _SummarySection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: 4),
           // Difference chips also wrap vertically. No horizontal scrolling.
           Wrap(
-            spacing: 5,
-            runSpacing: 5,
+            spacing: 4,
+            runSpacing: 3,
             children: [
               _DiffChip(
                 label: 'Name',
@@ -826,52 +820,43 @@ class _StatChip extends StatelessWidget {
     final baseColor =
         color ?? scheme.primary;
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Container(
-          width: 82,
-          height: 42,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 7,
-            vertical: 4,
-          ),
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: selected
                 ? baseColor.withValues(alpha: .16)
                 : scheme.surfaceContainerHighest,
-            borderRadius:
-                BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: selected
-                  ? baseColor
-                  : scheme.outlineVariant,
-              width: selected ? 1.2 : .6,
+              color: selected ? baseColor : scheme.outlineVariant,
+              width: selected ? 1.1 : .6,
             ),
           ),
-          child: Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 '$value',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: selected
-                      ? baseColor
-                      : scheme.onSurface,
+                  color: selected ? baseColor : scheme.onSurface,
                 ),
               ),
+              const SizedBox(width: 4),
               Text(
                 label,
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -905,36 +890,31 @@ class _DiffChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(9),
-        child: SizedBox(
-          width: 102,
-          height: 36,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            decoration: BoxDecoration(
-              color: selected
-                  ? scheme.primaryContainer
-                  : scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                color: selected
-                    ? scheme.primary
-                    : scheme.outlineVariant,
-                width: selected ? 1.2 : .6,
-              ),
+        child: Container(
+          height: 29,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? scheme.primaryContainer
+                : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(
+              color: selected ? scheme.primary : scheme.outlineVariant,
+              width: selected ? 1.1 : .6,
             ),
-            child: Center(
-              child: Text(
-                '$label $value',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: selected
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurface,
-                ),
+          ),
+          child: Center(
+            child: Text(
+              '$label $value',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurface,
               ),
             ),
           ),
@@ -999,7 +979,7 @@ class _StudentRow extends StatelessWidget {
             isScrollControlled: true,
             showDragHandle: true,
             builder: (_) => FractionallySizedBox(
-              heightFactor: 0.68,
+              heightFactor: 0.78,
               child: _StudentDetails(row: row),
             ),
           );
@@ -1303,7 +1283,7 @@ class _StudentDetailsState extends State<_StudentDetails> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1314,9 +1294,9 @@ class _StudentDetailsState extends State<_StudentDetails> {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 5),
-            _ComparisonTable(row: widget.row),
             const SizedBox(height: 7),
+            _ComparisonTable(row: widget.row),
+            const SizedBox(height: 10),
             Row(
               children: [
                 const Icon(Icons.notes_rounded, size: 16),
@@ -1550,15 +1530,13 @@ class _ComparisonTable extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 7,
-                vertical: 6,
-              ),
+              constraints: const BoxConstraints(minHeight: 38),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               color: scheme.surfaceContainerHighest,
               child: const Row(
                 children: [
                   SizedBox(
-                    width: 68,
+                    width: 72,
                     child: Text(
                       'FIELD',
                       style: TextStyle(
@@ -1613,27 +1591,30 @@ class _ComparisonTable extends StatelessWidget {
                   diffKey != null && _isDiff(diffKey);
 
               return Container(
+                constraints: const BoxConstraints(minHeight: 38),
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(color: scheme.outlineVariant),
                   ),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(
-                      width: 68,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 4,
-                        ),
-                        child: Text(
-                          field,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurfaceVariant,
+                      width: 72,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            field,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ),
@@ -1675,16 +1656,21 @@ class _ValueCell extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      constraints: const BoxConstraints(minHeight: 38),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: mismatch ? scheme.errorContainer.withValues(alpha: .55) : null,
-        borderRadius: BorderRadius.circular(6),
+        color: mismatch
+            ? scheme.errorContainer.withValues(alpha: .55)
+            : null,
       ),
       child: Text(
         value,
         softWrap: true,
+        textAlign: TextAlign.left,
         style: TextStyle(
           fontSize: 10.5,
+          height: 1.15,
           fontWeight: mismatch ? FontWeight.w700 : FontWeight.w500,
           color: mismatch ? scheme.onErrorContainer : scheme.onSurface,
         ),
