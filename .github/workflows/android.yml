@@ -44,69 +44,16 @@ jobs:
         run: |
           rm -f test/widget_test.dart
 
-      - name: Configure signing keystore
-        if: github.event_name == 'push'
-        env:
-          SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+      - name: cp build.gradle.kts
         run: |
-          set -e
+          cp files/build.gradle.kts android/app/build.gradle.kts
 
-          echo "$SIGNING_KEYSTORE" | base64 --decode > android/app/signing-key.jks
-
-          test -s android/app/signing-key.jks
-
-          echo "Signing keystore created successfully"
-          ls -lh android/app/signing-key.jks
-
-      - name: Configure release signing
-        if: github.event_name == 'push'
-        run: |
-          set -e
-
-          python3 <<'PY'
-          from pathlib import Path
-
-          path = Path("android/app/build.gradle.kts")
-          text = path.read_text()
-
-          old = '''    buildTypes {
-              release {
-                  // TODO: Add your own signing config for the release build.
-                  // Signing with the debug keys for now, so `flutter run --release` works.
-                  signingConfig = signingConfigs.getByName("debug")
-              }
-          }'''
-
-          new = '''    signingConfigs {
-              create("releaseCustom") {
-                  storeFile = file("signing-key.jks")
-                  storePassword = project.property("SIGNING_STORE_PASSWORD") as String
-                  keyAlias = project.property("SIGNING_KEY_ALIAS") as String
-                  keyPassword = project.property("SIGNING_KEY_PASSWORD") as String
-              }
-          }
-
-          buildTypes {
-              release {
-                  signingConfig = signingConfigs.getByName("releaseCustom")
-              }
-          }'''
-
-          if old not in text:
-              print("ERROR: Expected generated buildTypes block not found")
-              print("Current build.gradle.kts:")
-              print(text)
-              raise SystemExit(1)
-
-          text = text.replace(old, new)
-
-          path.write_text(text)
-
-          print("Release signing configuration applied successfully.")
-          PY
-
-          echo "===== FINAL build.gradle.kts ====="
-          cat android/app/build.gradle.kts
+      - name: Decode Keystore
+        id: keystore
+        uses: timheuer/base64-to-file@v2.0
+        with:
+          fileName: 'dev_keystore.jks'
+          encodedString: ${{ secrets.SIGNING_KEYSTORE }}
 
       - name: Flutter version
         run: flutter --version
@@ -120,38 +67,17 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Verify keystore
-        if: github.event_name == 'push'
-        env:
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-        run: |
-          set -e
-
-          keytool \
-            -list \
-            -v \
-            -keystore android/app/signing-key.jks \
-            -storepass "$SIGNING_STORE_PASSWORD" \
-            -alias "$SIGNING_KEY_ALIAS" \
-            | grep -E "Alias name:|Entry type:|SHA256:"
 
       - name: Build ARM32 signed APK
-        if: github.event_name == 'push'
-        env:
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         run: |
-          set -e
-
           flutter build apk \
             --release \
             --target-platform android-arm \
-            --dart-define=SIGNING_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
-            -P SIGNING_KEY_ALIAS="$SIGNING_KEY_ALIAS" \
-            -P SIGNING_KEY_PASSWORD="$SIGNING_KEY_PASSWORD" \
-            -P SIGNING_STORE_PASSWORD="$SIGNING_STORE_PASSWORD"
+        env:
+          SIGNING_KEY_STORE: ${{ steps.keystore.outputs.filePath }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
 
       - name: Verify APK signature
         if: github.event_name == 'push'
