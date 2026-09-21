@@ -287,6 +287,7 @@ class _ComparisonDashboardScreenState
       if (q.isNotEmpty) {
         final values = [
           row.psp?.studentName,
+          row.psp?.srNo,
           row.psp?.nicId,
           row.psp?.fatherName,
           row.psp?.motherName,
@@ -486,7 +487,7 @@ class _ComparisonDashboardScreenState
           if (_loadingData) const LinearProgressIndicator(minHeight: 2),
           if (_dataError != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
               child: Text(
                 _dataError!,
                 style: TextStyle(
@@ -531,12 +532,12 @@ class _ComparisonDashboardScreenState
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
+            padding: const EdgeInsets.fromLTRB(8, 5, 8, 5),
             child: Align(
               alignment: Alignment.centerRight,
               child: SizedBox(
-                width: 108,
-                height: 36,
+                width: 90,
+                height: 26,
                 child: DropdownButtonFormField<String>(
                   initialValue: _classFilter.isEmpty ? null : _classFilter,
                   isDense: true,
@@ -580,10 +581,10 @@ class _ComparisonDashboardScreenState
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(
-                      10,
+                      8,
                       2,
-                      10,
-                      16,
+                      8,
+                      8,
                     ),
                     itemCount: filtered.length,
                     itemBuilder: (_, index) {
@@ -657,7 +658,7 @@ class _SummarySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 5, 10, 3),
+      padding: const EdgeInsets.fromLTRB(8, 5, 8, 3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -815,10 +816,10 @@ class _StatChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: SizedBox(
-          width: 86,
-          height: 38,
+          width: 80,
+          height: 26,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: selected
@@ -885,11 +886,11 @@ class _DiffChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          width: 103,
-          height: 32,
+          width: 90,
+          height: 26,
           child: Container(
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
               color: selected
                   ? scheme.primaryContainer
@@ -943,6 +944,9 @@ class _StudentRow extends StatelessWidget {
 
     final pspName =
         row.psp?.studentName ?? '—';
+
+    final pspSrNo =
+        row.psp?.srNo ?? '–';
 
     final udiseName =
         row.udise?.studentName ?? '—';
@@ -1054,7 +1058,7 @@ class _StudentRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'PSP: $pspName  •  NIC: $pspId',
+                      'PSP: $pspName  •  NIC: $pspId  • SR: $pspSrNo',
                       maxLines: 1,
                       overflow:
                           TextOverflow.ellipsis,
@@ -1277,7 +1281,7 @@ class _StudentDetailsState extends State<_StudentDetails> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1414,7 +1418,7 @@ class _ComparisonTable extends StatelessWidget {
 
     switch (key) {
       case 'NIC / PEN':
-        return p.nicId.isEmpty ? '—' : p.nicId;
+        return p.nicId.isEmpty ? '—' : '${p.nicId}  SR ${p.srNo}';
       case 'Name':
         return p.studentName.isEmpty ? '—' : p.studentName;
       case 'Father':
@@ -1480,7 +1484,7 @@ class _ComparisonTable extends StatelessWidget {
       case 'DOB':
         return u.dob.isEmpty ? '—' : u.dob;
       case 'Gender':
-        return u.gender.isEmpty ? '—' : u.gender;
+        return u.gender.isEmpty ? '—' : u.genderNormValue;
       case 'Class':
         return _classText(u);
       case 'Mobile':
