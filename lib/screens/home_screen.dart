@@ -1,4 +1,3 @@
-cat lib/screens/home_screen.dart
 import 'dart:convert';
 
 import 'comparison_screen.dart';
