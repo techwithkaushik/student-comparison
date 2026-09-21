@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../database/database.dart';
 import '../database/remark_repository.dart';
                                                                                         import '../matching/models.dart';
 
@@ -23,11 +24,56 @@ class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {                                            String _filter = 'ALL';
   String _classFilter = '';
   String _search = '';
+  final Set<String> _remarkKeys = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRemarkKeys();
+  }
+
+  String _key(String value) => value.trim().toUpperCase();
+
+  String _remarkKeyFor(ComparisonRow row) {
+    final p = row.psp?.nicId ?? '';
+    final u = row.udise?.studentCodeNat ?? '';
+    return '${_key(p)}|${_key(u)}';
+  }
+
+  Future<void> _loadRemarkKeys() async {
+    try {
+      final rows = await AppDatabase.instance.getAllRemarks();
+      final keys = <String>{};
+      for (final r in rows) {
+        final p = r['psp_nic']?.toString() ?? '';
+        final u = r['udise_pen']?.toString() ?? '';
+        if (p.isNotEmpty || u.isNotEmpty) {
+          keys.add('${_key(p)}|${_key(u)}');
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _remarkKeys
+          ..clear()
+          ..addAll(keys);
+      });
+    } catch (_) {
+      // Keep the comparison list usable even if the remark table cannot be read.
+    }
+  }
+
+  bool _hasRemark(ComparisonRow row) =>
+      _remarkKeys.contains(_remarkKeyFor(row));
 
   List<ComparisonRow> get _filteredRows {
     final q = _search.trim().toLowerCase();
 
     return widget.rows.where((row) {
+      // Remark filter
+      if (_filter == 'REMARKED' && !_hasRemark(row)) {
+        return false;
+      }
+
       // Status / difference filter
       if (_filter == 'MATCHED' &&
           row.type != MatchType.matched) {
@@ -230,6 +276,7 @@ class _ComparisonDashboardScreenState
             mismatch: _countType(MatchType.mismatch),
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
+            remarks: widget.rows.where(_hasRemark).length,
             name: _countDiff('NAME_MISMATCH'),
             dob: _countDiff('DOB_MISMATCH'),
             father: _countDiff('FATHER_MISMATCH'),
@@ -357,6 +404,7 @@ class _ComparisonDashboardScreenState
                     itemBuilder: (_, index) {
                       return _StudentRow(
                         row: filtered[index],
+                        hasRemark: _hasRemark(filtered[index]),
                         statusText:
                             _statusText(filtered[index]),
                         statusColor:
@@ -380,6 +428,7 @@ class _SummarySection extends StatelessWidget {
   final int mismatch;
   final int pspOnly;
   final int udiseOnly;
+  final int remarks;
 
   final int name;
   final int dob;
@@ -403,6 +452,7 @@ class _SummarySection extends StatelessWidget {
     required this.mismatch,
     required this.pspOnly,
     required this.udiseOnly,
+    required this.remarks,
     required this.name,
     required this.dob,
     required this.father,
@@ -464,6 +514,13 @@ class _SummarySection extends StatelessWidget {
                 color: Colors.blue,
                 selected: selected == 'UDISE_ONLY',
                 onTap: () => onSelected('UDISE_ONLY'),
+              ),
+              _StatChip(
+                label: 'Remarked',
+                value: remarks,
+                color: Colors.deepPurple,
+                selected: selected == 'REMARKED',
+                onTap: () => onSelected('REMARKED'),
               ),
             ],
           ),
@@ -692,11 +749,13 @@ class _StudentRow extends StatelessWidget {
   final ComparisonRow row;
   final String statusText;
   final Color statusColor;
+  final bool hasRemark;
 
   const _StudentRow({
     required this.row,
     required this.statusText,
     required this.statusColor,
+    required this.hasRemark,
   });
 
   @override
@@ -735,8 +794,8 @@ class _StudentRow extends StatelessWidget {
       child: InkWell(
         borderRadius:
             BorderRadius.circular(11),
-        onTap: () {
-          showModalBottomSheet(
+        onTap: () async {
+          await showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
@@ -745,6 +804,12 @@ class _StudentRow extends StatelessWidget {
               child: _StudentDetails(row: row),
             ),
           );
+          if (context.mounted) {
+            // Refresh the small remark index after the detail editor closes.
+            // This keeps the list badge/filter synchronized with SQLite.
+            final state = context.findAncestorStateOfType<_ComparisonDashboardScreenState>();
+            state?._loadRemarkKeys();
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(9),
@@ -864,6 +929,15 @@ class _StudentRow extends StatelessWidget {
                   ],
                 ),
               ),
+              if (hasRemark)
+                Padding(
+                  padding: const EdgeInsets.only(right: 2),
+                  child: Icon(
+                    Icons.sticky_note_2_rounded,
+                    size: 17,
+                    color: Colors.deepPurple,
+                  ),
+                ),
               const SizedBox(width: 3),
               const Icon(
                 Icons.chevron_right_rounded,
@@ -1177,7 +1251,7 @@ class _ComparisonTable extends StatelessWidget {
       case 'DOB':
         return p.dob.isEmpty ? '—' : p.dob;
       case 'Gender':
-        return p.gender.isEmpty ? '—' : p.gender;
+        return p.gender.isEmpty ? '—' : p.genderNormValue;
       case 'Class':
         return p.studyingClass.isEmpty ? '—' : p.studyingClass;
       case 'Mobile':
@@ -1233,7 +1307,7 @@ class _ComparisonTable extends StatelessWidget {
       case 'DOB':
         return u.dob.isEmpty ? '—' : u.dob;
       case 'Gender':
-        return u.gender.isEmpty ? '—' : u.genderNormValue;
+        return u.gender.isEmpty ? '—' : u.gender;
       case 'Class':
         return _classText(u);
       case 'Mobile':
