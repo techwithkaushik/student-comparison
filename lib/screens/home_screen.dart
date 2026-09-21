@@ -1,3 +1,4 @@
+cat lib/screens/home_screen.dart
 import 'dart:convert';
 
 import 'comparison_screen.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _loadingPsp = false;
   bool _loadingUdise = false;
   bool _restoring = true;
+  List<ComparisonRow> _comparisonRows = [];
 
   String? _error;
 
@@ -60,12 +62,89 @@ class _HomeScreenState extends State<HomeScreen> {
             udiseStudents.isEmpty ? null : 'Saved UDISE data';
         _restoring = false;
       });
+      _refreshComparison();
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _restoring = false;
         _error = 'Unable to restore saved data: $e';
+      });
+    }
+  }
+
+  void _refreshComparison() {
+    if (_psp.isEmpty || _udise.isEmpty) {
+      if (mounted && _comparisonRows.isNotEmpty) {
+        setState(() {
+          _comparisonRows = [];
+        });
+      }
+      return;
+    }
+
+    final rows = runMatchingEngine(_psp, _udise);
+    if (!mounted) return;
+    setState(() {
+      _comparisonRows = rows;
+    });
+  }
+
+  Future<void> _pickSqlite() async {
+    setState(() {
+      _error = null;
+    });
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['db', 'sqlite', 'sqlite3'],
+        withData: true,
+      );
+
+      if (result == null) return;
+      final file = result.files.single;
+      if (file.bytes == null) {
+        throw Exception('Unable to read selected SQLite file.');
+      }
+
+      final imported = await AppDatabase.instance.importSqliteBytes(
+        file.bytes!,
+      );
+      final pspRows = await AppDatabase.instance.loadPspRows();
+      final udiseRows = await AppDatabase.instance.loadUdiseRows();
+
+      final pspStudents = pspRows.map(PspStudent.fromJson).toList();
+      final udiseStudents = udiseRows.map(UdiseStudent.fromJson).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _psp = pspStudents;
+        _udise = udiseStudents;
+        _pspFileName = imported.pspCount > 0
+            ? '${file.name} • PSP'
+            : null;
+        _udiseFileName = imported.udiseCount > 0
+            ? '${file.name} • UDISE'
+            : null;
+      });
+      _refreshComparison();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'SQLite imported: ${imported.pspCount} PSP, '
+              '${imported.udiseCount} UDISE'
+              '${imported.remarkCount > 0 ? ', ${imported.remarkCount} remarks' : ''}.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'SQLite import failed: $e';
       });
     }
   }
@@ -139,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _psp = students;
         _pspFileName = file.name;
       });
+      _refreshComparison();
     } catch (e) {
       setState(() {
         _error = 'PSP import failed: $e';
@@ -221,6 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _udise = students;
         _udiseFileName = file.name;
       });
+      _refreshComparison();
     } catch (e) {
       setState(() {
         _error = 'UDISE import failed: $e';
@@ -234,15 +315,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _compare() {
-    if (_psp.isEmpty || _udise.isEmpty) return;
-
-    final rows = runMatchingEngine(_psp, _udise);
+  void _openFullResults() {
+    if (_comparisonRows.isEmpty) return;
 
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ComparisonDashboardScreen(
-          rows: rows,
+          rows: _comparisonRows,
           pspCount: _psp.length,
           udiseCount: _udise.length,
         ),
@@ -265,6 +344,50 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Import',
+            onSelected: (value) {
+              switch (value) {
+                case 'psp':
+                  _pickPsp();
+                  break;
+                case 'udise':
+                  _pickUdise();
+                  break;
+                case 'sqlite':
+                  _pickSqlite();
+                  break;
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'psp',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.account_balance_outlined),
+                  title: Text('Import PSP JSON'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'udise',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.school_outlined),
+                  title: Text('Import UDISE JSON'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'sqlite',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.storage_rounded),
+                  title: Text('Import SQLite database'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -318,26 +441,229 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 44,
-              child: FilledButton.icon(
-                onPressed: canCompare ? _compare : null,
-                icon: const Icon(
-                  Icons.compare_arrows_rounded,
-                  size: 20,
-                ),
-                label: const Text(
-                  'COMPARE STUDENTS',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: .3,
+            if (canCompare) ...[
+              const SizedBox(height: 12),
+              _HomeResultsPreview(
+                rows: _comparisonRows,
+                pspCount: _psp.length,
+                udiseCount: _udise.length,
+                onOpenFull: _openFullResults,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeResultsPreview extends StatelessWidget {
+  final List<ComparisonRow> rows;
+  final int pspCount;
+  final int udiseCount;
+  final VoidCallback onOpenFull;
+
+  const _HomeResultsPreview({
+    required this.rows,
+    required this.pspCount,
+    required this.udiseCount,
+    required this.onOpenFull,
+  });
+
+  int _count(MatchType type) =>
+      rows.where((r) => r.type == type).length;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final matched = _count(MatchType.matched);
+    final mismatch = _count(MatchType.mismatch);
+    final pspOnly = _count(MatchType.notInUdise);
+    final udiseOnly = _count(MatchType.notInPsp);
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.analytics_outlined, size: 20),
+                const SizedBox(width: 7),
+                const Expanded(
+                  child: Text(
+                    'Comparison Results',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
+                Text(
+                  '${rows.length} rows',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _MiniResultChip('Matched', matched, Colors.green),
+                _MiniResultChip('Mismatch', mismatch, scheme.error),
+                _MiniResultChip('PSP only', pspOnly, Colors.blue),
+                _MiniResultChip('UDISE only', udiseOnly, Colors.blue),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: Text('PSP  $pspCount', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                  Expanded(child: Text('UDISE  $udiseCount', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (rows.isNotEmpty)
+              ...rows.take(8).map((row) => _PreviewRow(row: row)),
+            if (rows.length > 8)
+              Padding(
+                padding: const EdgeInsets.only(top: 5),
+                child: Text(
+                  '+ ${rows.length - 8} more records',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: OutlinedButton.icon(
+                onPressed: onOpenFull,
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('OPEN FULL RESULTS'),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MiniResultChip extends StatelessWidget {
+  final String label;
+  final int value;
+  final Color color;
+
+  const _MiniResultChip(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '$label  $value',
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewRow extends StatelessWidget {
+  final ComparisonRow row;
+
+  const _PreviewRow({required this.row});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final status = switch (row.type) {
+      MatchType.matched => 'MATCHED',
+      MatchType.mismatch => 'MISMATCH',
+      MatchType.possibleMatch => 'REVIEW',
+      MatchType.notInUdise => 'PSP ONLY',
+      MatchType.notInPsp => 'UDISE ONLY',
+    };
+    final color = switch (row.type) {
+      MatchType.matched => Colors.green,
+      MatchType.mismatch => scheme.error,
+      MatchType.possibleMatch => Colors.orange,
+      MatchType.notInUdise || MatchType.notInPsp => Colors.blue,
+    };
+    final name = row.psp?.studentName.isNotEmpty == true
+        ? row.psp!.studentName
+        : row.udise?.studentName ?? 'Unknown student';
+    final detail = row.diffs.isEmpty
+        ? 'No field differences'
+        : row.diffs.join(', ');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        children: [
+          Container(
+            width: 72,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                color: color,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 9, color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
