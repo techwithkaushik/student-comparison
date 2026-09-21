@@ -11,14 +11,14 @@ import '../matching/models.dart';
 
 class ComparisonDashboardScreen extends StatefulWidget {
   final List<ComparisonRow> initialRows;
-  final int initialPspCount;
-  final int initialUdiseCount;
+  // final int initialPspCount;
+  // final int initialUdiseCount;
 
   const ComparisonDashboardScreen({
     super.key,
     this.initialRows = const <ComparisonRow>[],
-    this.initialPspCount = 0,
-    this.initialUdiseCount = 0,
+    // this.initialPspCount = 0,
+    // this.initialUdiseCount = 0,
   });
 
   @override
@@ -29,8 +29,8 @@ class ComparisonDashboardScreen extends StatefulWidget {
 class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {
   List<ComparisonRow> _rows = <ComparisonRow>[];
-  int _pspCount = 0;
-  int _udiseCount = 0;
+  // int _pspCount = 0;
+  // int _udiseCount = 0;
   bool _loadingData = true;
   String? _dataError;
 
@@ -44,8 +44,8 @@ class _ComparisonDashboardScreenState
     super.initState();
     if (widget.initialRows.isNotEmpty) {
       _rows = List<ComparisonRow>.from(widget.initialRows);
-      _pspCount = widget.initialPspCount;
-      _udiseCount = widget.initialUdiseCount;
+      // _pspCount = widget.initialPspCount;
+      // _udiseCount = widget.initialUdiseCount;
       _loadingData = false;
     }
     _loadData();
@@ -64,8 +64,8 @@ class _ComparisonDashboardScreenState
           : runMatchingEngine(psp, udise);
       if (!mounted) return;
       setState(() {
-        _pspCount = psp.length;
-        _udiseCount = udise.length;
+        // _pspCount = psp.length;
+        // _udiseCount = udise.length;
         _rows = rows;
         _loadingData = false;
         _dataError = null;
