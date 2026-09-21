@@ -412,10 +412,7 @@ class _ComparisonDashboardScreenState
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                textInputAction: TextInputAction.search,
-                onChanged: (value) {
-                  setState(() => _search = value);
-                },
+                onChanged: (value) => setState(() => _search = value),
                 decoration: const InputDecoration(
                   hintText: 'Search name, NIC, PEN...',
                   border: InputBorder.none,
@@ -447,9 +444,7 @@ class _ComparisonDashboardScreenState
           IconButton(
             tooltip: _searchActive ? 'Close search' : 'Search',
             icon: Icon(
-              _searchActive
-                  ? Icons.close_rounded
-                  : Icons.search_rounded,
+              _searchActive ? Icons.close_rounded : Icons.search_rounded,
             ),
             onPressed: () {
               setState(() {
@@ -485,6 +480,7 @@ class _ComparisonDashboardScreenState
           ),
         ],
       ),
+
       body: Column(
         children: [
           if (_loadingData) const LinearProgressIndicator(minHeight: 2),
@@ -539,17 +535,16 @@ class _ComparisonDashboardScreenState
             child: Align(
               alignment: Alignment.centerRight,
               child: SizedBox(
-                width: 104,
-                height: 34,
+                width: 108,
+                height: 36,
                 child: DropdownButtonFormField<String>(
-                  initialValue:
-                      _classFilter.isEmpty ? null : _classFilter,
+                  initialValue: _classFilter.isEmpty ? null : _classFilter,
                   isDense: true,
                   decoration: InputDecoration(
                     labelText: 'Class',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
+                      horizontal: 9,
                       vertical: 7,
                     ),
                     border: OutlineInputBorder(
@@ -557,10 +552,7 @@ class _ComparisonDashboardScreenState
                     ),
                   ),
                   items: [
-                    const DropdownMenuItem(
-                      value: '',
-                      child: Text('All'),
-                    ),
+                    const DropdownMenuItem(value: '', child: Text('All')),
                     ...classes.map(
                       (value) => DropdownMenuItem(
                         value: value,
@@ -568,13 +560,13 @@ class _ComparisonDashboardScreenState
                       ),
                     ),
                   ],
-                  onChanged: (value) {
-                    setState(() => _classFilter = value ?? '');
-                  },
+                  onChanged: (value) =>
+                      setState(() => _classFilter = value ?? ''),
                 ),
               ),
             ),
           ),
+
 
           Expanded(
             child: filtered.isEmpty
@@ -665,7 +657,7 @@ class _SummarySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 5, 10, 2),
+      padding: const EdgeInsets.fromLTRB(10, 5, 10, 3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -717,7 +709,7 @@ class _SummarySection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           // Difference chips also wrap vertically. No horizontal scrolling.
           Wrap(
             spacing: 5,
@@ -826,20 +818,18 @@ class _StatChip extends StatelessWidget {
           width: 86,
           height: 38,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: selected
                   ? baseColor.withValues(alpha: .16)
                   : scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(9),
               border: Border.all(
-                color: selected
-                    ? baseColor
-                    : scheme.outlineVariant,
+                color: selected ? baseColor : scheme.outlineVariant,
                 width: selected ? 1.2 : .6,
               ),
             ),
-            alignment: Alignment.center,
             child: RichText(
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -851,9 +841,7 @@ class _StatChip extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: selected
-                          ? baseColor
-                          : scheme.onSurface,
+                      color: selected ? baseColor : scheme.onSurface,
                     ),
                   ),
                   TextSpan(
@@ -900,6 +888,7 @@ class _DiffChip extends StatelessWidget {
           width: 103,
           height: 32,
           child: Container(
+            alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 5),
             decoration: BoxDecoration(
               color: selected
@@ -907,13 +896,10 @@ class _DiffChip extends StatelessWidget {
                   : scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: selected
-                    ? scheme.primary
-                    : scheme.outlineVariant,
+                color: selected ? scheme.primary : scheme.outlineVariant,
                 width: selected ? 1.1 : .6,
               ),
             ),
-            alignment: Alignment.center,
             child: Text(
               '$label $value',
               maxLines: 1,
@@ -922,9 +908,7 @@ class _DiffChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
-                color: selected
-                    ? scheme.onPrimaryContainer
-                    : scheme.onSurface,
+                color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
               ),
             ),
           ),
@@ -988,14 +972,9 @@ class _StudentRow extends StatelessWidget {
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
-            builder: (sheetContext) => SafeArea(
-              top: false,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(sheetContext).height * .82,
-                ),
-                child: _StudentDetails(row: row),
-              ),
+            builder: (_) => FractionallySizedBox(
+              heightFactor: 0.78,
+              child: _StudentDetails(row: row),
             ),
           );
           if (context.mounted) {
@@ -1296,28 +1275,25 @@ class _StudentDetailsState extends State<_StudentDetails> {
     final p = widget.row.psp;
     final u = widget.row.udise;
 
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
+    return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               p?.studentName ?? u?.studentName ?? 'Student',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 5),
             _ComparisonTable(row: widget.row),
-            const SizedBox(height: 10),
+            const SizedBox(height: 7),
             Row(
               children: [
-                const Icon(Icons.notes_rounded, size: 17),
+                const Icon(Icons.notes_rounded, size: 16),
                 const SizedBox(width: 5),
                 const Text(
                   'Remark',
@@ -1331,11 +1307,13 @@ class _StudentDetailsState extends State<_StudentDetails> {
                   const SizedBox(
                     width: 15,
                     height: 15,
-                    child: CircularProgressIndicator(strokeWidth: 1.8),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.8,
+                    ),
                   ),
               ],
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             TextField(
               controller: _remarkController,
               minLines: 2,
@@ -1345,8 +1323,8 @@ class _StudentDetailsState extends State<_StudentDetails> {
                 hintText: 'Add a remark for this student...',
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 9,
+                  horizontal: 9,
+                  vertical: 8,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(9),
@@ -1355,7 +1333,7 @@ class _StudentDetailsState extends State<_StudentDetails> {
             ),
             if (_remarkError != null)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 3),
                 child: Text(
                   _remarkError!,
                   style: TextStyle(
@@ -1364,18 +1342,21 @@ class _StudentDetailsState extends State<_StudentDetails> {
                   ),
                 ),
               ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
-                onPressed: _loadingRemark || _savingRemark
-                    ? null
-                    : _saveRemark,
+                onPressed:
+                    _loadingRemark || _savingRemark
+                        ? null
+                        : _saveRemark,
                 icon: _savingRemark
                     ? const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.8),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.8,
+                        ),
                       )
                     : const Icon(Icons.save_rounded, size: 16),
                 label: const Text(
@@ -1392,7 +1373,7 @@ class _StudentDetailsState extends State<_StudentDetails> {
               ),
             ),
             if (widget.row.diffs.isNotEmpty) ...[
-              const SizedBox(height: 7),
+              const SizedBox(height: 4),
               const Text(
                 'Differences',
                 style: TextStyle(
@@ -1418,7 +1399,6 @@ class _StudentDetailsState extends State<_StudentDetails> {
       ),
     );
   }
-
 }
 
 class _ComparisonTable extends StatelessWidget {
@@ -1544,8 +1524,10 @@ class _ComparisonTable extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              constraints: const BoxConstraints(minHeight: 38),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 7,
+                vertical: 6,
+              ),
               color: scheme.surfaceContainerHighest,
               child: const Row(
                 children: [
@@ -1605,30 +1587,27 @@ class _ComparisonTable extends StatelessWidget {
                   diffKey != null && _isDiff(diffKey);
 
               return Container(
-                constraints: const BoxConstraints(minHeight: 38),
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(color: scheme.outlineVariant),
                   ),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
                       width: 70,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            field,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onSurfaceVariant,
-                            ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          field,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -1670,18 +1649,14 @@ class _ValueCell extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 36),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: mismatch
-            ? scheme.errorContainer.withValues(alpha: .55)
-            : null,
+        color: mismatch ? scheme.errorContainer.withValues(alpha: .55) : null,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         value,
         softWrap: true,
-        textAlign: TextAlign.left,
         style: TextStyle(
           fontSize: 10.5,
           height: 1.15,
