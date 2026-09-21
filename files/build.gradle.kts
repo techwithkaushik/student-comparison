@@ -94,6 +94,7 @@ android {
 
         getByName("debug") {
             // Keep default debug signing (no change needed)
+        }
     } 
 
 } 
