@@ -944,6 +944,7 @@ class _PercentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final count = percent;
     return Material(color: Colors.transparent, child: InkWell(
       onTap: onTap, borderRadius: BorderRadius.circular(9),
       child: Container(width: 80, height: 26, alignment: Alignment.center,
