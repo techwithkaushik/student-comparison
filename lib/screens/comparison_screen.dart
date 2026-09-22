@@ -1113,60 +1113,85 @@ class _StudentRow extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: .11),
-                        borderRadius: BorderRadius.circular(5),
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        statusText == 'MATCHED'
+                            ? 'Matched'
+                            : statusText == 'MISMATCH'
+                                ? 'Mismatch'
+                                : statusText,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: statusColor,
+                        ),
                       ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: statusColor),
+                      Text(
+                        '${row.score}%',
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          color: statusColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '${row.score}%',
-                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: statusColor),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 8),
+
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: rteText == 'RTE'
+                                ? Colors.orange.withValues(alpha: .14)
+                                : scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            rteText,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: rteText == 'RTE'
+                                  ? Colors.orange.shade800
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       'Admission: ${_rawValue(p?.raw, _admissionDateKeys) ?? '—'}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: rteText == 'RTE' ? Colors.orange.withValues(alpha: .14) : scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    rteText,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant,
-                    ),
-                  ),
                 ),
                 const Spacer(),
                 if (remark.isNotEmpty)
