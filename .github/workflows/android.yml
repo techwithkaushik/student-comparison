@@ -3,11 +3,11 @@ name: Flutter Android
 on:
   push:
     branches:
-      - flutter-android
+      - '**'
 
   pull_request:
     branches:
-      - flutter-android
+      - '**'
 
 jobs:
   build:
