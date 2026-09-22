@@ -5,7 +5,6 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../database/database.dart';
-import '../database/remark_repository.dart';
 import '../matching/matching_engine.dart';
 import '../matching/models.dart';
 
@@ -933,8 +932,12 @@ class _StudentRow extends StatelessWidget {
   });
 
   void _open(BuildContext context, String side) {
-    final source = side == 'PSP' ? row.psp : row.udise;
-    final raw = source?.raw ?? const <String, dynamic>{};
+    final Map<String, dynamic> raw;
+    if (side == 'PSP') {
+      raw = row.psp?.raw ?? const <String, dynamic>{};
+    } else {
+      raw = row.udise?.raw ?? const <String, dynamic>{};
+    }
     if (raw.isEmpty) return;
 
     showDialog<void>(
@@ -992,7 +995,7 @@ class _StudentRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 7),
                 Text(
-                  'Score: ' + row.score.toString() + '%',
+                  'Score: ${row.score}%',
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
@@ -1158,7 +1161,7 @@ class _SourceStudentCard extends StatelessWidget {
                 _SourceLine(
                   label: 'NIC ID',
                   value: p?.nicId,
-                  suffix: p?.srNo.isNotEmpty == true ? ' | SR: ' + p!.srNo : null,
+                  suffix: p?.srNo.isNotEmpty == true ? ' | SR: ${p!.srNo}' : null,
                 )
               else
                 _SourceLine(label: 'PEN', value: u?.studentCodeNat),
@@ -1171,7 +1174,7 @@ class _SourceStudentCard extends StatelessWidget {
               ),
               if (!isPsp && u?.nameAsUuid.trim().isNotEmpty == true)
                 Text(
-                  'Name in Aadhaar: ' + u!.nameAsUuid,
+                  'Name in Aadhaar: ${u!.nameAsUuid}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 7.5, color: scheme.onSurfaceVariant),
@@ -1427,7 +1430,7 @@ class _ProfileReviewDialog extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  side + ' Student Profile Review — ' + status,
+                  '${side} Student Profile Review — ${status}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -1455,7 +1458,7 @@ class _ProfileReviewDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Verified ' + side + ' Database Attributes',
+                  'Verified ${side} Database Attributes',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -1581,7 +1584,7 @@ class _ProfileReviewDialog extends StatelessWidget {
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             TextSpan(
-                              text: row.score.toString() + '%',
+                              text: '${row.score}%',
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: scheme.primary,
