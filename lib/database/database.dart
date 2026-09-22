@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -258,6 +259,15 @@ class AppDatabase {
     });
   }
 
+
+  Future<Uint8List> exportDatabaseBytes() async {
+    final dbPath = await _persistentDatabasePath();
+    final file = File(dbPath);
+    if (!await file.exists()) {
+      throw Exception('Database file not found.');
+    }
+    return file.readAsBytes();
+  }
 
   Future<List<Map<String, dynamic>>> loadPspRows() async {
     final db = await database;
