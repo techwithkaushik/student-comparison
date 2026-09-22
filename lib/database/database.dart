@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SqliteImportResult {
   final int pspCount;
@@ -24,15 +25,15 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase._();
 
   static const _dbName = 'student_comparison.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
+  static const _publicFolder = '/storage/emulated/0/StudentComparison';
 
   Database? _db;
 
   Future<Database> get database async {
     if (_db != null) return _db!;
 
-    final dbPath = await getDatabasesPath();
-    final dbFile = p.join(dbPath, _dbName);
+    final dbFile = await _persistentDatabasePath();
 
     _db = await openDatabase(
       dbFile,
@@ -40,9 +41,48 @@ class AppDatabase {
       onCreate: (db, version) async {
         await _createSchema(db);
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // v2 keeps the existing schema; the database itself is now stored
+        // in shared external storage so it survives app uninstall.
+      },
     );
 
     return _db!;
+  }
+
+  Future<String> _persistentDatabasePath() async {
+    // The user's requirement is a database that survives app uninstall.
+    // On Android 10 we use shared primary storage, not an app-specific
+    // directory. requestLegacyExternalStorage is enabled in the manifest.
+    if (Platform.isAndroid) {
+      final permission = await Permission.storage.request();
+      if (!permission.isGranted && !permission.isLimited) {
+        throw Exception(
+          'Storage permission is required to access the persistent database.',
+        );
+      }
+
+      final directory = Directory(_publicFolder);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+
+      final target = p.join(directory.path, _dbName);
+
+      // One-time migration from the old sqflite app-private database.
+      final oldDir = await getDatabasesPath();
+      final oldFile = File(p.join(oldDir, _dbName));
+      final newFile = File(target);
+      if (!await newFile.exists() && await oldFile.exists()) {
+        await oldFile.copy(target);
+      }
+
+      return target;
+    }
+
+    // Keep desktop/test behaviour unchanged.
+    final dbPath = await getDatabasesPath();
+    return p.join(dbPath, _dbName);
   }
 
   static Future<void> _createSchema(Database db) async {
