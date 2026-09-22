@@ -1111,6 +1111,7 @@ class _StudentRow extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(8, 5, 8, 4),
             color: statusColor.withValues(alpha: .06),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Column(
                   mainAxisSize: MainAxisSize.min,
