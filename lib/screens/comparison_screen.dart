@@ -722,8 +722,8 @@ class _SummarySection extends StatelessWidget {
                 selected: selected == 'ALL',
                 onTap: () => onSelected('ALL'),
               ),
-              _PercentChip(label: 'Matched', percent: matchedCount, color: Colors.green, selected: selected == 'MATCHED', onTap: () => onSelected('MATCHED')),
-              _PercentChip(label: 'Mismatch', percent: mismatchCount, color: Colors.red, selected: selected == 'MISMATCH', onTap: () => onSelected('MISMATCH')),
+              _CountChip(label: 'Matched', percent: matchedCount, color: Colors.green, selected: selected == 'MATCHED', onTap: () => onSelected('MATCHED')),
+              _CountChip(label: 'Mismatch', percent: mismatchCount, color: Colors.red, selected: selected == 'MISMATCH', onTap: () => onSelected('MISMATCH')),
               _StatChip(
                 label: 'PSP only',
                 value: pspOnly,
