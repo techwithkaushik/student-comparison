@@ -572,8 +572,8 @@ class _ComparisonDashboardScreenState
             ),
           _SummarySection(
             all: pspBaseCount,
-            matchedPercent: matchedBaseCount,
-            mismatchPercent: mismatchBaseCount,
+            matchedCount: matchedBaseCount,
+            mismatchCount: mismatchBaseCount,
             rte: _rows.where((row) => _pspRte(row) == 'RTE').length,
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
@@ -651,8 +651,8 @@ class _ComparisonDashboardScreenState
 
 class _SummarySection extends StatelessWidget {
   final int all;
-  final int matchedPercent;
-  final int mismatchPercent;
+  final int matchedCount;
+  final int mismatchCount;
   final int rte;
   final int pspOnly;
   final int udiseOnly;
@@ -679,8 +679,8 @@ class _SummarySection extends StatelessWidget {
 
   const _SummarySection({
     required this.all,
-    required this.matchedPercent,
-    required this.mismatchPercent,
+    required this.matchedCount,
+    required this.mismatchCount,
     required this.rte,
     required this.pspOnly,
     required this.udiseOnly,
@@ -722,8 +722,8 @@ class _SummarySection extends StatelessWidget {
                 selected: selected == 'ALL',
                 onTap: () => onSelected('ALL'),
               ),
-              _PercentChip(label: 'Matched', percent: matchedPercent, color: Colors.green, selected: selected == 'MATCHED', onTap: () => onSelected('MATCHED')),
-              _PercentChip(label: 'Mismatch', percent: mismatchPercent, color: Colors.red, selected: selected == 'MISMATCH', onTap: () => onSelected('MISMATCH')),
+              _PercentChip(label: 'Matched', percent: matchedCount, color: Colors.green, selected: selected == 'MATCHED', onTap: () => onSelected('MATCHED')),
+              _PercentChip(label: 'Mismatch', percent: mismatchCount, color: Colors.red, selected: selected == 'MISMATCH', onTap: () => onSelected('MISMATCH')),
               _StatChip(
                 label: 'PSP only',
                 value: pspOnly,
@@ -939,13 +939,13 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _PercentChip extends StatelessWidget {
+class _CountChip extends StatelessWidget {
   final String label;
   final int percent;
   final Color color;
   final bool selected;
   final VoidCallback onTap;
-  const _PercentChip({required this.label, required this.percent, required this.color, required this.selected, required this.onTap});
+  const _CountChip({required this.label, required this.percent, required this.color, required this.selected, required this.onTap});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -1057,6 +1057,14 @@ class _DiffChip extends StatelessWidget {
   }
 }
 
+const List<String> _admissionDateKeys = <String>[
+  'Admission Date',
+  'Admission date',
+  'admissionDate',
+  'admission_date',
+  'Date of Admission',
+];
+
 class _StudentRow extends StatelessWidget {
   final ComparisonRow row;
   final bool hasRemark;
@@ -1104,18 +1112,6 @@ class _StudentRow extends StatelessWidget {
             color: statusColor.withValues(alpha: .06),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: .11),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: statusColor),
-                  ),
-                ),
-                const SizedBox(width: 5),
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1148,13 +1144,7 @@ class _StudentRow extends StatelessWidget {
                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: scheme.onSurface),
                     ),
                     Text(
-                      'Admission: ${_rawValue(p?.raw, const [
-                        'Admission Date',
-                        'Admission date',
-                        'admissionDate',
-                        'admission_date',
-                        'Date of Admission',
-                      ]) ?? '—'}',
+                      'Admission: ${_rawValue(p?.raw, _admissionDateKeys) ?? '—'}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant),
