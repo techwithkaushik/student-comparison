@@ -1006,6 +1006,34 @@ class _StudentRow extends StatelessWidget {
               ],
             ),
           ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 3),
+            color: scheme.surfaceContainerHighest,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'PSP — Correct Data',
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'UDISE — Current Data',
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1340,7 +1368,7 @@ class _ProfileReviewDialog extends StatelessWidget {
           RegExp(r'([a-z0-9])([A-Z])'),
           (m) => (m.group(1) ?? '') + ' ' + (m.group(2) ?? ''),
         )
-        .replaceAll(RegExp(r'\\s+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
     return value
