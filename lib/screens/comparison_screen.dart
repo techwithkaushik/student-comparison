@@ -609,39 +609,45 @@ class _ComparisonDashboardScreenState
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 5, 8, 5),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: SizedBox(
-                width: 90,
-                height: 26,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _classFilter.isEmpty ? null : _classFilter,
-                  isDense: true,
-                  decoration: InputDecoration(
-                    labelText: 'Class',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 7,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: '', child: Text('All')),
-                    ...classes.map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text('Class $value'),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _classFilter = value ?? ''),
+            padding: const EdgeInsets.fromLTRB(8, 5, 8, 6),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.filter_alt_rounded,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-              ),
+                const SizedBox(width: 6),
+                Text(
+                  'Class',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Wrap(
+                    spacing: 5,
+                    runSpacing: 5,
+                    children: [
+                      _ClassActionButton(
+                        label: 'All',
+                        selected: _classFilter.isEmpty,
+                        onTap: () => setState(() => _classFilter = ''),
+                      ),
+                      ...classes.map(
+                        (value) => _ClassActionButton(
+                          label: value,
+                          selected: _classFilter == value,
+                          onTap: () => setState(() => _classFilter = value),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -886,47 +892,55 @@ class _StatChip extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
-        child: SizedBox(
-          width: 80,
-          height: 26,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected
-                  ? baseColor.withValues(alpha: .16)
-                  : scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                color: selected ? baseColor : scheme.outlineVariant,
-                width: selected ? 1.2 : .6,
-              ),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 82, minHeight: 34),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? LinearGradient(
+                    colors: [
+                      baseColor.withValues(alpha: .22),
+                      baseColor.withValues(alpha: .08),
+                    ],
+                  )
+                : null,
+            color: selected ? null : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? baseColor : scheme.outlineVariant,
+              width: selected ? 1.4 : .7,
             ),
-            child: RichText(
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '$value ',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: selected ? baseColor : scheme.onSurface,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: baseColor.withValues(alpha: .10),
+                      blurRadius: 7,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                  TextSpan(
-                    text: label,
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$value',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: selected ? baseColor : scheme.onSurface,
+                ),
               ),
-            ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? baseColor : scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -945,14 +959,55 @@ class _PercentChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final count = percent;
-    return Material(color: Colors.transparent, child: InkWell(
-      onTap: onTap, borderRadius: BorderRadius.circular(9),
-      child: Container(width: 80, height: 26, alignment: Alignment.center,
-        decoration: BoxDecoration(color: selected ? color.withValues(alpha: .16) : scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(9), border: Border.all(color: selected ? color : scheme.outlineVariant, width: selected ? 1.2 : .6)),
-        child: Text('$label $count', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: selected ? color : scheme.onSurface)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 92, minHeight: 34),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? LinearGradient(
+                    colors: [
+                      color.withValues(alpha: .22),
+                      color.withValues(alpha: .08),
+                    ],
+                  )
+                : null,
+            color: selected ? null : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? color : scheme.outlineVariant,
+              width: selected ? 1.4 : .7,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: selected ? color : scheme.onSurface,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? color : scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-    ));
+    );
   }
 }
 class _DiffChip extends StatelessWidget {
@@ -976,7 +1031,7 @@ class _DiffChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         child: SizedBox(
           width: 90,
           height: 26,
@@ -1003,6 +1058,50 @@ class _DiffChip extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClassActionButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ClassActionButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 31),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? scheme.primary : scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? scheme.primary : scheme.outlineVariant,
+              width: selected ? 1.2 : .7,
+            ),
+          ),
+          child: Text(
+            label == 'All' ? label : 'Class $label',
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: selected ? scheme.onPrimary : scheme.onSurface,
             ),
           ),
         ),
@@ -1044,17 +1143,17 @@ class _StudentRow extends StatelessWidget {
     final u = row.udise;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 5),
-      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1.5,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide(color: statusColor.withValues(alpha: .25)),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.fromLTRB(10, 7, 8, 6),
             color: statusColor.withValues(alpha: .06),
             child: Row(
               children: [
@@ -1072,7 +1171,7 @@ class _StudentRow extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   '${row.score}%',
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor),
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: statusColor),
                 ),
                 const SizedBox(width: 6),
                 Container(
@@ -1086,12 +1185,23 @@ class _StudentRow extends StatelessWidget {
                   child: Text(
                     rteText,
                     style: TextStyle(
-                      fontSize: 7.5,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
                       color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
+                const SizedBox(width: 7),
+                Text(
+                  'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _AadhaarStatusBadge(row: row),
                 const Spacer(),
                 if (remark.isNotEmpty)
                   Flexible(
@@ -1159,10 +1269,36 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
           _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
+          _ComparisonFieldRow(
+            label: 'Admission Date',
+            psp: _rawValue(p?.raw, const [
+              'Admission Date',
+              'Admission date',
+              'admissionDate',
+              'admission_date',
+              'Date of Admission',
+            ]),
+            udise: _rawValue(u?.raw, const [
+              'Admission Date',
+              'Admission date',
+              'admissionDate',
+              'admission_date',
+              'Date of Admission',
+            ]),
+          ),
           _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : '****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : '****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
         ],
       ),
     );
+  }
+
+  static String? _rawValue(Map<String, dynamic>? raw, List<String> keys) {
+    if (raw == null) return null;
+    for (final key in keys) {
+      final value = raw[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return null;
   }
 
   static String _genderLabel(String? value) {
@@ -1170,6 +1306,68 @@ class _StudentRow extends StatelessWidget {
     if (v == '1' || v == 'MALE' || v == 'M') return 'MALE';
     if (v == '2' || v == 'FEMALE' || v == 'F') return 'FEMALE';
     return value ?? '—';
+  }
+}
+
+class _AadhaarStatusBadge extends StatelessWidget {
+  final ComparisonRow row;
+
+  const _AadhaarStatusBadge({required this.row});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final u = row.udise;
+    final p = row.psp;
+    final uuidStatus = u?.uuidStatus.trim() ?? '';
+
+    final bool verified;
+    final bool known;
+
+    if (uuidStatus == '1') {
+      verified = true;
+      known = true;
+    } else if (uuidStatus == '2' || uuidStatus == '0') {
+      verified = false;
+      known = true;
+    } else {
+      verified = p?.aadhaarLast4.isNotEmpty == true;
+      known = p != null;
+    }
+
+    final color = !known
+        ? scheme.onSurfaceVariant
+        : verified
+            ? Colors.green.shade700
+            : scheme.error;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: color.withValues(alpha: .25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            verified ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            verified ? 'AADHAAR VERIFIED' : 'AADHAAR NOT VERIFIED',
+            style: TextStyle(
+              fontSize: 8.5,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1340,339 +1538,12 @@ class _ComparisonFieldRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final p = (psp ?? '').trim().isEmpty ? '—' : psp!.trim();
     final u = (udise ?? '').trim().isEmpty ? '—' : udise!.trim();
-    final style = TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: scheme.onSurface);
+    final style = TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: scheme.onSurface);
     return Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: .45)))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(flex: 2, child: Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant))),
+        Expanded(flex: 2, child: Text(label, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant))),
         Expanded(flex: 3, child: Text(p, maxLines: 1, overflow: TextOverflow.ellipsis, style: mismatch ? style.copyWith(fontWeight: FontWeight.w800, color: scheme.error) : style)),
         Expanded(flex: 3, child: Text(u, maxLines: 1, overflow: TextOverflow.ellipsis, style: mismatch ? style.copyWith(fontWeight: FontWeight.w800, color: scheme.error) : style)),
       ]));
-  }
-}
-// ignore: unused_element
-class _ProfileReviewDialog extends StatelessWidget {
-  final ComparisonRow row;
-  final String side;
-  final Map<String, dynamic> raw;
-
-  const _ProfileReviewDialog({
-    required this.row,
-    required this.side,
-    required this.raw,
-  });
-
-  String _display(dynamic value) {
-    if (value == null) return 'empty';
-    if (value is String && value.trim().isEmpty) return 'empty';
-    if (value is Map || value is List) {
-      try {
-        return const JsonEncoder.withIndent('  ').convert(value);
-      } catch (_) {
-        return value.toString();
-      }
-    }
-    return value.toString();
-  }
-
-  bool _isMismatch(String key) {
-    final diffs = row.diffs.toSet();
-
-    if (side == 'PSP') {
-      const map = <String, String>{
-        'Student Name': 'NAME_MISMATCH',
-        'Father Name': 'FATHER_MISMATCH',
-        'Mother Name': 'MOTHER_MISMATCH',
-        'DOB': 'DOB_MISMATCH',
-        'Studying in Class': 'CLASS_MISMATCH',
-        'Gender': 'GENDER_MISMATCH',
-        'Mobile Number': 'MOBILE_MISMATCH',
-        'Aadhar Number': 'AADHAAR_MISMATCH',
-        'Social Category': 'CATEGORY_MISMATCH',
-        'Religion': 'RELIGION_MISMATCH',
-      };
-      return diffs.contains(map[key]);
-    }
-
-    const map = <String, String>{
-      'studentName': 'NAME_MISMATCH',
-      'nameAsUuid': 'NAME_MISMATCH',
-      'fatherName': 'FATHER_MISMATCH',
-      'motherName': 'MOTHER_MISMATCH',
-      'dob': 'DOB_MISMATCH',
-      'classId': 'CLASS_MISMATCH',
-      'classDesc': 'CLASS_MISMATCH',
-      'gender': 'GENDER_MISMATCH',
-      'genderDesc': 'GENDER_MISMATCH',
-      'primaryMobile': 'MOBILE_MISMATCH',
-      'secondaryMobile': 'MOBILE_MISMATCH',
-      'uuid': 'AADHAAR_MISMATCH',
-      'uuidMasked': 'AADHAAR_MISMATCH',
-      'socCatId': 'CATEGORY_MISMATCH',
-      'socialCategoryDesc': 'CATEGORY_MISMATCH',
-      'minorityId': 'RELIGION_MISMATCH',
-      'minorityDesc': 'RELIGION_MISMATCH',
-    };
-    return diffs.contains(map[key]);
-  }
-
-  String _humanKey(String key) {
-    final value = key
-        .replaceAll('_', ' ')
-        .replaceAllMapped(
-          RegExp(r'([a-z0-9])([A-Z])'),
-          (m) => '${m.group(1) ?? ''} ${m.group(2) ?? ''}',
-        )
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-
-    return value
-        .split(' ')
-        .map(
-          (part) => part.isEmpty
-              ? part
-              : part[0].toUpperCase() + part.substring(1),
-        )
-        .join(' ');
-  }
-
-  String _statusLabel(MatchType type) {
-    switch (type) {
-      case MatchType.matched:
-        return 'MATCHED';
-      case MatchType.mismatch:
-        return 'MISMATCH';
-      case MatchType.possibleMatch:
-        return 'POSSIBLE MATCH';
-      case MatchType.notInUdise:
-        return 'NOT IN UDISE';
-      case MatchType.notInPsp:
-        return 'NOT IN PSP';
-    }
-  }
-
-  String _flagLabel(String value) {
-    switch (value) {
-      case 'AADHAAR_NOT_FOUND':
-        return 'AADHAAR NOT FOUND';
-      case 'MOBILE_NOT_FOUND':
-        return 'MOBILE NOT FOUND';
-      default:
-        return value;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isPsp = side == 'PSP';
-    final accent = isPsp ? scheme.primary : Colors.green.shade700;
-    final status = _statusLabel(row.type);
-    final flags = row.diffs.isEmpty
-        ? 'None (Clean Match)'
-        : row.diffs.map(_flagLabel).join(', ');
-    final entries = raw.entries.toList();
-
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 9, 7, 7),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '$side Student Profile Review — $status',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Close',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, size: 20),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          height: 3,
-          margin: const EdgeInsets.symmetric(horizontal: 14),
-          color: accent,
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 7),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Verified $side Database Attributes',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: accent,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Expanded(
-                  child: Scrollbar(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(1, 1, 1, 2),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 7,
-                        childAspectRatio: 3.0,
-                      ),
-                      itemCount: entries.length,
-                      itemBuilder: (_, index) {
-                        final entry = entries[index];
-                        final key = entry.key.toString();
-                        final mismatch = _isMismatch(key);
-                        final display = _display(entry.value);
-
-                        return Container(
-                          padding: const EdgeInsets.fromLTRB(11, 8, 9, 7),
-                          decoration: BoxDecoration(
-                            color: mismatch
-                                ? scheme.errorContainer.withValues(alpha: .28)
-                                : scheme.surface,
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(
-                              color: mismatch
-                                  ? scheme.error
-                                  : scheme.outlineVariant.withValues(alpha: .65),
-                              width: mismatch ? 1.0 : .7,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _humanKey(key).toUpperCase(),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: .15,
-                                  color: mismatch
-                                      ? scheme.error
-                                      : scheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    display,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      height: 1.15,
-                                      fontWeight: mismatch
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
-                                      color: mismatch
-                                          ? scheme.error
-                                          : scheme.onSurface,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border(
-                      left: BorderSide(
-                        color: scheme.outline,
-                        width: 3,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            const TextSpan(
-                              text: 'Active Conflict Flags: ',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            TextSpan(
-                              text: flags,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: row.diffs.isEmpty
-                                    ? Colors.green.shade700
-                                    : scheme.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                        style: const TextStyle(fontSize: 8.5),
-                      ),
-                      const SizedBox(height: 3),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            const TextSpan(
-                              text: 'Cross-System Match Confidence Score: ',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            TextSpan(
-                              text: '${row.score}%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        style: const TextStyle(fontSize: 8.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: scheme.onSurfaceVariant,
-              foregroundColor: scheme.surface,
-              minimumSize: const Size(82, 34),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Close Review',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
