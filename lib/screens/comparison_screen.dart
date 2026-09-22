@@ -1221,98 +1221,73 @@ class _ComparisonDetailsDialog extends StatelessWidget {
   }
 
   String _label(String key) {
-    return key
-        .replaceAll('_', ' ')
-        .replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m.group(1) ?? ''} ${m.group(2) ?? ''}')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim()
-        .split(' ')
-        .map((v) => v.isEmpty ? v : v[0].toUpperCase() + v.substring(1))
-        .join(' ');
-  }
-
-  bool _mismatch(String key) {
-    const map = <String, String>{
-      'Student Name': 'NAME_MISMATCH', 'studentName': 'NAME_MISMATCH', 'nameAsUuid': 'NAME_MISMATCH',
-      'Father Name': 'FATHER_MISMATCH', 'fatherName': 'FATHER_MISMATCH',
-      'Mother Name': 'MOTHER_MISMATCH', 'motherName': 'MOTHER_MISMATCH',
-      'DOB': 'DOB_MISMATCH', 'dob': 'DOB_MISMATCH',
-      'Studying in Class': 'CLASS_MISMATCH', 'classId': 'CLASS_MISMATCH', 'classDesc': 'CLASS_MISMATCH',
-      'Gender': 'GENDER_MISMATCH', 'gender': 'GENDER_MISMATCH',
-      'Mobile Number': 'MOBILE_MISMATCH', 'mobile': 'MOBILE_MISMATCH', 'primaryMobile': 'MOBILE_MISMATCH',
-      'Aadhar Number': 'AADHAAR_MISMATCH', 'uuid': 'AADHAAR_MISMATCH', 'uuidMasked': 'AADHAAR_MISMATCH',
-      'Social Category': 'CATEGORY_MISMATCH', 'socialCategoryDesc': 'CATEGORY_MISMATCH', 'socCatId': 'CATEGORY_MISMATCH',
-      'Religion': 'RELIGION_MISMATCH', 'minorityDesc': 'RELIGION_MISMATCH', 'minorityId': 'RELIGION_MISMATCH',
-    };
-    return row.diffs.contains(map[key]);
+    final value = key.replaceAll('_', ' ').replaceAllMapped(
+      RegExp(r'([a-z0-9])([A-Z])'),
+      (m) => '${m.group(1) ?? ''} ${m.group(2) ?? ''}',
+    ).replaceAll(RegExp(r'\s+'), ' ').trim();
+    return value.split(' ').map((v) => v.isEmpty ? v : v[0].toUpperCase() + v.substring(1)).join(' ');
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isPsp = side == 'PSP';
-    final raw = isPsp
-        ? (row.psp?.raw ?? const <String, dynamic>{})
-        : (row.udise?.raw ?? const <String, dynamic>{});
-    final keys = raw.keys.toList()..sort();
     final accent = isPsp ? scheme.primary : Colors.green.shade700;
+    final raw = isPsp ? (row.psp?.raw ?? const <String, dynamic>{}) : (row.udise?.raw ?? const <String, dynamic>{});
+    final keys = raw.keys.toList()..sort();
     final name = isPsp ? row.psp?.studentName : row.udise?.studentName;
     final id = isPsp ? row.psp?.nicId : row.udise?.studentCodeNat;
     final secondary = isPsp ? row.psp?.srNo : row.udise?.studentId;
     final aadhaar = isPsp ? row.psp?.aadhaarLast4 : row.udise?.uuidLast4;
+
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: SizedBox(
         width: 900,
-        height: MediaQuery.sizeOf(context).height * .88,
+        height: MediaQuery.sizeOf(context).height * .90,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 9, 7, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '$side Details  •  ${row.score}%  •  ${row.type == MatchType.matched ? 'MATCHED' : 'MISMATCH'}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
-                ],
-              ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 9, 7, 8),
+              decoration: BoxDecoration(color: accent.withValues(alpha: .07), border: Border(bottom: BorderSide(color: accent.withValues(alpha: .25)))),
+              child: Row(children: [
+                Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: accent.withValues(alpha: .13), borderRadius: BorderRadius.circular(7)),
+                  child: Text(side, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent))),
+                const SizedBox(width: 8),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name?.trim().isNotEmpty == true ? name! : 'Student Details', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 2),
+                  Text('${row.score}%  •  ${_statusLabel(row.type)}', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: accent)),
+                ])),
+                IconButton(tooltip: 'Close', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+              ]),
             ),
-            Container(height: 3, margin: const EdgeInsets.symmetric(horizontal: 10), color: accent),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
-              child: Row(
-                children: [
-                  const Expanded(flex: 2, child: Text('FIELD', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
-                  Expanded(flex: 3, child: Text('PSP — Correct Data', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
-                  Expanded(flex: 3, child: Text('UDISE — Current Data', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
-                ],
-              ),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
+              child: Row(children: [
+                _IdentityPill(label: isPsp ? 'NIC ID' : 'PEN', value: id ?? '', color: accent),
+                const SizedBox(width: 6),
+                _IdentityPill(label: isPsp ? 'SR NO' : 'STUDENT ID', value: secondary ?? '', color: accent),
+                const SizedBox(width: 6),
+                _IdentityPill(label: 'AADHAAR', value: aadhaar?.isNotEmpty == true ? '****$aadhaar' : 'Not Found', color: accent),
+              ]),
             ),
+            Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 5), child: Align(alignment: Alignment.centerLeft, child: Text('All $side source fields', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent)))),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 7, mainAxisSpacing: 7, childAspectRatio: 3.8),
                 itemCount: keys.length,
                 itemBuilder: (_, i) {
                   final key = keys[i];
-                  final mismatch = _mismatch(key);
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: mismatch ? scheme.errorContainer.withValues(alpha: .22) : null,
-                      border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: .45))),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(flex: 2, child: Text(_label(key), style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: mismatch ? scheme.error : scheme.onSurfaceVariant))),
-                        Expanded(flex: 3, child: Text(_value(raw[key]), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
-                        Expanded(flex: 3, child: const SizedBox.shrink(), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
-                      ],
-                    ),
+                    padding: const EdgeInsets.fromLTRB(9, 7, 9, 6),
+                    decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: .55), borderRadius: BorderRadius.circular(7), border: Border.all(color: scheme.outlineVariant)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(_label(key).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
+                      const SizedBox(height: 3),
+                      Expanded(child: SingleChildScrollView(child: Text(_value(raw[key]), style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, height: 1.15)))),
+                    ]),
                   );
                 },
               ),
@@ -1322,8 +1297,40 @@ class _ComparisonDetailsDialog extends StatelessWidget {
       ),
     );
   }
+
+  String _statusLabel(MatchType type) {
+    switch (type) {
+      case MatchType.matched: return 'MATCHED';
+      case MatchType.mismatch: return 'MISMATCH';
+      case MatchType.possibleMatch: return 'REVIEW';
+      case MatchType.notInUdise: return 'PSP ONLY';
+      case MatchType.notInPsp: return 'UDISE ONLY';
+    }
+  }
 }
 
+class _IdentityPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _IdentityPill({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final display = value.trim().isEmpty ? '—' : value;
+    return Expanded(child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+      decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(7), border: Border.all(color: color.withValues(alpha: .28))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: color)),
+        const SizedBox(height: 2),
+        Text(display, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: scheme.onSurface)),
+      ]),
+    ));
+  }
+}
 class _ComparisonFieldRow extends StatelessWidget {
   final String label; final String? psp; final String? udise; final bool mismatch;
   const _ComparisonFieldRow({required this.label, required this.psp, required this.udise, this.mismatch = false});
