@@ -574,8 +574,8 @@ class _ComparisonDashboardScreenState
             all: pspBaseCount,
             matched: matchedBaseCount,
             mismatch: mismatchBaseCount,
-            matchedPercent: pspBaseCount == 0 ? 0 : (matchedBaseCount * 100 / pspBaseCount),
-            mismatchPercent: pspBaseCount == 0 ? 0 : (mismatchBaseCount * 100 / pspBaseCount),
+            matchedPercent: matchedBaseCount,
+            mismatchPercent: mismatchBaseCount,
             rte: _rows.where((row) => _pspRte(row) == 'RTE').length,
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
@@ -688,8 +688,8 @@ class _SummarySection extends StatelessWidget {
   final int all;
   final int matched;
   final int mismatch;
-  final double matchedPercent;
-  final double mismatchPercent;
+  final int matchedPercent;
+  final int mismatchPercent;
   final int rte;
   final int pspOnly;
   final int udiseOnly;
@@ -936,7 +936,7 @@ class _StatChip extends StatelessWidget {
 
 class _PercentChip extends StatelessWidget {
   final String label;
-  final double percent;
+  final int percent;
   final Color color;
   final bool selected;
   final VoidCallback onTap;
@@ -948,7 +948,7 @@ class _PercentChip extends StatelessWidget {
       onTap: onTap, borderRadius: BorderRadius.circular(9),
       child: Container(width: 80, height: 26, alignment: Alignment.center,
         decoration: BoxDecoration(color: selected ? color.withValues(alpha: .16) : scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(9), border: Border.all(color: selected ? color : scheme.outlineVariant, width: selected ? 1.2 : .6)),
-        child: Text('$label ${percent.toStringAsFixed(1)}%', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+        child: Text('$label $count', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
           style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: selected ? color : scheme.onSurface)),
       ),
     ));
