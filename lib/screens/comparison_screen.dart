@@ -1083,7 +1083,7 @@ class _StudentRow extends StatelessWidget {
             ),
           ),
         ),
-
+      ]),
     );
   }
 
