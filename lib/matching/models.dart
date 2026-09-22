@@ -13,6 +13,7 @@ class PspStudent {
   final String mobile;
   final String socialCategory;
   final String religion;
+  final Map<String, dynamic> raw;
 
   const PspStudent({
     required this.nicId,
@@ -27,6 +28,7 @@ class PspStudent {
     required this.mobile,
     required this.socialCategory,
     required this.religion,
+    this.raw = const <String, dynamic>{},
   });
 
   factory PspStudent.fromJson(Map<String, dynamic> r) {
@@ -43,6 +45,7 @@ class PspStudent {
       mobile: clean(r['Mobile Number']),
       socialCategory: clean(r['Social Category']),
       religion: clean(r['Religion']),
+      raw: Map<String, dynamic>.from(r),
     );
   }
 
@@ -73,6 +76,7 @@ class UdiseStudent {
   final String mobile;
   final String socialCategory;
   final String religion;
+  final Map<String, dynamic> raw;
 
   const UdiseStudent({
     required this.studentId,
@@ -90,6 +94,7 @@ class UdiseStudent {
     required this.mobile,
     required this.socialCategory,
     required this.religion,
+    this.raw = const <String, dynamic>{},
   });
 
   factory UdiseStudent.fromJson(Map<String, dynamic> r) {
@@ -129,6 +134,7 @@ class UdiseStudent {
           socialDesc.isNotEmpty ? socialDesc : clean(r['socCatId']),
       religion:
           minorityDesc.isNotEmpty ? minorityDesc : clean(r['minorityId']),
+      raw: Map<String, dynamic>.from(r),
     );
   }
   
