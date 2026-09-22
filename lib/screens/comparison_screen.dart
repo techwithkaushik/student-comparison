@@ -1029,10 +1029,10 @@ class _StudentRow extends StatelessWidget {
     required this.onRemarkTap,
   });
 
-  void _openDetails(BuildContext context) {
+  void _openDetails(BuildContext context, String side) {
     showDialog<void>(
       context: context,
-      builder: (_) => _ComparisonDetailsDialog(row: row),
+      builder: (_) => _ComparisonDetailsDialog(row: row, side: side),
     );
   }
 
@@ -1070,7 +1070,7 @@ class _StudentRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  r'${row.score}%',
+                  '${row.score}%',
                   style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor),
                 ),
                 const SizedBox(width: 6),
@@ -1132,7 +1132,7 @@ class _StudentRow extends StatelessWidget {
                     title: 'PSP',
                     subtitle: 'Correct Data',
                     color: scheme.primary,
-                    onTap: () => _openDetails(context),
+                    onTap: () => _openDetails(context, 'PSP'),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -1142,7 +1142,7 @@ class _StudentRow extends StatelessWidget {
                     title: 'UDISE',
                     subtitle: 'Current Data',
                     color: Colors.green.shade700,
-                    onTap: () => _openDetails(context),
+                    onTap: () => _openDetails(context, 'UDISE'),
                   ),
                 ),
               ],
@@ -1156,9 +1156,9 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
           _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
           _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
-          _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : r'${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
+          _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-          _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : r'****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : r'****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
+          _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : '****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : '****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
         ],
       ),
     );
@@ -1207,8 +1207,9 @@ class _ClickableHeader extends StatelessWidget {
 
 class _ComparisonDetailsDialog extends StatelessWidget {
   final ComparisonRow row;
+  final String side;
 
-  const _ComparisonDetailsDialog({required this.row});
+  const _ComparisonDetailsDialog({required this.row, required this.side});
 
   String _value(dynamic value) {
     if (value == null) return '—';
@@ -1249,9 +1250,16 @@ class _ComparisonDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final pRaw = row.psp?.raw ?? const <String, dynamic>{};
-    final uRaw = row.udise?.raw ?? const <String, dynamic>{};
-    final keys = <String>{...pRaw.keys, ...uRaw.keys}.toList()..sort();
+    final isPsp = side == 'PSP';
+    final raw = isPsp
+        ? (row.psp?.raw ?? const <String, dynamic>{})
+        : (row.udise?.raw ?? const <String, dynamic>{});
+    final keys = raw.keys.toList()..sort();
+    final accent = isPsp ? scheme.primary : Colors.green.shade700;
+    final name = isPsp ? row.psp?.studentName : row.udise?.studentName;
+    final id = isPsp ? row.psp?.nicId : row.udise?.studentCodeNat;
+    final secondary = isPsp ? row.psp?.srNo : row.udise?.studentId;
+    final aadhaar = isPsp ? row.psp?.aadhaarLast4 : row.udise?.uuidLast4;
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
       child: SizedBox(
@@ -1265,7 +1273,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Student Details  •  ${row.score}%  •  ${row.type == MatchType.matched ? 'MATCHED' : 'MISMATCH'}',
+                      '$side Details  •  ${row.score}%  •  ${row.type == MatchType.matched ? 'MATCHED' : 'MISMATCH'}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -1273,7 +1281,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                 ],
               ),
             ),
-            Container(height: 2, color: scheme.primary),
+            Container(height: 3, margin: const EdgeInsets.symmetric(horizontal: 10), color: accent),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
               child: Row(
@@ -1301,8 +1309,8 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(flex: 2, child: Text(_label(key), style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: mismatch ? scheme.error : scheme.onSurfaceVariant))),
-                        Expanded(flex: 3, child: Text(_value(pRaw[key]), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
-                        Expanded(flex: 3, child: Text(_value(uRaw[key]), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
+                        Expanded(flex: 3, child: Text(_value(raw[key]), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
+                        Expanded(flex: 3, child: const SizedBox.shrink(), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
                       ],
                     ),
                   );
