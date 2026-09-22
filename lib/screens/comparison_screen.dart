@@ -1024,7 +1024,7 @@ class _DiffChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          width: 86,
+          width: 80,
           height: 28,
           child: Container(
             alignment: Alignment.center,
@@ -1161,7 +1161,7 @@ class _StudentRow extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
                           decoration: BoxDecoration(
                             color: rteText == 'RTE'
                                 ? Colors.orange.withValues(alpha: .14)
@@ -1186,7 +1186,7 @@ class _StudentRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 7.5,
+                        fontSize: 9,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
@@ -1207,7 +1207,7 @@ class _StudentRow extends StatelessWidget {
                     ),
                   ),
                 IconButton(
-                  tooltip: hasRemark ? 'Edit remark' : 'Add remark',
+                  tooltip: hasRemark ? 'Edit' : 'Add',
                   visualDensity: VisualDensity.compact,
                   onPressed: onRemarkTap,
                   icon: Icon(
@@ -1226,7 +1226,7 @@ class _StudentRow extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 2,
-                  child: Text('FIELD', style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
+                  child: Text('FIELD', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
                 ),
                 Expanded(
                   flex: 3,
@@ -1263,7 +1263,7 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
           _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
           _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
-          _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
+          _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p?.nicId, udise: u?.studentCodeNat),
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
           _AadhaarPreviewRow(row: row),
         ],
@@ -1308,11 +1308,11 @@ class _ClickableHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           child: Row(
             children: [
-              Icon(Icons.open_in_new_rounded, size: 11, color: color),
+              Icon(Icons.open_in_new_rounded, size: 12, color: color),
               const SizedBox(width: 3),
-              Text(title, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: color)),
+              Text(title, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color)),
               const SizedBox(width: 3),
-              Expanded(child: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w600, color: color))),
+              Expanded(child: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: color))),
             ],
           ),
         ),
@@ -1583,7 +1583,7 @@ class _AadhaarPreviewRow extends StatelessWidget {
                       Text(
                         verified ? '✓' : '✗',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 10,
                           height: 1,
                           fontWeight: FontWeight.w900,
                           color: verified ? Colors.green.shade700 : scheme.error,
@@ -1600,7 +1600,7 @@ class _AadhaarPreviewRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 7.5,
+                        fontSize: 8,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
