@@ -606,55 +606,11 @@ class _ComparisonDashboardScreenState
                     : 'DIFF:$diff';
               });
             },
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 3, 8, 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Filters',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 118,
-                  height: 32,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _classFilter.isEmpty ? '' : _classFilter,
-                    isDense: true,
-                    decoration: InputDecoration(
-                      labelText: 'Class',
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 6,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('All')),
-                      ...classes.map(
-                        (value) => DropdownMenuItem(
-                          value: value,
-                          child: Text('Class $value'),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _classFilter = value ?? ''),
-                  ),
-                ),
-              ],
-            ),
+            classes: classes,
+            classFilter: _classFilter,
+            onClassChanged: (value) {
+              setState(() => _classFilter = value);
+            },
           ),
 
           Expanded(
@@ -721,6 +677,9 @@ class _SummarySection extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onSelected;
   final ValueChanged<String> onDiffSelected;
+  final List<String> classes;
+  final String classFilter;
+  final ValueChanged<String> onClassChanged;
 
   const _SummarySection({
     required this.all,
@@ -746,6 +705,9 @@ class _SummarySection extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.onDiffSelected,
+    required this.classes,
+    required this.classFilter,
+    required this.onClassChanged,
   });
 
   @override
@@ -790,6 +752,35 @@ class _SummarySection extends StatelessWidget {
                 onTap: () => onSelected('REMARKED'),
               ),
               _StatChip(label: 'RTE', value: rte, color: Colors.orange, selected: selected == 'RTE', onTap: () => onSelected('RTE')),
+              SizedBox(
+                width: 118,
+                height: 30,
+                child: DropdownButtonFormField<String>(
+                  initialValue: classFilter.isEmpty ? '' : classFilter,
+                  isDense: true,
+                  decoration: InputDecoration(
+                    labelText: 'Class',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('All')),
+                    ...classes.map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text('Class $value'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => onClassChanged(value ?? ''),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 5),
