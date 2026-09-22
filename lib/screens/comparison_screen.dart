@@ -572,8 +572,6 @@ class _ComparisonDashboardScreenState
             ),
           _SummarySection(
             all: pspBaseCount,
-            matched: matchedBaseCount,
-            mismatch: mismatchBaseCount,
             matchedPercent: matchedBaseCount,
             mismatchPercent: mismatchBaseCount,
             rte: _rows.where((row) => _pspRte(row) == 'RTE').length,
@@ -653,8 +651,6 @@ class _ComparisonDashboardScreenState
 
 class _SummarySection extends StatelessWidget {
   final int all;
-  final int matched;
-  final int mismatch;
   final int matchedPercent;
   final int mismatchPercent;
   final int rte;
@@ -683,8 +679,6 @@ class _SummarySection extends StatelessWidget {
 
   const _SummarySection({
     required this.all,
-    required this.matched,
-    required this.mismatch,
     required this.matchedPercent,
     required this.mismatchPercent,
     required this.rte,
@@ -752,35 +746,6 @@ class _SummarySection extends StatelessWidget {
                 onTap: () => onSelected('REMARKED'),
               ),
               _StatChip(label: 'RTE', value: rte, color: Colors.orange, selected: selected == 'RTE', onTap: () => onSelected('RTE')),
-              SizedBox(
-                width: 118,
-                height: 30,
-                child: DropdownButtonFormField<String>(
-                  initialValue: classFilter.isEmpty ? '' : classFilter,
-                  isDense: true,
-                  decoration: InputDecoration(
-                    labelText: 'Class',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: '', child: Text('All')),
-                    ...classes.map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text('Class $value'),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) => onClassChanged(value ?? ''),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 5),
@@ -854,6 +819,36 @@ class _SummarySection extends StatelessWidget {
                 value: mobile,
                 selected: selected == 'DIFF:MOBILE_MISMATCH',
                 onTap: () => onDiffSelected('MOBILE_MISMATCH'),
+              ),
+              const SizedBox(width: 2),
+              SizedBox(
+                width: 118,
+                height: 30,
+                child: DropdownButtonFormField<String>(
+                  initialValue: classFilter.isEmpty ? '' : classFilter,
+                  isDense: true,
+                  decoration: InputDecoration(
+                    labelText: 'Class',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('All')),
+                    ...classes.map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text('Class $value'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => onClassChanged(value ?? ''),
+                ),
               ),
             ],
           ),
@@ -1121,27 +1116,27 @@ class _StudentRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 5),
-                Text(
-                  '${row.score}%',
-                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: statusColor),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: rteText == 'RTE'
-                        ? Colors.orange.withValues(alpha: .14)
-                        : scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    rteText,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: .11),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: statusColor),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '${row.score}%',
+                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: statusColor),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 7),
                 Column(
@@ -1150,11 +1145,7 @@ class _StudentRow extends StatelessWidget {
                   children: [
                     Text(
                       'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurface,
-                      ),
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: scheme.onSurface),
                     ),
                     Text(
                       'Admission: ${_rawValue(p?.raw, const [
@@ -1166,13 +1157,25 @@ class _StudentRow extends StatelessWidget {
                       ]) ?? '—'}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 7.5,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurfaceVariant,
-                      ),
+                      style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant),
                     ),
                   ],
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: rteText == 'RTE' ? Colors.orange.withValues(alpha: .14) : scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    rteText,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
                 const Spacer(),
                 if (remark.isNotEmpty)
@@ -1434,25 +1437,50 @@ class _ComparisonDetailsDialog extends StatelessWidget {
 
   bool _isMismatchField(String key) {
     final k = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-    if (k.contains('aadhaar') || k.contains('aadhar') || k == 'uuid') {
-      return row.diffs.contains('AADHAAR_MISMATCH');
-    }
-    if (k.contains('father')) return row.diffs.contains('FATHER_MISMATCH');
-    if (k.contains('mother')) return row.diffs.contains('MOTHER_MISMATCH');
-    if (k == 'dob' || k.contains('dateofbirth')) return row.diffs.contains('DOB_MISMATCH');
-    if (k.contains('mobile') || k.contains('phone')) return row.diffs.contains('MOBILE_MISMATCH');
-    if (k.contains('gender')) return row.diffs.contains('GENDER_MISMATCH');
-    if (k.contains('class')) return row.diffs.contains('CLASS_MISMATCH');
-    if (k.contains('socialcategory') || k.contains('category') || k == 'soccatid') {
-      return row.diffs.contains('CATEGORY_MISMATCH');
-    }
-    if (k.contains('religion') || k.contains('minority')) {
-      return row.diffs.contains('RELIGION_MISMATCH');
-    }
-    if (k.contains('name') && !k.contains('nameasuuid')) {
-      return row.diffs.contains('NAME_MISMATCH');
-    }
-    return false;
+
+    bool anyOf(Set<String> keys, String diff) =>
+        keys.contains(k) && row.diffs.contains(diff);
+
+    return anyOf(
+          {'studentname', 'name'},
+          'NAME_MISMATCH',
+        ) ||
+        anyOf(
+          {'fathername', 'father'},
+          'FATHER_MISMATCH',
+        ) ||
+        anyOf(
+          {'mothername', 'mother'},
+          'MOTHER_MISMATCH',
+        ) ||
+        anyOf(
+          {'dob', 'dateofbirth'},
+          'DOB_MISMATCH',
+        ) ||
+        anyOf(
+          {'mobilenumber', 'primarymobile', 'mobile', 'phonenumber'},
+          'MOBILE_MISMATCH',
+        ) ||
+        anyOf(
+          {'gender'},
+          'GENDER_MISMATCH',
+        ) ||
+        anyOf(
+          {'studyinginclass', 'classid', 'classdesc'},
+          'CLASS_MISMATCH',
+        ) ||
+        anyOf(
+          {'socialcategory', 'socialcategorydesc', 'soccatid'},
+          'CATEGORY_MISMATCH',
+        ) ||
+        anyOf(
+          {'religion', 'minorityid', 'minoritydesc'},
+          'RELIGION_MISMATCH',
+        ) ||
+        anyOf(
+          {'aadharnumber', 'aadhaarnumber', 'uuid'},
+          'AADHAAR_MISMATCH',
+        );
   }
 
   String _statusLabel(MatchType type) {
@@ -1474,12 +1502,10 @@ class _AadhaarPreviewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final p = row.psp?.aadhaarLast4.isEmpty == true
-        ? 'Not Found'
-        : '****${row.psp?.aadhaarLast4}';
-    final u = row.udise?.uuidLast4.isEmpty == true
-        ? 'Not Found'
-        : '****${row.udise?.uuidLast4}';
+    final pLast4 = row.psp?.aadhaarLast4.trim() ?? '';
+    final uLast4 = row.udise?.uuidLast4.trim() ?? '';
+    final p = pLast4.isEmpty ? 'Not Found' : '****$pLast4';
+    final u = uLast4.isEmpty ? 'Not Found' : '****$uLast4';
     final status = row.udise?.uuidStatus.trim() ?? '';
     final verified = status == '1';
     final hasStatus = status == '0' || status == '1' || status == '2';
