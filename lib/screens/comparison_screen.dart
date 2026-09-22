@@ -932,11 +932,28 @@ class _StudentRow extends StatelessWidget {
     required this.statusColor,
   });
 
-  void _open(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => _StudentComparisonDetails(row: row),
-      ),
+  void _open(BuildContext context, String side) {
+    final source = side == 'PSP' ? row.psp : row.udise;
+    final raw = source?.raw ?? const <String, dynamic>{};
+    if (raw.isEmpty) return;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final size = MediaQuery.sizeOf(dialogContext);
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 14),
+          child: SizedBox(
+            width: size.width > 820 ? 800 : size.width - 18,
+            height: size.height > 820 ? 760 : size.height - 28,
+            child: _ProfileReviewDialog(
+              row: row,
+              side: side,
+              raw: raw,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -944,249 +961,308 @@ class _StudentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 7),
+      elevation: 1,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(7),
         side: BorderSide(color: scheme.outlineVariant),
       ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            color: statusColor.withValues(alpha: .08),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: .13),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: statusColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  'Score: ' + row.score.toString() + '%',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                if (hasRemark) ...[
+                  const Spacer(),
+                  Icon(Icons.sticky_note_2_rounded, size: 14, color: Colors.deepPurple.shade600),
+                ],
+              ],
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _SourceStudentCard(
+                  row: row,
+                  side: 'PSP',
+                  onTap: () => _open(context, 'PSP'),
+                ),
+              ),
+              Container(width: 1, height: 205, color: scheme.outlineVariant),
+              Expanded(
+                child: _SourceStudentCard(
+                  row: row,
+                  side: 'UDISE',
+                  onTap: () => _open(context, 'UDISE'),
+                ),
+              ),
+            ],
+          ),
+          if (row.diffs.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
+              color: scheme.surfaceContainerLowest,
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: row.diffs.map((d) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: scheme.errorContainer.withValues(alpha: .6),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _diffLabel(d),
+                    style: TextStyle(
+                      fontSize: 7.5,
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onErrorContainer,
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static String _diffLabel(String value) {
+    const labels = <String, String>{
+      'AADHAAR_NOT_FOUND': 'AADHAAR NOT FOUND',
+      'MOBILE_NOT_FOUND': 'MOBILE NOT FOUND',
+      'NAME_MISMATCH': 'NAME MISMATCH',
+      'DOB_MISMATCH': 'DOB MISMATCH',
+      'FATHER_MISMATCH': 'FATHER MISMATCH',
+      'MOTHER_MISMATCH': 'MOTHER MISMATCH',
+      'CLASS_MISMATCH': 'CLASS MISMATCH',
+      'GENDER_MISMATCH': 'GENDER MISMATCH',
+      'CATEGORY_MISMATCH': 'CATEGORY MISMATCH',
+      'RELIGION_MISMATCH': 'RELIGION MISMATCH',
+      'AADHAAR_MISMATCH': 'AADHAAR MISMATCH',
+      'MOBILE_MISMATCH': 'MOBILE MISMATCH',
+    };
+    return labels[value] ?? value;
+  }
+}
+
+class _SourceStudentCard extends StatelessWidget {
+  final ComparisonRow row;
+  final String side;
+  final VoidCallback onTap;
+
+  const _SourceStudentCard({
+    required this.row,
+    required this.side,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPsp = side == 'PSP';
+    final p = row.psp;
+    final u = row.udise;
+    final scheme = Theme.of(context).colorScheme;
+    final accent = isPsp ? scheme.primary : Colors.green.shade700;
+
+    final name = isPsp ? p?.studentName : u?.studentName;
+    final father = isPsp ? p?.fatherName : u?.fatherName;
+    final mother = isPsp ? p?.motherName : u?.motherName;
+    final dob = isPsp ? p?.dob : u?.dob;
+    final cls = isPsp ? p?.studyingClass : (u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId);
+    final gender = isPsp ? p?.gender : _genderLabel(u?.gender);
+    final category = isPsp ? p?.socialCategory : u?.socialCategory;
+    final religion = isPsp ? p?.religion : u?.religion;
+    final mobile = isPsp ? p?.mobile : u?.mobile;
+
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        onTap: () => _open(context),
-        child: _MinimalStudentTable(row: row, hasRemark: hasRemark),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 7, 7, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name?.isNotEmpty == true ? name! : '—',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: accent),
+              ),
+              _SourceLine(label: 'Father', value: father, mismatch: row.diffs.contains('FATHER_MISMATCH')),
+              _SourceLine(label: 'Mother', value: mother, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
+              _SourceLine(label: 'DOB', value: dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
+              _SourceLine(label: 'Class', value: cls, mismatch: row.diffs.contains('CLASS_MISMATCH')),
+              _SourceLine(label: 'Gender', value: gender, mismatch: row.diffs.contains('GENDER_MISMATCH')),
+              _SourceLine(label: 'Category', value: category, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
+              _SourceLine(label: 'Religion', value: religion, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
+              if (isPsp)
+                _SourceLine(
+                  label: 'NIC ID',
+                  value: p?.nicId,
+                  suffix: p?.srNo.isNotEmpty == true ? ' | SR: ' + p!.srNo : null,
+                )
+              else
+                _SourceLine(label: 'PEN', value: u?.studentCodeNat),
+              _SourceLine(label: 'Mobile', value: mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
+              const SizedBox(height: 2),
+              _AadhaarBadge(
+                isPsp: isPsp,
+                last4: isPsp ? p?.aadhaarLast4 : u?.uuidLast4,
+                uuidStatus: u?.uuidStatus,
+              ),
+              if (!isPsp && u?.nameAsUuid.trim().isNotEmpty == true)
+                Text(
+                  'Name in Aadhaar: ' + u!.nameAsUuid,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 7.5, color: scheme.onSurfaceVariant),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _genderLabel(String? value) {
+    final v = (value ?? '').trim().toUpperCase();
+    if (v == '1' || v == 'MALE' || v == 'M') return 'MALE';
+    if (v == '2' || v == 'FEMALE' || v == 'F') return 'FEMALE';
+    return value ?? '—';
+  }
+}
+
+class _SourceLine extends StatelessWidget {
+  final String label;
+  final String? value;
+  final bool mismatch;
+  final String? suffix;
+
+  const _SourceLine({
+    required this.label,
+    required this.value,
+    this.mismatch = false,
+    this.suffix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final display = (value ?? '').trim().isEmpty ? '—' : value!.trim();
+    return Padding(
+      padding: const EdgeInsets.only(top: 1),
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(
+            text: label + ': ',
+            style: TextStyle(fontWeight: FontWeight.w900, color: mismatch ? scheme.error : Colors.black87),
+          ),
+          TextSpan(
+            text: display,
+            style: TextStyle(fontWeight: FontWeight.w500, color: mismatch ? scheme.error : Colors.black87),
+          ),
+          if (suffix != null) TextSpan(text: suffix),
+        ]),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
 }
 
-class _MinimalStudentTable extends StatelessWidget {
-  final ComparisonRow row;
-  final bool hasRemark;
+class _AadhaarBadge extends StatelessWidget {
+  final bool isPsp;
+  final String? last4;
+  final String? uuidStatus;
 
-  const _MinimalStudentTable({
-    required this.row,
-    required this.hasRemark,
+  const _AadhaarBadge({
+    required this.isPsp,
+    required this.last4,
+    this.uuidStatus,
   });
-
-  Map<String, dynamic> get _p => row.psp?.raw ?? const <String, dynamic>{};
-  Map<String, dynamic> get _u => row.udise?.raw ?? const <String, dynamic>{};
-
-  String _first(Map<String, dynamic> data, List<String> keys) {
-    for (final key in keys) {
-      final v = data[key];
-      if (v != null && v.toString().trim().isNotEmpty) {
-        return v.toString().trim();
-      }
-    }
-    return '—';
-  }
-
-  String _rte(Map<String, dynamic> data) {
-    dynamic value;
-    for (final entry in data.entries) {
-      final k = entry.key.toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-      if (k == 'rte' || k == 'rtestatus' || k.contains('rte')) {
-        value = entry.value;
-        break;
-      }
-    }
-    if (value is bool) return value ? 'RTE' : 'NON-RTE';
-    if (value is num) return value == 1 ? 'RTE' : 'NON-RTE';
-    final s = value?.toString().trim().toLowerCase() ?? '';
-    return ['rte', 'yes', 'true', '1', 'y', 'rte student'].contains(s)
-        ? 'RTE'
-        : 'NON-RTE';
-  }
-
-  Widget _cell(BuildContext context, String value, {bool bold = false}) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 30),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.65)),
-        ),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        value,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 8.5,
-          fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _rteCell(BuildContext context, String value) {
-    final isRte = value == 'RTE';
-    return Container(
-      constraints: const BoxConstraints(minHeight: 30),
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.65),
-          ),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-        decoration: BoxDecoration(
-          color: isRte ? Colors.orange.withValues(alpha: 0.16) : Colors.grey.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: Text(
-          value,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 7,
-            fontWeight: FontWeight.w800,
-            color: isRte ? Colors.orange.shade800 : Colors.grey.shade700,
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final pspName = _first(_p, ['Student Name']);
-    final udiseName = _first(_u, ['studentName']);
-    final pspId = _first(_p, ['Student NIC ID']);
-    final pspSr = _first(_p, ['SR No.']);
-    final pen = _first(_u, ['studentCodeNat']);
-    final pspRte = _rte(_p);
-    final udiseRte = _rte(_u);
+    final value = (last4 ?? '').trim();
+    if (value.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer.withValues(alpha: .55),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          'AADHAAR NOT FOUND',
+          style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: scheme.onErrorContainer),
+        ),
+      );
+    }
 
-    final rows = <List<String>>[
-      [
-        'NIC / PEN',
-        pspId == '—' ? '—' : '$pspId + $pspSr',
-        pen,
-      ],
-      ['Name', pspName, udiseName],
-      [
-        'Father',
-        _first(_p, ['Father Name']),
-        _first(_u, ['fatherName']),
-      ],
-      [
-        'Mother',
-        _first(_p, ['Mother Name']),
-        _first(_u, ['motherName']),
-      ],
-      [
-        'DOB',
-        _first(_p, ['DOB']),
-        _first(_u, ['dob']),
-      ],
-    ];
+    final status = int.tryParse((uuidStatus ?? '').trim()) ?? 0;
+    final statusText = !isPsp ? (status == 1 ? '✓' : status == 2 ? '✗' : '•') : null;
 
-    return Column(
+    return Wrap(
+      spacing: 3,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-          color: scheme.surfaceContainerHighest,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 54,
-                child: Text(
-                  'FIELD',
-                  style: TextStyle(
-                    fontSize: 7.5,
-                    fontWeight: FontWeight.w900,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'PSP (NIC + SR)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w900,
-                    color: scheme.primary,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  'UDISE (PEN)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.green.shade700,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                width: 46,
-                child: Text(
-                  'RTE',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer.withValues(alpha: .75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'AADHAAR ****' + value,
+            style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: scheme.onPrimaryContainer),
           ),
         ),
-        ...rows.map(
-          (r) => Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 54,
-                child: _cell(context, r[0], bold: true),
+        if (statusText != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: BoxDecoration(
+              color: status == 1 ? Colors.green.withValues(alpha: .12) : status == 2 ? scheme.errorContainer : scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+                color: status == 1 ? Colors.green.shade700 : status == 2 ? scheme.onErrorContainer : scheme.onPrimaryContainer,
               ),
-              Expanded(child: _cell(context, r[1])),
-              Expanded(child: _cell(context, r[2])),
-              SizedBox(
-                width: 46,
-                child: _rteCell(
-                  context,
-                  pspRte == 'RTE' || udiseRte == 'RTE' ? 'RTE' : 'NON-RTE',
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(7, 4, 7, 5),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  hasRemark ? 'Remark saved' : 'Tap to view all details',
-                  style: TextStyle(
-                    fontSize: 7.5,
-                    fontWeight: FontWeight.w600,
-                    color: hasRemark
-                        ? Colors.deepPurple
-                        : scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              Icon(
-                hasRemark
-                    ? Icons.sticky_note_2_rounded
-                    : Icons.chevron_right_rounded,
-                size: 14,
-                color: hasRemark
-                    ? Colors.deepPurple
-                    : scheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
