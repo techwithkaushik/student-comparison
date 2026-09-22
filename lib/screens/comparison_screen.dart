@@ -33,6 +33,7 @@ class _ComparisonDashboardScreenState
   bool _searchActive = false;
   final TextEditingController _searchController = TextEditingController();
   final Set<String> _remarkKeys = <String>{};
+  final Map<String, Map<String, dynamic>> _remarks = <String, Map<String, dynamic>>{};
 
   @override
   void dispose() {
@@ -149,6 +150,15 @@ class _ComparisonDashboardScreenState
     }
   }
 
+  Future<void> _exportDatabase() async {
+    try {
+      final bytes = await AppDatabase.instance.exportDatabaseBytes();
+      final path = await FilePicker.platform.saveFile(dialogTitle: 'Export SQLite database', fileName: 'student_comparison.db', bytes: bytes);
+      if (path != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SQLite database exported successfully.')));
+    } catch (e) {
+      if (mounted) setState(() => _dataError = 'Database export failed: $e');
+    }
+  }
   Future<void> _exportCsv() async {
     try {
       final rows = _filteredRows;
@@ -208,11 +218,14 @@ class _ComparisonDashboardScreenState
     try {
       final rows = await AppDatabase.instance.getAllRemarks();
       final keys = <String>{};
+      final remarks = <String, Map<String, dynamic>>{};
       for (final r in rows) {
         final p = r['psp_nic']?.toString() ?? '';
         final u = r['udise_pen']?.toString() ?? '';
         if (p.isNotEmpty || u.isNotEmpty) {
-          keys.add('${_key(p)}|${_key(u)}');
+          final key = '${_key(p)}|${_key(u)}';
+          keys.add(key);
+          remarks[key] = Map<String, dynamic>.from(r);
         }
       }
       if (!mounted) return;
@@ -220,9 +233,62 @@ class _ComparisonDashboardScreenState
         _remarkKeys
           ..clear()
           ..addAll(keys);
+        _remarks
+          ..clear()
+          ..addAll(remarks);
       });
     } catch (_) {
       // Keep the comparison list usable even if the remark table cannot be read.
+    }
+  }
+
+  Map<String, dynamic>? _remarkFor(ComparisonRow row) =>
+      _remarks[_remarkKeyFor(row)];
+
+  String _pspRte(ComparisonRow row) {
+    final raw = row.psp?.raw ?? const <String, dynamic>{};
+    final value = raw['Getting Free Education']?.toString().trim() ?? '';
+    final normalized = value.toLowerCase();
+    final isRte = normalized == 'yes' || normalized == 'y' ||
+        normalized == 'true' || normalized == '1';
+    return isRte ? 'RTE' : 'NON-RTE';
+  }
+
+  Future<void> _editRemark(ComparisonRow row) async {
+    final key = _remarkKeyFor(row);
+    final existing = _remarkFor(row);
+    final controller = TextEditingController(text: existing?['remark']?.toString() ?? '');
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Edit Remark', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          content: TextField(
+            controller: controller, autofocus: true, minLines: 3, maxLines: 6,
+            decoration: const InputDecoration(labelText: 'Remark', hintText: 'Enter remark...', border: OutlineInputBorder(), alignLabelWithHint: true),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+            FilledButton.icon(onPressed: () => Navigator.pop(dialogContext, true), icon: const Icon(Icons.save_rounded, size: 17), label: const Text('Save')),
+          ],
+        ),
+      );
+      if (saved != true) return;
+      final text = controller.text.trim();
+      if (text.isEmpty) {
+        await AppDatabase.instance.deleteRemark(pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
+        if (!mounted) return;
+        setState(() { _remarks.remove(key); _remarkKeys.remove(key); });
+      } else {
+        await AppDatabase.instance.saveRemark(remark: text, pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
+        final updated = await AppDatabase.instance.getRemark(pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
+        if (!mounted) return;
+        if (updated != null) setState(() { _remarks[key] = updated; _remarkKeys.add(key); });
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remark update failed: $e')));
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -466,6 +532,7 @@ class _ComparisonDashboardScreenState
                 case 'export_csv': _exportCsv(); break;
                 case 'export_psp': _exportSourceJson(true); break;
                 case 'export_udise': _exportSourceJson(false); break;
+                case 'export_database': _exportDatabase(); break;
               }
             },
             itemBuilder: (_) => const [
@@ -476,6 +543,7 @@ class _ComparisonDashboardScreenState
               PopupMenuItem(value: 'export_csv', child: Text('Export comparison CSV')),
               PopupMenuItem(value: 'export_psp', child: Text('Export PSP JSON')),
               PopupMenuItem(value: 'export_udise', child: Text('Export UDISE JSON')),
+              PopupMenuItem(value: 'export_database', child: Text('Export SQLite database')),
             ],
           ),
         ],
@@ -499,6 +567,9 @@ class _ComparisonDashboardScreenState
             all: _rows.length,
             matched: _countType(MatchType.matched),
             mismatch: _countType(MatchType.mismatch),
+            matchedPercent: _rows.isEmpty ? 0 : (_countType(MatchType.matched) * 100 / _rows.length),
+            mismatchPercent: _rows.isEmpty ? 0 : (_countType(MatchType.mismatch) * 100 / _rows.length),
+            rte: _rows.where((row) => _pspRte(row) == 'RTE').length,
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
             remarks: _rows.where(_hasRemark).length,
@@ -592,11 +663,10 @@ class _ComparisonDashboardScreenState
                         hasRemark: _hasRemark(filtered[index]),
                         statusText:
                             _statusText(filtered[index]),
-                        statusColor:
-                            _statusColor(
-                          context,
-                          filtered[index],
-                        ),
+                        statusColor: _statusColor(context, filtered[index]),
+                        rteText: _pspRte(filtered[index]),
+                        remark: _remarkFor(filtered[index])?['remark']?.toString() ?? '',
+                        onRemarkTap: () => _editRemark(filtered[index]),
                       );
                     },
                   ),
@@ -611,6 +681,9 @@ class _SummarySection extends StatelessWidget {
   final int all;
   final int matched;
   final int mismatch;
+  final double matchedPercent;
+  final double mismatchPercent;
+  final int rte;
   final int pspOnly;
   final int udiseOnly;
   final int remarks;
@@ -635,6 +708,9 @@ class _SummarySection extends StatelessWidget {
     required this.all,
     required this.matched,
     required this.mismatch,
+    required this.matchedPercent,
+    required this.mismatchPercent,
+    required this.rte,
     required this.pspOnly,
     required this.udiseOnly,
     required this.remarks,
@@ -672,20 +748,8 @@ class _SummarySection extends StatelessWidget {
                 selected: selected == 'ALL',
                 onTap: () => onSelected('ALL'),
               ),
-              _StatChip(
-                label: 'Matched',
-                value: matched,
-                color: Colors.green,
-                selected: selected == 'MATCHED',
-                onTap: () => onSelected('MATCHED'),
-              ),
-              _StatChip(
-                label: 'Mismatch',
-                value: mismatch,
-                color: Colors.red,
-                selected: selected == 'MISMATCH',
-                onTap: () => onSelected('MISMATCH'),
-              ),
+              _PercentChip(label: 'Matched', percent: matchedPercent, color: Colors.green, selected: selected == 'MATCHED', onTap: () => onSelected('MATCHED')),
+              _PercentChip(label: 'Mismatch', percent: mismatchPercent, color: Colors.red, selected: selected == 'MISMATCH', onTap: () => onSelected('MISMATCH')),
               _StatChip(
                 label: 'PSP only',
                 value: pspOnly,
@@ -706,7 +770,7 @@ class _SummarySection extends StatelessWidget {
                 color: Colors.deepPurple,
                 selected: selected == 'REMARKED',
                 onTap: () => onSelected('REMARKED'),
-              ),
+              ),\n              _StatChip(label: 'RTE', value: rte, color: Colors.orange, selected: false, onTap: () => onSelected('ALL')),
             ],
           ),
           const SizedBox(height: 5),
@@ -862,6 +926,26 @@ class _StatChip extends StatelessWidget {
   }
 }
 
+class _PercentChip extends StatelessWidget {
+  final String label;
+  final double percent;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PercentChip({required this.label, required this.percent, required this.color, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(color: Colors.transparent, child: InkWell(
+      onTap: onTap, borderRadius: BorderRadius.circular(9),
+      child: Container(width: 80, height: 26, alignment: Alignment.center,
+        decoration: BoxDecoration(color: selected ? color.withValues(alpha: .16) : scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(9), border: Border.all(color: selected ? color : scheme.outlineVariant, width: selected ? 1.2 : .6)),
+        child: Text('$label ${percent.toStringAsFixed(1)}%', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: selected ? color : scheme.onSurface)),
+      ),
+    ));
+  }
+}
 class _DiffChip extends StatelessWidget {
   final String label;
   final int value;
@@ -923,266 +1007,67 @@ class _StudentRow extends StatelessWidget {
   final bool hasRemark;
   final String statusText;
   final Color statusColor;
+  final String rteText;
+  final String remark;
+  final VoidCallback onRemarkTap;
 
-  const _StudentRow({
-    required this.row,
-    required this.hasRemark,
-    required this.statusText,
-    required this.statusColor,
-  });
+  const _StudentRow({required this.row, required this.hasRemark, required this.statusText, required this.statusColor, required this.rteText, required this.remark, required this.onRemarkTap});
 
   void _open(BuildContext context, String side) {
-    final Map<String, dynamic> raw;
-    if (side == 'PSP') {
-      raw = row.psp?.raw ?? const <String, dynamic>{};
-    } else {
-      raw = row.udise?.raw ?? const <String, dynamic>{};
-    }
+    final Map<String, dynamic> raw = side == 'PSP' ? (row.psp?.raw ?? const <String, dynamic>{}) : (row.udise?.raw ?? const <String, dynamic>{});
     if (raw.isEmpty) return;
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final size = MediaQuery.sizeOf(dialogContext);
-        return Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 14),
-          child: SizedBox(
-            width: size.width > 820 ? 800 : size.width - 18,
-            height: size.height > 820 ? 760 : size.height - 28,
-            child: _ProfileReviewDialog(
-              row: row,
-              side: side,
-              raw: raw,
-            ),
-          ),
-        );
-      },
-    );
+    final size = MediaQuery.sizeOf(context);
+    showDialog<void>(context: context, builder: (_) => Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 14),
+      child: SizedBox(width: size.width > 820 ? 800 : size.width - 18, height: size.height > 820 ? 760 : size.height - 28,
+        child: _ProfileReviewDialog(row: row, side: side, raw: raw)),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 7),
-      elevation: 1,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(7),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            color: statusColor.withValues(alpha: .08),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: .13),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Text(
-                  'Score: ${row.score}%',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                if (hasRemark) ...[
-                  const Spacer(),
-                  Icon(Icons.sticky_note_2_rounded, size: 14, color: Colors.deepPurple.shade600),
-                ],
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 3),
-            color: scheme.surfaceContainerHighest,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'PSP — Correct Data',
-                    style: TextStyle(
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w900,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    'UDISE — Current Data',
-                    style: TextStyle(
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _SourceStudentCard(
-                  row: row,
-                  side: 'PSP',
-                  onTap: () => _open(context, 'PSP'),
-                ),
-              ),
-              Container(width: 1, height: 205, color: scheme.outlineVariant),
-              Expanded(
-                child: _SourceStudentCard(
-                  row: row,
-                  side: 'UDISE',
-                  onTap: () => _open(context, 'UDISE'),
-                ),
-              ),
-            ],
-          ),
-          if (row.diffs.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
-              color: scheme.surfaceContainerLowest,
-              child: Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: row.diffs.map((d) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: scheme.errorContainer.withValues(alpha: .6),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _diffLabel(d),
-                    style: TextStyle(
-                      fontSize: 7.5,
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onErrorContainer,
-                    ),
-                  ),
-                )).toList(),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  static String _diffLabel(String value) {
-    const labels = <String, String>{
-      'AADHAAR_NOT_FOUND': 'AADHAAR NOT FOUND',
-      'MOBILE_NOT_FOUND': 'MOBILE NOT FOUND',
-      'NAME_MISMATCH': 'NAME MISMATCH',
-      'DOB_MISMATCH': 'DOB MISMATCH',
-      'FATHER_MISMATCH': 'FATHER MISMATCH',
-      'MOTHER_MISMATCH': 'MOTHER MISMATCH',
-      'CLASS_MISMATCH': 'CLASS MISMATCH',
-      'GENDER_MISMATCH': 'GENDER MISMATCH',
-      'CATEGORY_MISMATCH': 'CATEGORY MISMATCH',
-      'RELIGION_MISMATCH': 'RELIGION MISMATCH',
-      'AADHAAR_MISMATCH': 'AADHAAR MISMATCH',
-      'MOBILE_MISMATCH': 'MOBILE MISMATCH',
-    };
-    return labels[value] ?? value;
-  }
-}
-
-class _SourceStudentCard extends StatelessWidget {
-  final ComparisonRow row;
-  final String side;
-  final VoidCallback onTap;
-
-  const _SourceStudentCard({
-    required this.row,
-    required this.side,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isPsp = side == 'PSP';
     final p = row.psp;
     final u = row.udise;
-    final scheme = Theme.of(context).colorScheme;
-    final accent = isPsp ? scheme.primary : Colors.green.shade700;
-
-    final name = isPsp ? p?.studentName : u?.studentName;
-    final father = isPsp ? p?.fatherName : u?.fatherName;
-    final mother = isPsp ? p?.motherName : u?.motherName;
-    final dob = isPsp ? p?.dob : u?.dob;
-    final cls = isPsp ? p?.studyingClass : (u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId);
-    final gender = isPsp ? p?.gender : _genderLabel(u?.gender);
-    final category = isPsp ? p?.categoryNorm : u?.categoryNorm;
-    final religion = isPsp ? p?.religionNormValue : u?.religionNormValue;
-    final mobile = isPsp ? p?.mobile : u?.mobile;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 7, 7, 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name?.isNotEmpty == true ? name! : '—',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: accent),
-              ),
-              _SourceLine(label: 'Father', value: father, mismatch: row.diffs.contains('FATHER_MISMATCH')),
-              _SourceLine(label: 'Mother', value: mother, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
-              _SourceLine(label: 'DOB', value: dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
-              _SourceLine(label: 'Class', value: cls, mismatch: row.diffs.contains('CLASS_MISMATCH')),
-              _SourceLine(label: 'Gender', value: gender, mismatch: row.diffs.contains('GENDER_MISMATCH')),
-              _SourceLine(label: 'Category', value: category, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
-              _SourceLine(label: 'Religion', value: religion, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
-              if (isPsp)
-                _SourceLine(
-                  label: 'NIC ID',
-                  value: p?.nicId,
-                  suffix: p?.srNo.isNotEmpty == true ? ' | SR: ${p!.srNo}' : null,
-                )
-              else
-                _SourceLine(label: 'PEN', value: u?.studentCodeNat),
-              _SourceLine(label: 'Mobile', value: mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-              const SizedBox(height: 2),
-              _AadhaarBadge(
-                isPsp: isPsp,
-                last4: isPsp ? p?.aadhaarLast4 : u?.uuidLast4,
-                uuidStatus: u?.uuidStatus,
-              ),
-              if (!isPsp && u?.nameAsUuid.trim().isNotEmpty == true)
-                Text(
-                  'Name in Aadhaar: ${u!.nameAsUuid}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 7.5, color: scheme.onSurfaceVariant),
-                ),
-            ],
-          ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 6), elevation: 0, clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7), side: BorderSide(color: scheme.outlineVariant)),
+      child: Column(children: [
+        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), color: statusColor.withValues(alpha: .07),
+          child: Row(children: [
+            Text(statusText, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: statusColor)),
+            const Spacer(),
+            if (remark.isNotEmpty) Flexible(child: Padding(padding: const EdgeInsets.only(right: 4), child: Text(remark, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 7.5, fontStyle: FontStyle.italic, color: scheme.onSurfaceVariant)))),
+            IconButton(tooltip: 'Edit remark', visualDensity: VisualDensity.compact, onPressed: onRemarkTap,
+              icon: Icon(hasRemark ? Icons.edit_note_rounded : Icons.add_comment_outlined, size: 18, color: hasRemark ? Colors.deepPurple.shade600 : scheme.onSurfaceVariant)),
+          ]),
         ),
-      ),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), color: scheme.surfaceContainerHighest,
+          child: Row(children: [
+            Expanded(flex: 2, child: Text('FIELD', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant))),
+            Expanded(flex: 3, child: Text('PSP — Correct Data', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: scheme.primary))),
+            Expanded(flex: 3, child: Text('UDISE — Current Data', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Colors.green.shade700))),
+            SizedBox(width: 52, child: Text('RTE', textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant))),
+          ]),
+        ),
+        _ComparisonFieldRow(label: 'Name', psp: p?.studentName, udise: u?.studentName, mismatch: row.diffs.contains('NAME_MISMATCH')),
+        _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
+        _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
+        _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
+        _ComparisonFieldRow(label: 'Class', psp: p?.studyingClass, udise: u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId, mismatch: row.diffs.contains('CLASS_MISMATCH')),
+        _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
+        _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
+        _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
+        _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
+        _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
+        _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : '****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : '****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
+        Padding(padding: const EdgeInsets.fromLTRB(7, 3, 7, 5), child: Row(children: [const Expanded(flex: 2, child: SizedBox()), const Expanded(flex: 3, child: SizedBox()),
+          Expanded(flex: 3, child: Align(alignment: Alignment.center, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: rteText == 'RTE' ? Colors.orange.withValues(alpha: .14) : scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(5)),
+            child: Text(rteText, style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant)))),
+          const SizedBox(width: 52),
+        ])),
+      ]),
     );
   }
 
@@ -1194,111 +1079,23 @@ class _SourceStudentCard extends StatelessWidget {
   }
 }
 
-class _SourceLine extends StatelessWidget {
-  final String label;
-  final String? value;
-  final bool mismatch;
-  final String? suffix;
-
-  const _SourceLine({
-    required this.label,
-    required this.value,
-    this.mismatch = false,
-    this.suffix,
-  });
-
+class _ComparisonFieldRow extends StatelessWidget {
+  final String label; final String? psp; final String? udise; final bool mismatch;
+  const _ComparisonFieldRow({required this.label, required this.psp, required this.udise, this.mismatch = false});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final display = (value ?? '').trim().isEmpty ? '—' : value!.trim();
-    return Padding(
-      padding: const EdgeInsets.only(top: 1),
-      child: Text.rich(
-        TextSpan(children: [
-          TextSpan(
-            text: '$label: ',
-            style: TextStyle(fontWeight: FontWeight.w900, color: mismatch ? scheme.error : Colors.black87),
-          ),
-          TextSpan(
-            text: display,
-            style: TextStyle(fontWeight: FontWeight.w500, color: mismatch ? scheme.error : Colors.black87),
-          ),
-          if (suffix != null) TextSpan(text: suffix),
-        ]),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
+    final p = (psp ?? '').trim().isEmpty ? '—' : psp!.trim();
+    final u = (udise ?? '').trim().isEmpty ? '—' : udise!.trim();
+    final style = TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: scheme.onSurface);
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: .45)))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(flex: 2, child: Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant))),
+        Expanded(flex: 3, child: Text(p, maxLines: 1, overflow: TextOverflow.ellipsis, style: mismatch ? style.copyWith(fontWeight: FontWeight.w800, color: scheme.error) : style)),
+        Expanded(flex: 3, child: Text(u, maxLines: 1, overflow: TextOverflow.ellipsis, style: mismatch ? style.copyWith(fontWeight: FontWeight.w800, color: scheme.error) : style)),
+      ]));
   }
 }
-
-class _AadhaarBadge extends StatelessWidget {
-  final bool isPsp;
-  final String? last4;
-  final String? uuidStatus;
-
-  const _AadhaarBadge({
-    required this.isPsp,
-    required this.last4,
-    this.uuidStatus,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final value = (last4 ?? '').trim();
-    if (value.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-        decoration: BoxDecoration(
-          color: scheme.errorContainer.withValues(alpha: .55),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'AADHAAR NOT FOUND',
-          style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: scheme.onErrorContainer),
-        ),
-      );
-    }
-
-    final status = int.tryParse((uuidStatus ?? '').trim()) ?? 0;
-    final statusText = !isPsp ? (status == 1 ? '✓' : status == 2 ? '✗' : '•') : null;
-
-    return Wrap(
-      spacing: 3,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-          decoration: BoxDecoration(
-            color: scheme.primaryContainer.withValues(alpha: .75),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            'AADHAAR ****$value',
-            style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: scheme.onPrimaryContainer),
-          ),
-        ),
-        if (statusText != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(
-              color: status == 1 ? Colors.green.withValues(alpha: .12) : status == 2 ? scheme.errorContainer : scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              statusText,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w900,
-                color: status == 1 ? Colors.green.shade700 : status == 2 ? scheme.onErrorContainer : scheme.onPrimaryContainer,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
 class _ProfileReviewDialog extends StatelessWidget {
   final ComparisonRow row;
   final String side;
@@ -1584,7 +1381,7 @@ class _ProfileReviewDialog extends StatelessWidget {
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             TextSpan(
-                              text: '$row.score%',
+                              text: '${row.score}%',
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: scheme.primary,
