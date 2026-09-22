@@ -1019,71 +1019,148 @@ class _StudentRow extends StatelessWidget {
   final String remark;
   final VoidCallback onRemarkTap;
 
-  const _StudentRow({required this.row, required this.hasRemark, required this.statusText, required this.statusColor, required this.rteText, required this.remark, required this.onRemarkTap});
+  const _StudentRow({
+    required this.row,
+    required this.hasRemark,
+    required this.statusText,
+    required this.statusColor,
+    required this.rteText,
+    required this.remark,
+    required this.onRemarkTap,
+  });
+
+  void _openDetails(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _ComparisonDetailsDialog(row: row),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final p = row.psp;
     final u = row.udise;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 6), elevation: 0, clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7), side: BorderSide(color: scheme.outlineVariant)),
-      child: Column(children: [
-        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), color: statusColor.withValues(alpha: .07),
-          child: Row(children: [
-            Text(statusText, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: statusColor)),
-            const Spacer(),
-            if (remark.isNotEmpty) Flexible(child: Padding(padding: const EdgeInsets.only(right: 4), child: Text(remark, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 7.5, fontStyle: FontStyle.italic, color: scheme.onSurfaceVariant)))),
-            IconButton(tooltip: 'Edit remark', visualDensity: VisualDensity.compact, onPressed: onRemarkTap,
-              icon: Icon(hasRemark ? Icons.edit_note_rounded : Icons.add_comment_outlined, size: 18, color: hasRemark ? Colors.deepPurple.shade600 : scheme.onSurfaceVariant)),
-          ]),
-        ),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), color: scheme.surfaceContainerHighest,
-          child: Row(children: [
-            Expanded(flex: 2, child: Text('FIELD', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant))),
-            Expanded(flex: 3, child: Text('PSP — Correct Data', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: scheme.primary))),
-            Expanded(flex: 3, child: Text('UDISE — Current Data', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Colors.green.shade700))),
-            SizedBox(width: 52, child: Text('RTE', textAlign: TextAlign.center, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant))),
-          ]),
-        ),
-        _ComparisonFieldRow(label: 'Name', psp: p?.studentName, udise: u?.studentName, mismatch: row.diffs.contains('NAME_MISMATCH')),
-        _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
-        _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
-        _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
-        _ComparisonFieldRow(label: 'Class', psp: p?.studyingClass, udise: u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId, mismatch: row.diffs.contains('CLASS_MISMATCH')),
-        _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
-        _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
-        _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
-        _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
-        _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-        _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : '****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : '****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(7, 3, 7, 5),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: rteText == 'RTE'
-                    ? Colors.orange.withValues(alpha: .14)
-                    : scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                rteText,
-                style: TextStyle(
-                  fontSize: 7.5,
-                  fontWeight: FontWeight.w800,
-                  color: rteText == 'RTE'
-                      ? Colors.orange.shade800
-                      : scheme.onSurfaceVariant,
+      margin: const EdgeInsets.only(bottom: 5),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            color: statusColor.withValues(alpha: .06),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: .11),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: statusColor),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 5),
+                Text(
+                  r'${row.score}%',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: rteText == 'RTE'
+                        ? Colors.orange.withValues(alpha: .14)
+                        : scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    rteText,
+                    style: TextStyle(
+                      fontSize: 7.5,
+                      fontWeight: FontWeight.w800,
+                      color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (remark.isNotEmpty)
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 2),
+                      child: Text(
+                        remark,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 7.5, fontStyle: FontStyle.italic, color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  tooltip: hasRemark ? 'Edit remark' : 'Add remark',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onRemarkTap,
+                  icon: Icon(
+                    hasRemark ? Icons.edit_note_rounded : Icons.add_comment_outlined,
+                    size: 18,
+                    color: hasRemark ? Colors.deepPurple.shade600 : scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ]),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            color: scheme.surfaceContainerHighest,
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text('FIELD', style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: _ClickableHeader(
+                    title: 'PSP',
+                    subtitle: 'Correct Data',
+                    color: scheme.primary,
+                    onTap: () => _openDetails(context),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  flex: 3,
+                  child: _ClickableHeader(
+                    title: 'UDISE',
+                    subtitle: 'Current Data',
+                    color: Colors.green.shade700,
+                    onTap: () => _openDetails(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _ComparisonFieldRow(label: 'Name', psp: p?.studentName, udise: u?.studentName, mismatch: row.diffs.contains('NAME_MISMATCH')),
+          _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
+          _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
+          _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
+          _ComparisonFieldRow(label: 'Class', psp: p?.studyingClass, udise: u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId, mismatch: row.diffs.contains('CLASS_MISMATCH')),
+          _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
+          _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
+          _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
+          _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : r'${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
+          _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
+          _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : r'****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : r'****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
+        ],
+      ),
     );
   }
 
@@ -1092,6 +1169,150 @@ class _StudentRow extends StatelessWidget {
     if (v == '1' || v == 'MALE' || v == 'M') return 'MALE';
     if (v == '2' || v == 'FEMALE' || v == 'F') return 'FEMALE';
     return value ?? '—';
+  }
+}
+
+class _ClickableHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ClickableHeader({required this.title, required this.subtitle, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: .07),
+      borderRadius: BorderRadius.circular(5),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(5),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+          child: Row(
+            children: [
+              Icon(Icons.open_in_new_rounded, size: 11, color: color),
+              const SizedBox(width: 3),
+              Text(title, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: color)),
+              const SizedBox(width: 3),
+              Expanded(child: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w600, color: color))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComparisonDetailsDialog extends StatelessWidget {
+  final ComparisonRow row;
+
+  const _ComparisonDetailsDialog({required this.row});
+
+  String _value(dynamic value) {
+    if (value == null) return '—';
+    if (value is Map || value is List) {
+      try { return const JsonEncoder.withIndent('  ').convert(value); } catch (_) {}
+    }
+    final text = value.toString().trim();
+    return text.isEmpty ? '—' : text;
+  }
+
+  String _label(String key) {
+    return key
+        .replaceAll('_', ' ')
+        .replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m.group(1) ?? ''} ${m.group(2) ?? ''}')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .split(' ')
+        .map((v) => v.isEmpty ? v : v[0].toUpperCase() + v.substring(1))
+        .join(' ');
+  }
+
+  bool _mismatch(String key) {
+    const map = <String, String>{
+      'Student Name': 'NAME_MISMATCH', 'studentName': 'NAME_MISMATCH', 'nameAsUuid': 'NAME_MISMATCH',
+      'Father Name': 'FATHER_MISMATCH', 'fatherName': 'FATHER_MISMATCH',
+      'Mother Name': 'MOTHER_MISMATCH', 'motherName': 'MOTHER_MISMATCH',
+      'DOB': 'DOB_MISMATCH', 'dob': 'DOB_MISMATCH',
+      'Studying in Class': 'CLASS_MISMATCH', 'classId': 'CLASS_MISMATCH', 'classDesc': 'CLASS_MISMATCH',
+      'Gender': 'GENDER_MISMATCH', 'gender': 'GENDER_MISMATCH',
+      'Mobile Number': 'MOBILE_MISMATCH', 'mobile': 'MOBILE_MISMATCH', 'primaryMobile': 'MOBILE_MISMATCH',
+      'Aadhar Number': 'AADHAAR_MISMATCH', 'uuid': 'AADHAAR_MISMATCH', 'uuidMasked': 'AADHAAR_MISMATCH',
+      'Social Category': 'CATEGORY_MISMATCH', 'socialCategoryDesc': 'CATEGORY_MISMATCH', 'socCatId': 'CATEGORY_MISMATCH',
+      'Religion': 'RELIGION_MISMATCH', 'minorityDesc': 'RELIGION_MISMATCH', 'minorityId': 'RELIGION_MISMATCH',
+    };
+    return row.diffs.contains(map[key]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final pRaw = row.psp?.raw ?? const <String, dynamic>{};
+    final uRaw = row.udise?.raw ?? const <String, dynamic>{};
+    final keys = <String>{...pRaw.keys, ...uRaw.keys}.toList()..sort();
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      child: SizedBox(
+        width: 900,
+        height: MediaQuery.sizeOf(context).height * .88,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 9, 7, 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Student Details  •  ${row.score}%  •  ${row.type == MatchType.matched ? 'MATCHED' : 'MISMATCH'}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+                ],
+              ),
+            ),
+            Container(height: 2, color: scheme.primary),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
+              child: Row(
+                children: [
+                  const Expanded(flex: 2, child: Text('FIELD', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
+                  Expanded(flex: 3, child: Text('PSP — Correct Data', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
+                  Expanded(flex: 3, child: Text('UDISE — Current Data', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                itemCount: keys.length,
+                itemBuilder: (_, i) {
+                  final key = keys[i];
+                  final mismatch = _mismatch(key);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: mismatch ? scheme.errorContainer.withValues(alpha: .22) : null,
+                      border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: .45))),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 2, child: Text(_label(key), style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: mismatch ? scheme.error : scheme.onSurfaceVariant))),
+                        Expanded(flex: 3, child: Text(_value(pRaw[key]), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
+                        Expanded(flex: 3, child: Text(_value(uRaw[key]), style: TextStyle(fontSize: 8.5, fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500, color: mismatch ? scheme.error : scheme.onSurface))),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
