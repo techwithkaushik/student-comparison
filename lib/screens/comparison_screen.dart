@@ -1058,13 +1058,32 @@ class _StudentRow extends StatelessWidget {
         _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
         _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
         _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : '****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : '****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
-        Padding(padding: const EdgeInsets.fromLTRB(7, 3, 7, 5), child: Row(children: [const Expanded(flex: 2, child: SizedBox()), const Expanded(flex: 3, child: SizedBox()),
-          Expanded(flex: 3, child: Align(alignment: Alignment.center, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: rteText == 'RTE' ? Colors.orange.withValues(alpha: .14) : scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(5)),
-            child: Text(rteText, style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: rteText == 'RTE' ? Colors.orange.shade800 : scheme.onSurfaceVariant)))),
-          const SizedBox(width: 52),
-        ])),
-      ]),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(7, 3, 7, 5),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: rteText == 'RTE'
+                    ? Colors.orange.withValues(alpha: .14)
+                    : scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                rteText,
+                style: TextStyle(
+                  fontSize: 7.5,
+                  fontWeight: FontWeight.w800,
+                  color: rteText == 'RTE'
+                      ? Colors.orange.shade800
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+
     );
   }
 
@@ -1093,6 +1112,7 @@ class _ComparisonFieldRow extends StatelessWidget {
       ]));
   }
 }
+// ignore: unused_element
 class _ProfileReviewDialog extends StatelessWidget {
   final ComparisonRow row;
   final String side;
