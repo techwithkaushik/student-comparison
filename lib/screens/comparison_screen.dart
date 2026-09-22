@@ -981,6 +981,78 @@ class _MinimalStudentTable extends StatelessWidget {
     return '—';
   }
 
+  String _rte(Map<String, dynamic> data) {
+    dynamic value;
+    for (final entry in data.entries) {
+      final k = entry.key.toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      if (k == 'rte' || k == 'rtestatus' || k.contains('rte')) {
+        value = entry.value;
+        break;
+      }
+    }
+    if (value is bool) return value ? 'RTE' : 'NON-RTE';
+    if (value is num) return value == 1 ? 'RTE' : 'NON-RTE';
+    final s = value?.toString().trim().toLowerCase() ?? '';
+    return ['rte', 'yes', 'true', '1', 'y', 'rte student'].contains(s)
+        ? 'RTE'
+        : 'NON-RTE';
+  }
+
+  Widget _cell(BuildContext context, String value, {bool bold = false}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 30),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.65)),
+        ),
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 8.5,
+          fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _rteCell(BuildContext context, String value) {
+    final isRte = value == 'RTE';
+    return Container(
+      constraints: const BoxConstraints(minHeight: 30),
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.65),
+          ),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        decoration: BoxDecoration(
+          color: isRte ? Colors.orange.withValues(alpha: 0.16) : Colors.grey.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Text(
+          value,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 7,
+            fontWeight: FontWeight.w800,
+            color: isRte ? Colors.orange.shade800 : Colors.grey.shade700,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -1257,23 +1329,6 @@ class _StudentComparisonDetailsState
     final a = _display(_p[field]).trim().toLowerCase();
     final b = _display(_u[field]).trim().toLowerCase();
     return a == b;
-  }
-
-  String _rte(Map<String, dynamic> data) {
-    dynamic value;
-    for (final entry in data.entries) {
-      final k = entry.key.toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-      if (k == 'rte' || k == 'rtestatus' || k.contains('rte')) {
-        value = entry.value;
-        break;
-      }
-    }
-    if (value is bool) return value ? 'RTE' : 'NON-RTE';
-    if (value is num) return value == 1 ? 'RTE' : 'NON-RTE';
-    final s = value?.toString().trim().toLowerCase() ?? '';
-    return ['rte', 'yes', 'true', '1', 'y', 'rte student'].contains(s)
-        ? 'RTE'
-        : 'NON-RTE';
   }
 
   @override
