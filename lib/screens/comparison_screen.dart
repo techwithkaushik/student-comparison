@@ -952,7 +952,7 @@ class _StudentRow extends StatelessWidget {
         side: BorderSide(color: scheme.outlineVariant),
       ),
       child: InkWell(
-        onTap: _open.bind(context),
+        onTap: () => _open(context),
         child: _MinimalStudentTable(row: row, hasRemark: hasRemark),
       ),
     );
