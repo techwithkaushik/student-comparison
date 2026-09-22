@@ -1410,113 +1410,40 @@ class _ComparisonTable extends StatelessWidget {
 
   const _ComparisonTable({required this.row});
 
-  bool _isDiff(String key) => row.diffs.contains(key);
-
-  String _pspValue(String key) {
-    final p = row.psp;
-    if (p == null) return '—';
-
-    switch (key) {
-      case 'NIC / PEN':
-        return p.nicId.isEmpty ? '—' : '${p.nicId}  SR ${p.srNo}';
-      case 'Name':
-        return p.studentName.isEmpty ? '—' : p.studentName;
-      case 'Father':
-        return p.fatherName.isEmpty ? '—' : p.fatherName;
-      case 'Mother':
-        return p.motherName.isEmpty ? '—' : p.motherName;
-      case 'DOB':
-        return p.dob.isEmpty ? '—' : p.dob;
-      case 'Gender':
-        return p.gender.isEmpty ? '—' : p.genderNormValue;
-      case 'Class':
-        return p.studyingClass.isEmpty ? '—' : p.studyingClass;
-      case 'Mobile':
-        return p.mobile.isEmpty ? '—' : p.mobile;
-      case 'Aadhaar':
-        return p.aadhaarLast4.isEmpty ? '—' : '•••• ${p.aadhaarLast4}';
-      case 'Category':
-        return p.socialCategory.isEmpty ? '—' : p.socialCategory;
-      case 'Religion':
-        return p.religion.isEmpty ? '—' : p.religion;
-      default:
-        return '—';
+  String _display(dynamic value) {
+    if (value == null) return '—';
+    if (value is String && value.trim().isEmpty) return '—';
+    if (value is Map || value is List) {
+      try {
+        return const JsonEncoder.withIndent('  ').convert(value);
+      } catch (_) {
+        return value.toString();
+      }
     }
+    return value.toString();
   }
 
-  String _classText(UdiseStudent u) {
-    final n = u.classDescCanon;
-    const names = <String, String>{
-      '0': 'Pre-primary',
-      '1': 'First',
-      '2': 'Second',
-      '3': 'Third',
-      '4': 'Fourth',
-      '5': 'Fifth',
-      '6': 'Sixth',
-      '7': 'Seventh',
-      '8': 'Eighth',
-      '9': 'Ninth',
-      '10': 'Tenth',
-      '11': 'Eleventh',
-      '12': 'Twelfth',
-    };
-
-    if (names.containsKey(n)) return names[n]!;
-
-    final id = u.classIdCanon;
-    return names[id] ?? (u.classDesc.isNotEmpty ? u.classDesc : '—');
+  String _fieldLabel(String key) {
+    // Keep original JSON key exactly; this avoids losing fields and makes
+    // it obvious which source field is being displayed.
+    return key;
   }
 
-  String _udiseValue(String key) {
-    final u = row.udise;
-    if (u == null) return '—';
-
-    switch (key) {
-      case 'NIC / PEN':
-        return u.studentCodeNat.isEmpty ? '—' : u.studentCodeNat;
-      case 'Name':
-        return u.studentName.isEmpty ? '—' : u.studentName;
-      case 'Father':
-        return u.fatherName.isEmpty ? '—' : u.fatherName;
-      case 'Mother':
-        return u.motherName.isEmpty ? '—' : u.motherName;
-      case 'DOB':
-        return u.dob.isEmpty ? '—' : u.dob;
-      case 'Gender':
-        return u.gender.isEmpty ? '—' : u.genderNormValue;
-      case 'Class':
-        return _classText(u);
-      case 'Mobile':
-        return u.mobile.isEmpty ? '—' : u.mobile;
-      case 'Aadhaar':
-        return u.uuidLast4.isEmpty ? '—' : '•••• ${u.uuidLast4}';
-      case 'Category':
-        return u.categoryNorm.isEmpty ? '—' : u.categoryNorm;
-      case 'Religion':
-        return u.religionNormValue.isEmpty ? '—' : u.religionNormValue;
-      default:
-        return '—';
-    }
+  List<String> _keys() {
+    final keys = <String>{};
+    keys.addAll(row.psp?.raw.keys.map((e) => e.toString()) ?? const <String>[]);
+    keys.addAll(row.udise?.raw.keys.map((e) => e.toString()) ?? const <String>[]);
+    final result = keys.toList();
+    result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return result;
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-
-    const fields = [
-      'NIC / PEN',
-      'Name',
-      'Father',
-      'Mother',
-      'DOB',
-      'Gender',
-      'Class',
-      'Mobile',
-      'Aadhaar',
-      'Category',
-      'Religion',
-    ];
+    final p = row.psp?.raw ?? const <String, dynamic>{};
+    final u = row.udise?.raw ?? const <String, dynamic>{};
+    final fields = _keys();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(11),
@@ -1528,110 +1455,98 @@ class _ComparisonTable extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 7,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
               color: scheme.surfaceContainerHighest,
-              child: const Row(
-                children: [
-                  SizedBox(
-                    width: 70,
+              child: Row(
+                children: const [
+                  Expanded(
+                    flex: 2,
                     child: Text(
-                      'FIELD',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      'JSON FIELD',
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800),
                     ),
                   ),
                   Expanded(
+                    flex: 3,
                     child: Center(
                       child: Text(
                         'PSP',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),
                   Expanded(
+                    flex: 3,
                     child: Center(
                       child: Text(
                         'UDISE',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            ...fields.map((field) {
-              final diffKey = switch (field) {
-                'Name' => 'NAME_MISMATCH',
-                'Father' => 'FATHER_MISMATCH',
-                'Mother' => 'MOTHER_MISMATCH',
-                'DOB' => 'DOB_MISMATCH',
-                'Gender' => 'GENDER_MISMATCH',
-                'Class' => 'CLASS_MISMATCH',
-                'Mobile' => 'MOBILE_MISMATCH',
-                'Aadhaar' => 'AADHAAR_MISMATCH',
-                'Category' => 'CATEGORY_MISMATCH',
-                'Religion' => 'RELIGION_MISMATCH',
-                _ => null,
-              };
+            if (fields.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('No JSON fields available'),
+              )
+            else
+              ...fields.map((field) {
+                final pv = p[field];
+                final uv = u[field];
+                final ps = _display(pv);
+                final us = _display(uv);
+                final different = p.containsKey(field) &&
+                    u.containsKey(field) &&
+                    ps != us;
 
-              final different =
-                  diffKey != null && _isDiff(diffKey);
-
-              return Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: scheme.outlineVariant),
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: scheme.outlineVariant),
+                    ),
                   ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 70,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 4,
-                        ),
-                        child: Text(
-                          field,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurfaceVariant,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            _fieldLabel(field),
+                            softWrap: true,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: _ValueCell(
-                        value: _pspValue(field),
-                        mismatch: different,
+                      Expanded(
+                        flex: 3,
+                        child: _ValueCell(
+                          value: ps,
+                          mismatch: different,
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: _ValueCell(
-                        value: _udiseValue(field),
-                        mismatch: different,
+                      Expanded(
+                        flex: 3,
+                        child: _ValueCell(
+                          value: us,
+                          mismatch: different,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                    ],
+                  ),
+                );
+              }),
           ],
         ),
       ),
