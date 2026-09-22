@@ -1128,8 +1128,8 @@ class _SourceStudentCard extends StatelessWidget {
     final dob = isPsp ? p?.dob : u?.dob;
     final cls = isPsp ? p?.studyingClass : (u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId);
     final gender = isPsp ? p?.gender : _genderLabel(u?.gender);
-    final category = isPsp ? p?.socialCategory : u?.socialCategory;
-    final religion = isPsp ? p?.religion : u?.religion;
+    final category = isPsp ? p?.categoryNorm : u?.categoryNorm;
+    final religion = isPsp ? p?.religionNormValue : u?.religionNormValue;
     final mobile = isPsp ? p?.mobile : u?.mobile;
 
     return Material(
