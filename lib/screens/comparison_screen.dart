@@ -1369,7 +1369,7 @@ class _ProfileReviewDialog extends StatelessWidget {
         .replaceAll('_', ' ')
         .replaceAllMapped(
           RegExp(r'([a-z0-9])([A-Z])'),
-          (m) => (m.group(1) ?? '') + ' ' + (m.group(2) ?? ''),
+          (m) => '${m.group(1) ?? ''} ${m.group(2) ?? ''}',
         )
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
