@@ -609,45 +609,39 @@ class _ComparisonDashboardScreenState
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 5, 8, 6),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.filter_alt_rounded,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Class',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Theme.of(context).colorScheme.onSurface,
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 5),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: 120,
+                height: 34,
+                child: DropdownButtonFormField<String>(
+                  initialValue: _classFilter.isEmpty ? '' : _classFilter,
+                  isDense: true,
+                  decoration: InputDecoration(
+                    labelText: 'Class',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 7,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Wrap(
-                    spacing: 5,
-                    runSpacing: 5,
-                    children: [
-                      _ClassActionButton(
-                        label: 'All',
-                        selected: _classFilter.isEmpty,
-                        onTap: () => setState(() => _classFilter = ''),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('All')),
+                    ...classes.map(
+                      (value) => DropdownMenuItem(
+                        value: value,
+                        child: Text('Class $value'),
                       ),
-                      ...classes.map(
-                        (value) => _ClassActionButton(
-                          label: value,
-                          selected: _classFilter == value,
-                          onTap: () => setState(() => _classFilter = value),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _classFilter = value ?? ''),
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -746,7 +740,7 @@ class _SummarySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 5, 8, 3),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -893,7 +887,7 @@ class _StatChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minWidth: 82, minHeight: 34),
+          constraints: const BoxConstraints(minWidth: 78, minHeight: 30),
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
             gradient: selected
@@ -905,7 +899,7 @@ class _StatChip extends StatelessWidget {
                   )
                 : null,
             color: selected ? null : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: selected ? baseColor : scheme.outlineVariant,
               width: selected ? 1.4 : .7,
@@ -926,7 +920,7 @@ class _StatChip extends StatelessWidget {
               Text(
                 '$value',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                   color: selected ? baseColor : scheme.onSurface,
                 ),
@@ -935,7 +929,7 @@ class _StatChip extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: 9.5,
                   fontWeight: FontWeight.w700,
                   color: selected ? baseColor : scheme.onSurfaceVariant,
                 ),
@@ -965,7 +959,7 @@ class _PercentChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          constraints: const BoxConstraints(minWidth: 92, minHeight: 34),
+          constraints: const BoxConstraints(minWidth: 86, minHeight: 30),
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
             gradient: selected
@@ -1031,10 +1025,10 @@ class _DiffChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          width: 90,
-          height: 26,
+          width: 86,
+          height: 28,
           child: Container(
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -1058,50 +1052,6 @@ class _DiffChip extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ClassActionButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ClassActionButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 31),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: selected ? scheme.primary : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? scheme.primary : scheme.outlineVariant,
-              width: selected ? 1.2 : .7,
-            ),
-          ),
-          child: Text(
-            label == 'All' ? label : 'Class $label',
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              color: selected ? scheme.onPrimary : scheme.onSurface,
             ),
           ),
         ),
@@ -1143,8 +1093,8 @@ class _StudentRow extends StatelessWidget {
     final u = row.udise;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 1.5,
+      margin: const EdgeInsets.only(bottom: 6),
+      elevation: 1,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
@@ -1153,7 +1103,7 @@ class _StudentRow extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(10, 7, 8, 6),
+            padding: const EdgeInsets.fromLTRB(8, 5, 8, 4),
             color: statusColor.withValues(alpha: .06),
             child: Row(
               children: [
@@ -1171,7 +1121,7 @@ class _StudentRow extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   '${row.score}%',
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: statusColor),
+                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: statusColor),
                 ),
                 const SizedBox(width: 6),
                 Container(
@@ -1195,13 +1145,11 @@ class _StudentRow extends StatelessWidget {
                 Text(
                   'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
                   style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w900,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
                     color: scheme.onSurface,
                   ),
                 ),
-                const SizedBox(width: 8),
-                _AadhaarStatusBadge(row: row),
                 const Spacer(),
                 if (remark.isNotEmpty)
                   Flexible(
@@ -1259,7 +1207,17 @@ class _StudentRow extends StatelessWidget {
               ],
             ),
           ),
-          _ComparisonFieldRow(label: 'Name', psp: p?.studentName, udise: u?.studentName, mismatch: row.diffs.contains('NAME_MISMATCH')),
+          _ComparisonFieldRow(
+            label: 'Name',
+            psp: p?.studentName,
+            udise: u?.studentName,
+            mismatch: row.diffs.contains('NAME_MISMATCH'),
+          ),
+          _ComparisonFieldRow(
+            label: 'Name As UUID',
+            psp: null,
+            udise: u?.nameAsUuid,
+          ),
           _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
           _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
           _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
@@ -1286,7 +1244,7 @@ class _StudentRow extends StatelessWidget {
               'Date of Admission',
             ]),
           ),
-          _ComparisonFieldRow(label: 'Aadhaar', psp: p?.aadhaarLast4.isEmpty == true ? 'Not Found' : '****${p?.aadhaarLast4}', udise: u?.uuidLast4.isEmpty == true ? 'Not Found' : '****${u?.uuidLast4}', mismatch: row.diffs.contains('AADHAAR_MISMATCH')),
+          _AadhaarPreviewRow(row: row),
         ],
       ),
     );
@@ -1306,68 +1264,6 @@ class _StudentRow extends StatelessWidget {
     if (v == '1' || v == 'MALE' || v == 'M') return 'MALE';
     if (v == '2' || v == 'FEMALE' || v == 'F') return 'FEMALE';
     return value ?? '—';
-  }
-}
-
-class _AadhaarStatusBadge extends StatelessWidget {
-  final ComparisonRow row;
-
-  const _AadhaarStatusBadge({required this.row});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final u = row.udise;
-    final p = row.psp;
-    final uuidStatus = u?.uuidStatus.trim() ?? '';
-
-    final bool verified;
-    final bool known;
-
-    if (uuidStatus == '1') {
-      verified = true;
-      known = true;
-    } else if (uuidStatus == '2' || uuidStatus == '0') {
-      verified = false;
-      known = true;
-    } else {
-      verified = p?.aadhaarLast4.isNotEmpty == true;
-      known = p != null;
-    }
-
-    final color = !known
-        ? scheme.onSurfaceVariant
-        : verified
-            ? Colors.green.shade700
-            : scheme.error;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: color.withValues(alpha: .25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            verified ? Icons.check_circle_rounded : Icons.cancel_rounded,
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            verified ? 'AADHAAR VERIFIED' : 'AADHAAR NOT VERIFIED',
-            style: TextStyle(
-              fontSize: 8.5,
-              fontWeight: FontWeight.w900,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -1433,7 +1329,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
     final isPsp = side == 'PSP';
     final accent = isPsp ? scheme.primary : Colors.green.shade700;
     final raw = isPsp ? (row.psp?.raw ?? const <String, dynamic>{}) : (row.udise?.raw ?? const <String, dynamic>{});
-    final keys = raw.keys.toList()..sort();
+    final keys = raw.keys.toList();
     final name = isPsp ? row.psp?.studentName : row.udise?.studentName;
     final id = isPsp ? row.psp?.nicId : row.udise?.studentCodeNat;
     final secondary = isPsp ? row.psp?.srNo : row.udise?.studentId;
@@ -1471,6 +1367,21 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                 _IdentityPill(label: 'AADHAAR', value: aadhaar?.isNotEmpty == true ? '****$aadhaar' : 'Not Found', color: accent),
               ]),
             ),
+            if (!isPsp && (row.udise?.nameAsUuid.trim().isNotEmpty ?? false))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 5),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Name As UUID: ${row.udise!.nameAsUuid}',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
+                  ),
+                ),
+              ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 5), child: Align(alignment: Alignment.centerLeft, child: Text('All $side source fields', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent)))),
             Expanded(
               child: GridView.builder(
@@ -1479,14 +1390,64 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                 itemCount: keys.length,
                 itemBuilder: (_, i) {
                   final key = keys[i];
+                  final mismatch = _isMismatchField(key);
+                  final fieldColor = mismatch ? scheme.error : scheme.onSurfaceVariant;
+                  final valueColor = mismatch ? scheme.error : scheme.onSurface;
                   return Container(
                     padding: const EdgeInsets.fromLTRB(9, 7, 9, 6),
-                    decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withValues(alpha: .55), borderRadius: BorderRadius.circular(7), border: Border.all(color: scheme.outlineVariant)),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(_label(key).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
-                      const SizedBox(height: 3),
-                      Expanded(child: SingleChildScrollView(child: Text(_value(raw[key]), style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, height: 1.15)))),
-                    ]),
+                    decoration: BoxDecoration(
+                      color: mismatch
+                          ? scheme.errorContainer.withValues(alpha: .32)
+                          : scheme.surfaceContainerHighest.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: mismatch
+                            ? scheme.error.withValues(alpha: .55)
+                            : scheme.outlineVariant,
+                        width: mismatch ? 1.1 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _label(key).toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: fieldColor,
+                                ),
+                              ),
+                            ),
+                            if (mismatch)
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 13,
+                                color: scheme.error,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Text(
+                              _value(raw[key]),
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                height: 1.15,
+                                color: valueColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -1495,6 +1456,29 @@ class _ComparisonDetailsDialog extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isMismatchField(String key) {
+    final k = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    if (k.contains('aadhaar') || k.contains('aadhar') || k == 'uuid') {
+      return row.diffs.contains('AADHAAR_MISMATCH');
+    }
+    if (k.contains('father')) return row.diffs.contains('FATHER_MISMATCH');
+    if (k.contains('mother')) return row.diffs.contains('MOTHER_MISMATCH');
+    if (k == 'dob' || k.contains('dateofbirth')) return row.diffs.contains('DOB_MISMATCH');
+    if (k.contains('mobile') || k.contains('phone')) return row.diffs.contains('MOBILE_MISMATCH');
+    if (k.contains('gender')) return row.diffs.contains('GENDER_MISMATCH');
+    if (k.contains('class')) return row.diffs.contains('CLASS_MISMATCH');
+    if (k.contains('socialcategory') || k.contains('category') || k == 'soccatid') {
+      return row.diffs.contains('CATEGORY_MISMATCH');
+    }
+    if (k.contains('religion') || k.contains('minority')) {
+      return row.diffs.contains('RELIGION_MISMATCH');
+    }
+    if (k.contains('name') && !k.contains('nameasuuid')) {
+      return row.diffs.contains('NAME_MISMATCH');
+    }
+    return false;
   }
 
   String _statusLabel(MatchType type) {
@@ -1530,6 +1514,92 @@ class _IdentityPill extends StatelessWidget {
     ));
   }
 }
+class _AadhaarPreviewRow extends StatelessWidget {
+  final ComparisonRow row;
+
+  const _AadhaarPreviewRow({required this.row});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final p = row.psp?.aadhaarLast4.isEmpty == true
+        ? 'Not Found'
+        : '****${row.psp?.aadhaarLast4}';
+    final u = row.udise?.uuidLast4.isEmpty == true
+        ? 'Not Found'
+        : '****${row.udise?.uuidLast4}';
+    final status = row.udise?.uuidStatus.trim() ?? '';
+    final verified = status == '1';
+    final hasStatus = status == '0' || status == '1' || status == '2';
+    final mismatch = row.diffs.contains('AADHAAR_MISMATCH');
+
+    final valueStyle = TextStyle(
+      fontSize: 9.5,
+      fontWeight: mismatch ? FontWeight.w800 : FontWeight.w600,
+      color: mismatch ? scheme.error : scheme.onSurface,
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: .45)),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Aadhaar',
+              style: TextStyle(
+                fontSize: 8.5,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              p,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: valueStyle,
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    u,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: valueStyle,
+                  ),
+                ),
+                if (hasStatus) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    verified
+                        ? Icons.check_circle_rounded
+                        : Icons.cancel_rounded,
+                    size: 15,
+                    color: verified ? Colors.green.shade700 : scheme.error,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ComparisonFieldRow extends StatelessWidget {
   final String label; final String? psp; final String? udise; final bool mismatch;
   const _ComparisonFieldRow({required this.label, required this.psp, required this.udise, this.mismatch = false});
