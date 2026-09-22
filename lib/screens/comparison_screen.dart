@@ -609,42 +609,53 @@ class _ComparisonDashboardScreenState
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 5),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: SizedBox(
-                width: 120,
-                height: 34,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _classFilter.isEmpty ? '' : _classFilter,
-                  isDense: true,
-                  decoration: InputDecoration(
-                    labelText: 'Class',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 7,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(9),
+            padding: const EdgeInsets.fromLTRB(8, 3, 8, 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Filters',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  items: [
-                    const DropdownMenuItem(value: '', child: Text('All')),
-                    ...classes.map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text('Class $value'),
+                ),
+                SizedBox(
+                  width: 118,
+                  height: 32,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _classFilter.isEmpty ? '' : _classFilter,
+                    isDense: true,
+                    decoration: InputDecoration(
+                      labelText: 'Class',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _classFilter = value ?? ''),
+                    items: [
+                      const DropdownMenuItem(value: '', child: Text('All')),
+                      ...classes.map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text('Class $value'),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _classFilter = value ?? ''),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
-
 
           Expanded(
             child: filtered.isEmpty
@@ -1142,13 +1153,35 @@ class _StudentRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 7),
-                Text(
-                  'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onSurface,
-                  ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      'Admission: ${_rawValue(p?.raw, const [
+                        'Admission Date',
+                        'Admission date',
+                        'admissionDate',
+                        'admission_date',
+                        'Date of Admission',
+                      ]) ?? '—'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 if (remark.isNotEmpty)
@@ -1213,11 +1246,6 @@ class _StudentRow extends StatelessWidget {
             udise: u?.studentName,
             mismatch: row.diffs.contains('NAME_MISMATCH'),
           ),
-          _ComparisonFieldRow(
-            label: 'Name As UUID',
-            psp: null,
-            udise: u?.nameAsUuid,
-          ),
           _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
           _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
           _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
@@ -1227,23 +1255,6 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
           _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p == null ? null : (p.srNo.isEmpty ? p.nicId : '${p.nicId} | SR: ${p.srNo}'), udise: u?.studentCodeNat),
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-          _ComparisonFieldRow(
-            label: 'Admission Date',
-            psp: _rawValue(p?.raw, const [
-              'Admission Date',
-              'Admission date',
-              'admissionDate',
-              'admission_date',
-              'Date of Admission',
-            ]),
-            udise: _rawValue(u?.raw, const [
-              'Admission Date',
-              'Admission date',
-              'admissionDate',
-              'admission_date',
-              'Date of Admission',
-            ]),
-          ),
           _AadhaarPreviewRow(row: row),
         ],
       ),
@@ -1331,9 +1342,6 @@ class _ComparisonDetailsDialog extends StatelessWidget {
     final raw = isPsp ? (row.psp?.raw ?? const <String, dynamic>{}) : (row.udise?.raw ?? const <String, dynamic>{});
     final keys = raw.keys.toList();
     final name = isPsp ? row.psp?.studentName : row.udise?.studentName;
-    final id = isPsp ? row.psp?.nicId : row.udise?.studentCodeNat;
-    final secondary = isPsp ? row.psp?.srNo : row.udise?.studentId;
-    final aadhaar = isPsp ? row.psp?.aadhaarLast4 : row.udise?.uuidLast4;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
@@ -1357,31 +1365,6 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                 IconButton(tooltip: 'Close', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
               ]),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
-              child: Row(children: [
-                _IdentityPill(label: isPsp ? 'NIC ID' : 'PEN', value: id ?? '', color: accent),
-                const SizedBox(width: 6),
-                _IdentityPill(label: isPsp ? 'SR NO' : 'STUDENT ID', value: secondary ?? '', color: accent),
-                const SizedBox(width: 6),
-                _IdentityPill(label: 'AADHAAR', value: aadhaar?.isNotEmpty == true ? '****$aadhaar' : 'Not Found', color: accent),
-              ]),
-            ),
-            if (!isPsp && (row.udise?.nameAsUuid.trim().isNotEmpty ?? false))
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 5),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Name As UUID: ${row.udise!.nameAsUuid}',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                    ),
-                  ),
-                ),
-              ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 5), child: Align(alignment: Alignment.centerLeft, child: Text('All $side source fields', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent)))),
             Expanded(
               child: GridView.builder(
@@ -1492,28 +1475,6 @@ class _ComparisonDetailsDialog extends StatelessWidget {
   }
 }
 
-class _IdentityPill extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _IdentityPill({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final display = value.trim().isEmpty ? '—' : value;
-    return Expanded(child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-      decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(7), border: Border.all(color: color.withValues(alpha: .28))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: color)),
-        const SizedBox(height: 2),
-        Text(display, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: scheme.onSurface)),
-      ]),
-    ));
-  }
-}
 class _AadhaarPreviewRow extends StatelessWidget {
   final ComparisonRow row;
 
@@ -1571,26 +1532,47 @@ class _AadhaarPreviewRow extends StatelessWidget {
           ),
           Expanded(
             flex: 3,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Flexible(
-                  child: Text(
-                    u,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: valueStyle,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        u,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: valueStyle,
+                      ),
+                    ),
+                    if (hasStatus) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        verified ? '✓' : '✗',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: verified ? Colors.green.shade700 : scheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                if (hasStatus) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    verified
-                        ? Icons.check_circle_rounded
-                        : Icons.cancel_rounded,
-                    size: 15,
-                    color: verified ? Colors.green.shade700 : scheme.error,
+                if (row.udise?.nameAsUuid.trim().isNotEmpty ?? false)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(
+                      row.udise!.nameAsUuid,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
-                ],
               ],
             ),
           ),
