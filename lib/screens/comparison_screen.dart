@@ -1021,17 +1021,6 @@ class _StudentRow extends StatelessWidget {
 
   const _StudentRow({required this.row, required this.hasRemark, required this.statusText, required this.statusColor, required this.rteText, required this.remark, required this.onRemarkTap});
 
-  void _open(BuildContext context, String side) {
-    final Map<String, dynamic> raw = side == 'PSP' ? (row.psp?.raw ?? const <String, dynamic>{}) : (row.udise?.raw ?? const <String, dynamic>{});
-    if (raw.isEmpty) return;
-    final size = MediaQuery.sizeOf(context);
-    showDialog<void>(context: context, builder: (_) => Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 14),
-      child: SizedBox(width: size.width > 820 ? 800 : size.width - 18, height: size.height > 820 ? 760 : size.height - 28,
-        child: _ProfileReviewDialog(row: row, side: side, raw: raw)),
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
