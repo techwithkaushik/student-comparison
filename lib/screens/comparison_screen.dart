@@ -1268,119 +1268,20 @@ class _AadhaarBadge extends StatelessWidget {
   }
 }
 
-class _StudentComparisonDetails extends StatefulWidget {
+class _ProfileReviewDialog extends StatelessWidget {
   final ComparisonRow row;
+  final String side;
+  final Map<String, dynamic> raw;
 
-  const _StudentComparisonDetails({required this.row});
-
-  @override
-  State<_StudentComparisonDetails> createState() =>
-      _StudentComparisonDetailsState();
-}
-
-class _StudentComparisonDetailsState
-    extends State<_StudentComparisonDetails> {
-  final _remarkRepository = RemarkRepository();
-  String _remark = '';
-  bool _loadingRemark = true;
-  bool _savingRemark = false;
-
-  Map<String, dynamic> get _p =>
-      widget.row.psp?.raw ?? const <String, dynamic>{};
-  Map<String, dynamic> get _u =>
-      widget.row.udise?.raw ?? const <String, dynamic>{};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRemark();
-  }
-
-  Future<void> _loadRemark() async {
-    try {
-      final saved = await _remarkRepository.get(
-        pspNic: widget.row.psp?.nicId,
-        udisePen: widget.row.udise?.studentCodeNat,
-      );
-      if (!mounted) return;
-      setState(() {
-        _remark = saved?['remark']?.toString() ?? '';
-        _loadingRemark = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingRemark = false);
-    }
-  }
-
-  Future<void> _editRemark() async {
-    final controller = TextEditingController(text: _remark);
-    final value = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(
-          'Edit Remark',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          minLines: 3,
-          maxLines: 7,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            hintText: 'Enter remark...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('CANCEL'),
-          ),
-          FilledButton.icon(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            icon: const Icon(Icons.save_rounded, size: 17),
-            label: const Text('SAVE'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (value == null || !mounted) return;
-
-    final pspNic = widget.row.psp?.nicId ?? '';
-    final udisePen = widget.row.udise?.studentCodeNat ?? '';
-    setState(() => _savingRemark = true);
-
-    try {
-      if (value.isEmpty) {
-        await _remarkRepository.delete(pspNic: pspNic, udisePen: udisePen);
-      } else {
-        await _remarkRepository.save(
-          pspNic: pspNic,
-          udisePen: udisePen,
-          remark: value,
-        );
-      }
-      if (!mounted) return;
-      setState(() {
-        _remark = value;
-        _savingRemark = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _savingRemark = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save remark: $e')),
-      );
-    }
-  }
+  const _ProfileReviewDialog({
+    required this.row,
+    required this.side,
+    required this.raw,
+  });
 
   String _display(dynamic value) {
-    if (value == null) return '—';
-    if (value is String && value.trim().isEmpty) return '—';
+    if (value == null) return 'empty';
+    if (value is String && value.trim().isEmpty) return 'empty';
     if (value is Map || value is List) {
       try {
         return const JsonEncoder.withIndent('  ').convert(value);
@@ -1391,276 +1292,305 @@ class _StudentComparisonDetailsState
     return value.toString();
   }
 
-  List<String> get _fields {
-    final keys = <String>{};
-    keys.addAll(_p.keys.map((e) => e.toString()));
-    keys.addAll(_u.keys.map((e) => e.toString()));
-    final result = keys.toList();
-    result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return result;
+  bool _isMismatch(String key) {
+    final diffs = row.diffs.toSet();
+
+    if (side == 'PSP') {
+      const map = <String, String>{
+        'Student Name': 'NAME_MISMATCH',
+        'Father Name': 'FATHER_MISMATCH',
+        'Mother Name': 'MOTHER_MISMATCH',
+        'DOB': 'DOB_MISMATCH',
+        'Studying in Class': 'CLASS_MISMATCH',
+        'Gender': 'GENDER_MISMATCH',
+        'Mobile Number': 'MOBILE_MISMATCH',
+        'Aadhar Number': 'AADHAAR_MISMATCH',
+        'Social Category': 'CATEGORY_MISMATCH',
+        'Religion': 'RELIGION_MISMATCH',
+      };
+      return diffs.contains(map[key]);
+    }
+
+    const map = <String, String>{
+      'studentName': 'NAME_MISMATCH',
+      'nameAsUuid': 'NAME_MISMATCH',
+      'fatherName': 'FATHER_MISMATCH',
+      'motherName': 'MOTHER_MISMATCH',
+      'dob': 'DOB_MISMATCH',
+      'classId': 'CLASS_MISMATCH',
+      'classDesc': 'CLASS_MISMATCH',
+      'gender': 'GENDER_MISMATCH',
+      'genderDesc': 'GENDER_MISMATCH',
+      'primaryMobile': 'MOBILE_MISMATCH',
+      'secondaryMobile': 'MOBILE_MISMATCH',
+      'uuid': 'AADHAAR_MISMATCH',
+      'uuidMasked': 'AADHAAR_MISMATCH',
+      'socCatId': 'CATEGORY_MISMATCH',
+      'socialCategoryDesc': 'CATEGORY_MISMATCH',
+      'minorityId': 'RELIGION_MISMATCH',
+      'minorityDesc': 'RELIGION_MISMATCH',
+    };
+    return diffs.contains(map[key]);
   }
 
-  bool _same(String field) {
-    if (!_p.containsKey(field) || !_u.containsKey(field)) return false;
-    final a = _display(_p[field]).trim().toLowerCase();
-    final b = _display(_u[field]).trim().toLowerCase();
-    return a == b;
+  String _humanKey(String key) {
+    final value = key
+        .replaceAll('_', ' ')
+        .replaceAllMapped(
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (m) => (m.group(1) ?? '') + ' ' + (m.group(2) ?? ''),
+        )
+        .replaceAll(RegExp(r'\\s+'), ' ')
+        .trim();
+
+    return value
+        .split(' ')
+        .map(
+          (part) => part.isEmpty
+              ? part
+              : part[0].toUpperCase() + part.substring(1),
+        )
+        .join(' ');
+  }
+
+  String _statusLabel(MatchType type) {
+    switch (type) {
+      case MatchType.matched:
+        return 'MATCHED';
+      case MatchType.mismatch:
+        return 'MISMATCH';
+      case MatchType.possibleMatch:
+        return 'POSSIBLE MATCH';
+      case MatchType.notInUdise:
+        return 'NOT IN UDISE';
+      case MatchType.notInPsp:
+        return 'NOT IN PSP';
+    }
+  }
+
+  String _flagLabel(String value) {
+    switch (value) {
+      case 'AADHAAR_NOT_FOUND':
+        return 'AADHAAR NOT FOUND';
+      case 'MOBILE_NOT_FOUND':
+        return 'MOBILE NOT FOUND';
+      default:
+        return value;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final pspColor = scheme.primary;
-    final udiseColor = Colors.green.shade700;
+    final isPsp = side == 'PSP';
+    final accent = isPsp ? scheme.primary : Colors.green.shade700;
+    final status = _statusLabel(row.type);
+    final flags = row.diffs.isEmpty
+        ? 'None (Clean Match)'
+        : row.diffs.map(_flagLabel).join(', ');
+    final entries = raw.entries.toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Student Details',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.fromLTRB(9, 7, 9, 5),
-              padding: const EdgeInsets.fromLTRB(10, 7, 5, 7),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: scheme.outlineVariant),
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 9, 7, 7),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  side + ' Student Profile Review — ' + status,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'REMARK',
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
+              IconButton(
+                tooltip: 'Close',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded, size: 20),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          height: 3,
+          margin: const EdgeInsets.symmetric(horizontal: 14),
+          color: accent,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 7),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verified ' + side + ' Database Attributes',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Expanded(
+                  child: Scrollbar(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(1, 1, 1, 2),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 7,
+                        childAspectRatio: 3.0,
+                      ),
+                      itemCount: entries.length,
+                      itemBuilder: (_, index) {
+                        final entry = entries[index];
+                        final key = entry.key.toString();
+                        final mismatch = _isMismatch(key);
+                        final display = _display(entry.value);
+
+                        return Container(
+                          padding: const EdgeInsets.fromLTRB(11, 8, 9, 7),
+                          decoration: BoxDecoration(
+                            color: mismatch
+                                ? scheme.errorContainer.withValues(alpha: .28)
+                                : scheme.surface,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: mismatch
+                                  ? scheme.error
+                                  : scheme.outlineVariant.withValues(alpha: .65),
+                              width: mismatch ? 1.0 : .7,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        _loadingRemark
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.8,
-                                ),
-                              )
-                            : Text(
-                                _remark.isEmpty
-                                    ? 'No remark saved'
-                                    : _remark,
-                                maxLines: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _humanKey(key).toUpperCase(),
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: _remark.isEmpty
-                                      ? FontWeight.w500
-                                      : FontWeight.w700,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: .15,
+                                  color: mismatch
+                                      ? scheme.error
+                                      : scheme.onSurfaceVariant,
                                 ),
                               ),
-                      ],
+                              const SizedBox(height: 3),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    display,
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      height: 1.15,
+                                      fontWeight: mismatch
+                                          ? FontWeight.w800
+                                          : FontWeight.w500,
+                                      color: mismatch
+                                          ? scheme.error
+                                          : scheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Edit remark',
-                    onPressed: _savingRemark ? null : _editRemark,
-                    icon: _savingRemark
-                        ? const SizedBox(
-                            width: 17,
-                            height: 17,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.edit_rounded, size: 20),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(9, 2, 9, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'PSP: ${widget.row.psp?.studentName ?? '—'}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: pspColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      'UDISE: ${widget.row.udise?.studentName ?? '—'}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: udiseColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 9),
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(9),
                 ),
-                border: Border.all(color: scheme.outlineVariant),
-                color: scheme.surfaceContainerHighest,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'PSP',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: pspColor,
-                        ),
+                const SizedBox(height: 7),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border(
+                      left: BorderSide(
+                        color: scheme.outline,
+                        width: 3,
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'UDISE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: udiseColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(9, 0, 9, 10),
-                itemCount: _fields.length,
-                itemBuilder: (_, index) {
-                  final field = _fields[index];
-                  final pv = _display(_p[field]);
-                  final uv = _display(_u[field]);
-                  final bothExist = _p.containsKey(field) && _u.containsKey(field);
-                  final mismatch = bothExist && !_same(field);
-
-                  return Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _DetailValueCell(
-                          field: field,
-                          value: pv,
-                          accent: pspColor,
-                          mismatch: mismatch,
-                          missing: !_p.containsKey(field),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: 'Active Conflict Flags: ',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            TextSpan(
+                              text: flags,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: row.diffs.isEmpty
+                                    ? Colors.green.shade700
+                                    : scheme.error,
+                              ),
+                            ),
+                          ],
                         ),
+                        style: const TextStyle(fontSize: 8.5),
                       ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: _DetailValueCell(
-                          field: field,
-                          value: uv,
-                          accent: udiseColor,
-                          mismatch: mismatch,
-                          missing: !_u.containsKey(field),
+                      const SizedBox(height: 3),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: 'Cross-System Match Confidence Score: ',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            TextSpan(
+                              text: row.score.toString() + '%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
+                        style: const TextStyle(fontSize: 8.5),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: scheme.onSurfaceVariant,
+              foregroundColor: scheme.surface,
+              minimumSize: const Size(82, 34),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Close Review',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailValueCell extends StatelessWidget {
-  final String field;
-  final String value;
-  final Color accent;
-  final bool mismatch;
-  final bool missing;
-
-  const _DetailValueCell({
-    required this.field,
-    required this.value,
-    required this.accent,
-    required this.mismatch,
-    required this.missing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final bg = mismatch
-        ? scheme.errorContainer.withValues(alpha: .72)
-        : scheme.surface;
-    final border = mismatch ? scheme.error : scheme.outlineVariant;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.fromLTRB(7, 6, 7, 7),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: border,
-          width: mismatch ? 1.1 : .7,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            field,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 8,
-              fontWeight: FontWeight.w900,
-              color: mismatch ? scheme.onErrorContainer : accent,
-            ),
           ),
-          const SizedBox(height: 2),
-          SelectableText(
-            missing ? '—' : value,
-            style: TextStyle(
-              fontSize: 10.5,
-              height: 1.18,
-              fontWeight: mismatch ? FontWeight.w800 : FontWeight.w500,
-              color: missing
-                  ? scheme.onSurfaceVariant
-                  : (mismatch ? scheme.onErrorContainer : scheme.onSurface),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
