@@ -1151,7 +1151,7 @@ class _StudentRow extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
