@@ -457,6 +457,9 @@ class _ComparisonDashboardScreenState
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredRows;
+    final pspBaseCount = _rows.where((row) => row.psp != null).length;
+    final matchedBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.matched).length;
+    final mismatchBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.mismatch).length;
 
     final classes = _classes.toList()
       ..sort((a, b) {
@@ -564,11 +567,11 @@ class _ComparisonDashboardScreenState
               ),
             ),
           _SummarySection(
-            all: _rows.length,
-            matched: _countType(MatchType.matched),
-            mismatch: _countType(MatchType.mismatch),
-            matchedPercent: _rows.isEmpty ? 0 : (_countType(MatchType.matched) * 100 / _rows.length),
-            mismatchPercent: _rows.isEmpty ? 0 : (_countType(MatchType.mismatch) * 100 / _rows.length),
+            all: pspBaseCount,
+            matched: matchedBaseCount,
+            mismatch: mismatchBaseCount,
+            matchedPercent: pspBaseCount == 0 ? 0 : (matchedBaseCount * 100 / pspBaseCount),
+            mismatchPercent: pspBaseCount == 0 ? 0 : (mismatchBaseCount * 100 / pspBaseCount),
             rte: _rows.where((row) => _pspRte(row) == 'RTE').length,
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
