@@ -1216,7 +1216,7 @@ class _SourceLine extends StatelessWidget {
       child: Text.rich(
         TextSpan(children: [
           TextSpan(
-            text: label + ': ',
+            text: '$label: ',
             style: TextStyle(fontWeight: FontWeight.w900, color: mismatch ? scheme.error : Colors.black87),
           ),
           TextSpan(
@@ -1274,7 +1274,7 @@ class _AadhaarBadge extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            'AADHAAR ****' + value,
+            'AADHAAR ****$value',
             style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: scheme.onPrimaryContainer),
           ),
         ),
@@ -1430,7 +1430,7 @@ class _ProfileReviewDialog extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '${side} Student Profile Review — ${status}',
+                  '$side Student Profile Review — $status',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -1458,7 +1458,7 @@ class _ProfileReviewDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Verified ${side} Database Attributes',
+                  'Verified $side Database Attributes',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -1584,7 +1584,7 @@ class _ProfileReviewDialog extends StatelessWidget {
                               style: TextStyle(fontWeight: FontWeight.w800),
                             ),
                             TextSpan(
-                              text: '${row.score}%',
+                              text: '$row.score%',
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: scheme.primary,
