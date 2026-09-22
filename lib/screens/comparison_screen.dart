@@ -304,6 +304,10 @@ class _ComparisonDashboardScreenState
         return false;
       }
 
+      if (_filter == 'RTE' && _pspRte(row) != 'RTE') {
+        return false;
+      }
+
       // Status / difference filter
       if (_filter == 'MATCHED' &&
           row.type != MatchType.matched) {
@@ -773,7 +777,7 @@ class _SummarySection extends StatelessWidget {
                 color: Colors.deepPurple,
                 selected: selected == 'REMARKED',
                 onTap: () => onSelected('REMARKED'),
-              ),\n              _StatChip(label: 'RTE', value: rte, color: Colors.orange, selected: false, onTap: () => onSelected('ALL')),
+              ),\n              _StatChip(label: 'RTE', value: rte, color: Colors.orange, selected: selected == 'RTE', onTap: () => onSelected('RTE')),
             ],
           ),
           const SizedBox(height: 5),
