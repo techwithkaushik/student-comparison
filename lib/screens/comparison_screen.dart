@@ -1154,7 +1154,7 @@ class _StudentRow extends StatelessWidget {
                         Text(
                           'SR: ${p?.srNo.trim().isNotEmpty == true ? p!.srNo : '—'}',
                           style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: scheme.onSurface,
                           ),
@@ -1186,7 +1186,7 @@ class _StudentRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
