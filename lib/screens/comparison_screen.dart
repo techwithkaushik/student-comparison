@@ -1520,8 +1520,14 @@ class _AadhaarPreviewRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final pLast4 = row.psp?.aadhaarLast4.trim() ?? '';
     final uLast4 = row.udise?.uuidLast4.trim() ?? '';
-    final p = pLast4.isEmpty ? 'Not Found' : '****$pLast4';
-    final u = uLast4.isEmpty ? 'Not Found' : '****$uLast4';
+    // A source-only row has no record on the opposite side, so its Aadhaar
+    // column must show an em dash rather than "Not Found".
+    final p = row.psp == null
+        ? '—'
+        : (pLast4.isEmpty ? 'Not Found' : '****$pLast4');
+    final u = row.udise == null
+        ? '—'
+        : (uLast4.isEmpty ? 'Not Found' : '****$uLast4');
     final status = row.udise?.uuidStatus.trim() ?? '';
     final verified = status == '1';
     final hasStatus = status == '0' || status == '1' || status == '2';
