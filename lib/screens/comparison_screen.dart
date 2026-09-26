@@ -1430,6 +1430,8 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                           child: SingleChildScrollView(
                             child: Text(
                               _value(raw[key]),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w600,
