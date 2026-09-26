@@ -37,6 +37,7 @@ jobs:
         run: |
           flutter create \
             --platforms=android \
+            --org=org.techwithkaushik \
             --project-name=student_comparison \
             .
 
@@ -50,6 +51,10 @@ jobs:
 
           cp files/build.gradle.kts android/app/build.gradle.kts
 
+          # applicationId/namespace are camelCase, while flutter create
+          # generates the MainActivity package with underscores. Keep the
+          # activity reference explicit so Android can launch it.
+
           # The app keeps its shared-storage database on Android 10.
           # Flutter's generated manifest does not request these legacy
           # storage permissions, so request them explicitly.
@@ -58,6 +63,11 @@ jobs:
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()
+
+          text = text.replace(
+              'android:name=".MainActivity"',
+              'android:name="org.techwithkaushik.student_comparison.MainActivity"',
+          )
 
           if "android.permission.WRITE_EXTERNAL_STORAGE" not in text:
               text = text.replace(
