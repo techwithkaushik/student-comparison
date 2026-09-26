@@ -1408,7 +1408,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 _label(key).toUpperCase(),
-                                maxLines: 2,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 8,
@@ -1522,8 +1522,6 @@ class _AadhaarPreviewRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final pLast4 = row.psp?.aadhaarLast4.trim() ?? '';
     final uLast4 = row.udise?.uuidLast4.trim() ?? '';
-    // A source-only row has no record on the opposite side, so its Aadhaar
-    // column must show an em dash rather than "Not Found".
     final p = row.psp == null
         ? '—'
         : (pLast4.isEmpty ? 'Not Found' : '****$pLast4');
