@@ -12,7 +12,7 @@ plugins {
 
 android { 
 
-    namespace = "org.techwithkaushik" 
+    namespace = "org.techwithkaushik.studentComparison" 
 
     compileSdk = flutter.compileSdkVersion 
 
@@ -36,7 +36,7 @@ android {
 
         // TODO: Specify your own unique Application ID ([https://developer.android.com/studio/build/application-id.html](https://developer.android.com/studio/build/application-id.html)). 
 
-        applicationId = "org.techwithkaushik" 
+        applicationId = "org.techwithkaushik.studentComparison" 
 
         // You can update the following values to match your application needs. 
 
