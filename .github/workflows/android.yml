@@ -44,9 +44,41 @@ jobs:
         run: |
           rm -f test/widget_test.dart
 
-      - name: cp build.gradle.kts
+      - name: Configure Android manifest and Gradle
         run: |
+          set -e
+
           cp files/build.gradle.kts android/app/build.gradle.kts
+
+          # The app keeps its shared-storage database on Android 10.
+          # Flutter's generated manifest does not request these legacy
+          # storage permissions, so request them explicitly.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+
+          if "android.permission.WRITE_EXTERNAL_STORAGE" not in text:
+              text = text.replace(
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+                  '''<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'''
+              )
+
+          if 'android:requestLegacyExternalStorage="true"' not in text:
+              text = text.replace(
+                  '<application',
+                  '<application android:requestLegacyExternalStorage="true"',
+                  1,
+              )
+
+          manifest.write_text(text)
+          PY
+
+          echo "===== Android manifest ====="
+          cat android/app/src/main/AndroidManifest.xml
 
       - name: Decode Keystore
         id: keystore
