@@ -112,9 +112,13 @@ jobs:
 
       - name: Build ARM32 signed APK
         run: |
+          mkdir -p build/symbols
+
           flutter build apk \
             --release \
             --target-platform android-arm \
+            --obfuscate \
+            --split-debug-info=build/symbols \
         env:
           SIGNING_KEY_STORE: ${{ steps.keystore.outputs.filePath }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
