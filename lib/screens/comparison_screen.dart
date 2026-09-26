@@ -507,7 +507,7 @@ class _ComparisonDashboardScreenState
                 child: Text(
                   '${filtered.length}/${_rows.length}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
@@ -822,7 +822,7 @@ class _SummarySection extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               SizedBox(
-                width: 118,
+                width: 90,
                 height: 30,
                 child: DropdownButtonFormField<String>(
                   initialValue: classFilter.isEmpty ? '' : classFilter,
@@ -884,8 +884,8 @@ class _StatChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minWidth: 78, minHeight: 30),
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          constraints: const BoxConstraints(minWidth: 50, minHeight: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           decoration: BoxDecoration(
             gradient: selected
                 ? LinearGradient(
@@ -917,7 +917,7 @@ class _StatChip extends StatelessWidget {
               Text(
                 '$value',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                   color: selected ? baseColor : scheme.onSurface,
                 ),
@@ -956,8 +956,8 @@ class _CountChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          constraints: const BoxConstraints(minWidth: 86, minHeight: 30),
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          constraints: const BoxConstraints(minWidth: 50, minHeight: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           decoration: BoxDecoration(
             gradient: selected
                 ? LinearGradient(
@@ -980,7 +980,7 @@ class _CountChip extends StatelessWidget {
               Text(
                 '$count',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: selected ? color : scheme.onSurface,
                 ),
@@ -1126,7 +1126,7 @@ class _StudentRow extends StatelessWidget {
                                 ? 'Mismatch'
                                 : statusText,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w900,
                           color: statusColor,
                         ),
@@ -1134,7 +1134,7 @@ class _StudentRow extends StatelessWidget {
                       Text(
                         '${row.score}%',
                         style: TextStyle(
-                          fontSize: 8.5,
+                          fontSize: 9,
                           fontWeight: FontWeight.w900,
                           color: statusColor,
                         ),
@@ -1226,7 +1226,7 @@ class _StudentRow extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 2,
-                  child: Text('FIELD', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
+                  child: Text('FIELD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: scheme.onSurfaceVariant)),
                 ),
                 Expanded(
                   flex: 3,
@@ -1310,9 +1310,9 @@ class _ClickableHeader extends StatelessWidget {
             children: [
               Icon(Icons.open_in_new_rounded, size: 12, color: color),
               const SizedBox(width: 3),
-              Text(title, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color)),
+              Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color)),
               const SizedBox(width: 3),
-              Expanded(child: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: color))),
+              Expanded(child: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: color))),
             ],
           ),
         ),
@@ -1408,7 +1408,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 _label(key).toUpperCase(),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 8,
@@ -1629,7 +1629,7 @@ class _ComparisonFieldRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final p = (psp ?? '').trim().isEmpty ? '—' : psp!.trim();
     final u = (udise ?? '').trim().isEmpty ? '—' : udise!.trim();
-    final style = TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: scheme.onSurface);
+    final style = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: scheme.onSurface);
     return Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(border: Border(bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: .45)))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(flex: 2, child: Text(label, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant))),
