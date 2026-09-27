@@ -1105,10 +1105,11 @@ class _StudentRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: statusColor.withValues(alpha: .25)),
       ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(8, 5, 8, 4),
+      child: SelectionArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 5, 8, 4),
             color: statusColor.withValues(alpha: .06),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1265,8 +1266,9 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
           _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p?.nicId, udise: u?.studentCodeNat),
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-          _AadhaarPreviewRow(row: row),
-        ],
+            _AadhaarPreviewRow(row: row),
+          ],
+        ),
       ),
     );
   }
@@ -1377,8 +1379,9 @@ class _ComparisonDetailsDialog extends StatelessWidget {
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 5), child: Align(alignment: Alignment.centerLeft, child: Text('All $side source fields', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent)))),
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              child: SelectionArea(
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 7, mainAxisSpacing: 7, childAspectRatio: 3.8),
                 itemCount: keys.length,
                 itemBuilder: (_, i) {
@@ -1444,7 +1447,8 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                       ],
                     ),
                   );
-                },
+                  },
+                ),
               ),
             ),
           ],
