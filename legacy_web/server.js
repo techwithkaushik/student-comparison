@@ -940,12 +940,12 @@ app.get('/api/compare', (req, res) => {
         }
 
         if (classFilter) {
+            // Class selection is PSP-authoritative: never include a row just
+            // because its UDISE class matches the selected class.
             const wanted = classCanon(classFilter);
-            rows = rows.filter(row => {
-                const pClass = row.psp ? classCanon(row.psp.studying_class) : '';
-                const uClass = row.udise ? classCanon(row.udise.class_desc || row.udise.class_id) : '';
-                return pClass === wanted || uClass === wanted;
-            });
+            rows = rows.filter(row =>
+                !!row.psp && classCanon(row.psp.studying_class) === wanted
+            );
         }
 
         if (q) rows = rows.filter(row => row._searchText.includes(q));
@@ -1004,9 +1004,9 @@ app.get('/api/export/mismatch.csv', (req, res) => {
 
             // Skip rows that don't match the selected class
             if (classFilter) {
+                // Export uses the same PSP-only class filter as /api/compare.
                 const pspClass = row.psp ? classCanon(row.psp.studying_class) : '';
-                const udiseClass = row.udise ? classCanon(row.udise.class_desc || row.udise.class_id) : '';
-                if (pspClass !== classCanon(classFilter) && udiseClass !== classCanon(classFilter)) {
+                if (!row.psp || pspClass !== classCanon(classFilter)) {
                     continue;
                 }
             }
