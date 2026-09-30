@@ -336,18 +336,11 @@ class _ComparisonDashboardScreenState
         }
       }
 
-      // Class filter
+      // PSP is the authoritative source for class filtering.
+      // UDISE class must not make a row pass this filter on its own.
       if (_classFilter.isNotEmpty) {
-        final pClass =
-            row.psp?.classCanonValue ?? '';
-
-        final uClass =
-            row.udise?.classDescCanon ??
-            row.udise?.classIdCanon ??
-            '';
-
-        if (pClass != _classFilter &&
-            uClass != _classFilter) {
+        final pClass = row.psp?.classCanonValue ?? '';
+        if (pClass != _classFilter) {
           return false;
         }
       }
