@@ -725,10 +725,10 @@
                 !(row.diffs || []).includes(filter)) return false;
 
             if (classValue) {
-                const wanted = localClassCanon(classValue);
+                // PSP is authoritative for class filtering. A matching UDISE
+                // class alone must never make a row pass the filter.
                 const pClass = row.psp ? localClassCanon(row.psp.studying_class) : '';
-                const uClass = row.udise ? localClassCanon(row.udise.class_desc || row.udise.class_id) : '';
-                if (pClass !== wanted && uClass !== wanted) return false;
+                if (!row.psp || pClass !== localClassCanon(classValue)) return false;
             }
 
             return !activeSearch || row._searchText?.includes(activeSearch);
