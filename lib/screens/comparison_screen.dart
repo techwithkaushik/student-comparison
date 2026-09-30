@@ -387,23 +387,14 @@ class _ComparisonDashboardScreenState
   }
 
   Set<String> get _classes {
+    // The class dropdown is based only on PSP, the authoritative class source.
+    // UDISE-only classes must not appear as selectable filter values.
     final result = <String>{};
 
     for (final row in _rows) {
-      final pClass =
-          row.psp?.classCanonValue ?? '';
-
-      final uClass =
-          row.udise?.classDescCanon ??
-          row.udise?.classIdCanon ??
-          '';
-
+      final pClass = row.psp?.classCanonValue ?? '';
       if (pClass.isNotEmpty) {
         result.add(pClass);
-      }
-
-      if (uClass.isNotEmpty) {
-        result.add(uClass);
       }
     }
 
