@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../database/database.dart';
 import '../matching/matching_engine.dart';
 import '../matching/models.dart';
@@ -526,15 +527,17 @@ class _ComparisonDashboardScreenState
                 case 'export_database': _exportDatabase(); break;
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'import_psp', child: Text('Import PSP JSON')),
-              PopupMenuItem(value: 'import_udise', child: Text('Import UDISE JSON')),
-              PopupMenuItem(value: 'import_sqlite', child: Text('Import SQLite database')),
-              PopupMenuDivider(),
-              PopupMenuItem(value: 'export_csv', child: Text('Export comparison CSV')),
-              PopupMenuItem(value: 'export_psp', child: Text('Export PSP JSON')),
-              PopupMenuItem(value: 'export_udise', child: Text('Export UDISE JSON')),
-              PopupMenuItem(value: 'export_database', child: Text('Export SQLite database')),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'import_psp', child: Text('Import PSP JSON')),
+              const PopupMenuItem(value: 'import_udise', child: Text('Import UDISE JSON')),
+              if (!kIsWeb)
+                const PopupMenuItem(value: 'import_sqlite', child: Text('Import SQLite database')),
+              const PopupMenuDivider(),
+              const PopupMenuItem(value: 'export_csv', child: Text('Export comparison CSV')),
+              const PopupMenuItem(value: 'export_psp', child: Text('Export PSP JSON')),
+              const PopupMenuItem(value: 'export_udise', child: Text('Export UDISE JSON')),
+              if (!kIsWeb)
+                const PopupMenuItem(value: 'export_database', child: Text('Export SQLite database')),
             ],
           ),
         ],
