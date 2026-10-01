@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:sembast/sembast.dart';
 import 'package:sembast_web/sembast_web.dart';
 
 class SqliteImportResult {
