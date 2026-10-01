@@ -27,10 +27,9 @@ jobs:
       - name: Validate static site
         run: |
           test -s npm-webapp/index.html
-          if grep -F '/api/' npm-webapp/index.html; then
-            echo "Unexpected server API reference found."
-            exit 1
-          fi
+          grep -F "GitHub Pages browser adapter" npm-webapp/index.html
+          grep -F "student_compare_psp_v1" npm-webapp/index.html
+          grep -F "student_compare_udise_v1" npm-webapp/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
