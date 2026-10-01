@@ -169,6 +169,9 @@ class AppDatabase {
   }
 
   Future<String> _persistentDatabasePath() async {
+    final profileDbName = _activeProfileId == 'legacy'
+        ? _dbName
+        : 'student_comparison_$_activeProfileId.db';
     // The user's requirement is a database that survives app uninstall.
     // On Android 10 we use shared primary storage, not an app-specific
     // directory. requestLegacyExternalStorage is enabled in the manifest.
@@ -185,7 +188,7 @@ class AppDatabase {
         await directory.create(recursive: true);
       }
 
-      final target = p.join(directory.path, _activeProfileId == 'legacy' ? _dbName : 'student_comparison_${_activeProfileId}.db');
+      final target = p.join(directory.path, profileDbName);
 
       // One-time migration from the old sqflite app-private database.
       final oldDir = await getDatabasesPath();
@@ -200,7 +203,7 @@ class AppDatabase {
 
     // Keep desktop/test behaviour unchanged.
     final dbPath = await getDatabasesPath();
-    return p.join(dbPath, _activeProfileId == 'legacy' ? _dbName : 'student_comparison_${_activeProfileId}.db');
+    return p.join(dbPath, profileDbName);
   }
 
   static Future<void> _createSchema(Database db) async {
