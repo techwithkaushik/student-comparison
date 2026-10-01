@@ -30,6 +30,123 @@ class AppDatabase {
   static const _publicFolder = '/storage/emulated/0/StudentComparison';
 
   Database? _db;
+  String _activeProfileId = 'legacy';
+
+  Future<String> _profilesFilePath() async {
+    if (Platform.isAndroid) {
+      final directory = Directory(_publicFolder);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+      return p.join(directory.path, 'school_profiles.json');
+    }
+    final dbPath = await getDatabasesPath();
+    final directory = Directory(dbPath);
+    if (!await directory.exists()) await directory.create(recursive: true);
+    return p.join(directory.path, 'school_profiles.json');
+  }
+
+  Future<List<Map<String, dynamic>>> getSchoolProfiles() async {
+    final file = File(await _profilesFilePath());
+    if (await file.exists()) {
+      try {
+        final decoded = jsonDecode(await file.readAsString());
+        if (decoded is List) {
+          final profiles = decoded
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .where((item) =>
+                  (item['id']?.toString() ?? '').isNotEmpty &&
+                  (item['schoolName']?.toString().trim() ?? '').isNotEmpty)
+              .toList();
+          if (profiles.isNotEmpty) return profiles;
+        }
+      } catch (_) {
+        // Recreate a valid profile index while preserving the existing DB.
+      }
+    }
+    final initial = <Map<String, dynamic>>[
+      {
+        'id': 'legacy',
+        'schoolName': 'Existing School',
+        'pspCode': '',
+        'udiseCode': '',
+        'createdAt': DateTime.now().toIso8601String(),
+      },
+    ];
+    await file.writeAsString(jsonEncode(initial), flush: true);
+    return initial;
+  }
+
+  Future<void> _writeSchoolProfiles(List<Map<String, dynamic>> profiles) async {
+    final file = File(await _profilesFilePath());
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(profiles),
+      flush: true,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getActiveSchoolProfile() async {
+    final profiles = await getSchoolProfiles();
+    for (final profile in profiles) {
+      if (profile['id']?.toString() == _activeProfileId) return profile;
+    }
+    return profiles.isEmpty ? null : profiles.first;
+  }
+
+  Future<void> setActiveSchoolProfile(String profileId) async {
+    final profiles = await getSchoolProfiles();
+    if (!profiles.any((profile) => profile['id']?.toString() == profileId)) {
+      throw ArgumentError('School profile not found.');
+    }
+    if (_activeProfileId == profileId && _db != null) return;
+    await _db?.close();
+    _db = null;
+    _activeProfileId = profileId;
+    await database;
+  }
+
+  Future<Map<String, dynamic>> saveSchoolProfile({
+    String? id,
+    required String schoolName,
+    required String pspCode,
+    required String udiseCode,
+  }) async {
+    final name = schoolName.trim();
+    final psp = pspCode.trim();
+    final udise = udiseCode.trim();
+    if (name.isEmpty || psp.isEmpty || udise.isEmpty) {
+      throw ArgumentError('School name, PSP code and UDISE code are required.');
+    }
+    final profiles = await getSchoolProfiles();
+    final profileId = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+    final existingIndex = profiles.indexWhere(
+      (profile) => profile['id']?.toString() == profileId,
+    );
+    final duplicate = profiles.any((profile) =>
+        profile['id']?.toString() != profileId &&
+        (profile['pspCode']?.toString().toLowerCase() == psp.toLowerCase() ||
+         profile['udiseCode']?.toString().toLowerCase() == udise.toLowerCase()));
+    if (duplicate) {
+      throw ArgumentError('A profile with this PSP or UDISE code already exists.');
+    }
+    final profile = <String, dynamic>{
+      'id': profileId,
+      'schoolName': name,
+      'pspCode': psp,
+      'udiseCode': udise,
+      'createdAt': existingIndex >= 0
+          ? profiles[existingIndex]['createdAt'] ?? DateTime.now().toIso8601String()
+          : DateTime.now().toIso8601String(),
+    };
+    if (existingIndex >= 0) {
+      profiles[existingIndex] = profile;
+    } else {
+      profiles.add(profile);
+    }
+    await _writeSchoolProfiles(profiles);
+    return profile;
+  }
 
   Future<Database> get database async {
     if (_db != null) return _db!;
@@ -68,7 +185,7 @@ class AppDatabase {
         await directory.create(recursive: true);
       }
 
-      final target = p.join(directory.path, _dbName);
+      final target = p.join(directory.path, _activeProfileId == 'legacy' ? _dbName : 'student_comparison_${_activeProfileId}.db');
 
       // One-time migration from the old sqflite app-private database.
       final oldDir = await getDatabasesPath();
@@ -83,7 +200,7 @@ class AppDatabase {
 
     // Keep desktop/test behaviour unchanged.
     final dbPath = await getDatabasesPath();
-    return p.join(dbPath, _dbName);
+    return p.join(dbPath, _activeProfileId == 'legacy' ? _dbName : 'student_comparison_${_activeProfileId}.db');
   }
 
   static Future<void> _createSchema(Database db) async {
