@@ -1,0 +1,45 @@
+name: Deploy npm Web App to GitHub Pages
+
+on:
+  push:
+    branches:
+      - npm-webapp
+    paths:
+      - "npm-webapp/**"
+      - ".github/workflows/npm-webapp-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages-npm-webapp
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate static site
+        run: |
+          test -s npm-webapp/index.html
+          if grep -E 'fetch\(["'\''"]/api/|server\.js|student_compare\.sqlite' npm-webapp/index.html; then
+            echo "Unexpected server-dependent or local database reference found."
+            exit 1
+          fi
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: npm-webapp
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
