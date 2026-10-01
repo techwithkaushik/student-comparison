@@ -280,10 +280,25 @@ class AppDatabase {
 
   Future<List<Map<String, dynamic>>> getSchoolProfiles() async {
     final db = await database;
-    return db.query(
+    final rows = await db.query(
       'school_profiles',
       orderBy: 'school_name COLLATE NOCASE ASC',
     );
+
+    // Keep the database schema snake_case internally, but expose a stable
+    // camelCase profile model to the UI. Without this mapping, the edit form
+    // receives empty PSP/UDISE values and an existing profile cannot be saved.
+    return rows
+        .map(
+          (row) => <String, dynamic>{
+            'id': _text(row['id']),
+            'schoolName': _text(row['school_name']),
+            'pspCode': _text(row['psp_code']),
+            'udiseCode': _text(row['udise_code']),
+            'createdAt': _text(row['created_at']),
+          },
+        )
+        .toList();
   }
 
   Future<Map<String, dynamic>?> getActiveSchoolProfile() async {
