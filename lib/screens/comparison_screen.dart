@@ -60,9 +60,9 @@ class _ComparisonDashboardScreenState
       final udiseRows = await db.loadUdiseRows();
       final psp = pspRows.map(PspStudent.fromJson).toList();
       final udise = udiseRows.map(UdiseStudent.fromJson).toList();
-      final rows = psp.isEmpty || udise.isEmpty
-          ? <ComparisonRow>[]
-          : runMatchingEngine(psp, udise);
+      // Keep one-sided imports visible too: records from either source
+      // should appear as unmatched until the other source is imported.
+      final rows = runMatchingEngine(psp, udise);
       if (!mounted) return;
       setState(() {
         _rows = rows;
