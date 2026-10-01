@@ -442,24 +442,10 @@ List<ComparisonRow> runMatchingEngine(
     );
   }
 
-  final globallyMatchedPsp = <int>{};
-  final globallyMatchedUdise = <int>{};
-
-  for (final row in rows) {
-    if (row.psp != null) {
-      final index = psp.indexOf(row.psp!);
-      if (index >= 0) {
-        globallyMatchedPsp.add(index);
-      }
-    }
-
-    if (row.udise != null) {
-      final index = udise.indexOf(row.udise!);
-      if (index >= 0) {
-        globallyMatchedUdise.add(index);
-      }
-    }
-  }
+  // The first greedy pass already tracks source indexes. Reuse those
+  // sets instead of calling indexOf for every matched row (quadratic scans).
+  final globallyMatchedPsp = <int>{...usedPsp};
+  final globallyMatchedUdise = <int>{...usedUdise};
 
   for (var pi = 0; pi < psp.length; pi++) {
     if (globallyMatchedPsp.contains(pi)) continue;
