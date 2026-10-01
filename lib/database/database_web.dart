@@ -48,9 +48,9 @@ class AppDatabase {
     await db.transaction((txn) async {
       await _pspStore.delete(txn);
       for (final row in uniqueRows.values) {
-        await _pspStore.add(txn, <String, Object?>{
-          'raw_json': jsonEncode(row),
-        });
+        // Store fields directly in IndexedDB; avoid an extra JSON encode/decode
+        // cycle every time the comparison page opens.
+        await _pspStore.add(txn, Map<String, Object?>.from(row));
       }
     });
   }
@@ -68,9 +68,7 @@ class AppDatabase {
     await db.transaction((txn) async {
       await _udiseStore.delete(txn);
       for (final row in uniqueRows.values) {
-        await _udiseStore.add(txn, <String, Object?>{
-          'raw_json': jsonEncode(row),
-        });
+        await _udiseStore.add(txn, Map<String, Object?>.from(row));
       }
     });
   }
@@ -88,13 +86,18 @@ class AppDatabase {
     final records = await store.find(db);
     final rows = <Map<String, dynamic>>[];
     for (final record in records) {
-      final raw = record.value['raw_json']?.toString() ?? '';
-      if (raw.isEmpty) continue;
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map) rows.add(Map<String, dynamic>.from(decoded));
-      } on FormatException {
-        // Ignore only the damaged browser record; other records remain usable.
+      final value = record.value;
+      // Backward compatibility: older site versions stored each row as raw_json.
+      final raw = value['raw_json']?.toString();
+      if (raw != null && raw.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map) rows.add(Map<String, dynamic>.from(decoded));
+        } on FormatException {
+          // Ignore only the damaged browser record; other records remain usable.
+        }
+      } else {
+        rows.add(Map<String, dynamic>.from(value));
       }
     }
     return rows;
