@@ -5,7 +5,7 @@ on:
     branches:
       - npm-webapp
     paths:
-      - "npm-webapp/**"
+      - "npm-webapp/index.html"
       - ".github/workflows/npm-webapp-pages.yml"
   workflow_dispatch:
 
