@@ -513,7 +513,7 @@ class AppDatabase {
         final studentId = _text(row['studentId']);
         if (studentId.isEmpty) continue;
         final pen = _text(row['studentCodeNat']);
-        final penKey = pen.isEmpty ? '__NO_PEN__:$studentId : pen;
+        final penKey = pen.isEmpty ? '__NO_PEN__:$studentId' : pen;
         final socialDesc = _text(row['socialCategoryDesc']);
         final minorityDesc = _text(row['minorityDesc']);
 
@@ -1011,7 +1011,7 @@ class AppDatabase {
             {
               'school_udise_code': schoolUdiseCode,
               'student_id': studentId,
-              'pen': pen.isEmpty ? '__NO_PEN__:' + studentId : pen,
+              'pen': pen.isEmpty ? '__NO_PEN__:$studentId' : pen,
               'uuid_last4': row['uuid_last4'],
               'uuid_status': row['uuid_status'],
               'name_as_uuid': row['name_as_uuid'],
