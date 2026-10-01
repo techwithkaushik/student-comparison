@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -33,11 +34,13 @@ class _ComparisonDashboardScreenState
   String _search = '';
   bool _searchActive = false;
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
   final Set<String> _remarkKeys = <String>{};
   final Map<String, Map<String, dynamic>> _remarks = <String, Map<String, dynamic>>{};
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -470,7 +473,13 @@ class _ComparisonDashboardScreenState
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                onChanged: (value) => setState(() => _search = value),
+                onChanged: (value) {
+                  // Avoid rebuilding the full dashboard for every keystroke.
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+                    if (mounted) setState(() => _search = value);
+                  });
+                },
                 decoration: const InputDecoration(
                   hintText: 'Search name, NIC, PEN...',
                   border: InputBorder.none,
@@ -505,6 +514,7 @@ class _ComparisonDashboardScreenState
               _searchActive ? Icons.close_rounded : Icons.search_rounded,
             ),
             onPressed: () {
+              _searchDebounce?.cancel();
               setState(() {
                 _searchActive = !_searchActive;
                 if (!_searchActive) {
@@ -617,7 +627,8 @@ class _ComparisonDashboardScreenState
                     ),
                     itemCount: filtered.length,
                     itemBuilder: (_, index) {
-                      return _StudentRow(
+                      return RepaintBoundary(
+                        child: _StudentRow(
                         row: filtered[index],
                         hasRemark: _hasRemark(filtered[index]),
                         statusText:
@@ -626,6 +637,7 @@ class _ComparisonDashboardScreenState
                         rteText: _pspRte(filtered[index]),
                         remark: _remarkFor(filtered[index])?['remark']?.toString() ?? '',
                         onRemarkTap: () => _editRemark(filtered[index]),
+                        ),
                       );
                     },
                   ),
