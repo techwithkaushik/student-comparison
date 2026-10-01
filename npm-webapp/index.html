@@ -1291,7 +1291,7 @@ function prepareRowsForSearch(rows) {
    }
    if(!pspRows.length&&!udiseRows.length)throw new Error('DB में PSP और UDISE दोनों tables खाली हैं या source records पढ़े नहीं जा सके।');
    write(KEYS.psp,pspRows);write(KEYS.udise,udiseRows);write(KEYS.remarks,remarkMap);
-   alert('DB import सफल!\\nPSP: '+pspRows.length+'\\nUDISE: '+udiseRows.length+'\\nRemarks: '+Object.keys(remarkMap).length+'\\nअब Compare Now दबाएँ।');
+   alert('DB import सफल!\nPSP: '+pspRows.length+'\nUDISE: '+udiseRows.length+'\nRemarks: '+Object.keys(remarkMap).length+'\nअब Compare Now दबाएँ।');
    if(typeof load==='function')await load(true);
   }catch(e){alert('SQLite import असफल: '+(e?.message||e));}
   finally{if(db)db.close();if(btn){btn.disabled=false;btn.textContent='📂 Import .db';}if(input)input.value='';}
@@ -1312,11 +1312,11 @@ function prepareRowsForSearch(rows) {
    };
    const psp=read(KEYS.psp,[]);
    insert('psp_students',['nic_id','sr_no','aadhaar_last4','student_name','father_name','mother_name','dob','gender','studying_class','mobile','social_category','religion','raw_json'],psp.map(r=>[
-    String(r['Student NIC ID']??''),r['SR No.']??null,String(r['Aadhar Number']??'').replace(/\\D/g,'').slice(-4)||null,r['Student Name']??null,r['Father Name']??null,r['Mother Name']??null,r.DOB??null,r.Gender??null,r['Studying in Class']??null,r['Mobile Number']??null,r['Social Category']??null,r.Religion??null,JSON.stringify(r)
+    String(r['Student NIC ID']??''),r['SR No.']??null,String(r['Aadhar Number']??'').replace(/\D/g,'').slice(-4)||null,r['Student Name']??null,r['Father Name']??null,r['Mother Name']??null,r.DOB??null,r.Gender??null,r['Studying in Class']??null,r['Mobile Number']??null,r['Social Category']??null,r.Religion??null,JSON.stringify(r)
    ]).filter(r=>r[0]));
    const udise=read(KEYS.udise,[]);
    insert('udise_students',['student_id','pen','uuid_last4','uuid_status','name_as_uuid','student_name','father_name','mother_name','dob','gender','class_id','class_desc','mobile','social_category','religion','raw_json'],udise.map(r=>[
-    String(r.studentId??''),String(r.studentCodeNat??r.studentId??''),String(r.uuid??'').replace(/\\D/g,'').slice(-4)||null,r.uuidStatus==null?null:String(r.uuidStatus),r.nameAsUuid??null,r.studentName??null,r.fatherName??null,r.motherName??null,r.dob??null,r.gender==null?null:String(r.gender),r.classId==null?null:String(r.classId),r.classDesc??null,r.primaryMobile??null,r.socialCategoryDesc??r.socCatId??null,r.minorityDesc??r.minorityId??null,JSON.stringify(r)
+    String(r.studentId??''),String(r.studentCodeNat??r.studentId??''),String(r.uuid??'').replace(/\D/g,'').slice(-4)||null,r.uuidStatus==null?null:String(r.uuidStatus),r.nameAsUuid??null,r.studentName??null,r.fatherName??null,r.motherName??null,r.dob??null,r.gender==null?null:String(r.gender),r.classId==null?null:String(r.classId),r.classDesc??null,r.primaryMobile??null,r.socialCategoryDesc??r.socCatId??null,r.minorityDesc??r.minorityId??null,JSON.stringify(r)
    ]).filter(r=>r[0]&&r[1]));
    const remarks=read(KEYS.remarks,{});
    insert('student_remarks',['psp_nic','udise_pen','remark','created_at','updated_at'],Object.values(remarks).map(r=>[
