@@ -3,72 +3,64 @@ name: Flutter Android
 on:
   push:
     branches:
-      - '**'
-
+      - main
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "android/**"
+      - "files/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".github/workflows/android.yml"
   pull_request:
     branches:
-      - '**'
+      - main
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "android/**"
+      - "files/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".github/workflows/android.yml"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.38.5"
           channel: stable
           cache: true
-
       - name: Verify project
         run: |
           set -e
-
           test -f pubspec.yaml
           test -f lib/main.dart
-
           echo "Flutter project found"
-
       - name: Generate Android project
         run: |
-          flutter create \
-            --platforms=android \
-            --org=org.techwithkaushik \
-            --project-name=student_comparison \
-            .
-
+          flutter create --platforms=android --org=org.techwithkaushik --project-name=student_comparison .
       - name: Remove generated widget test
-        run: |
-          rm -f test/widget_test.dart
-
+        run: rm -f test/widget_test.dart
       - name: Configure Android manifest and Gradle
         run: |
           set -e
-
           cp files/build.gradle.kts android/app/build.gradle.kts
-
-          # applicationId/namespace are camelCase, while flutter create
-          # generates the MainActivity package with underscores. Keep the
-          # activity reference explicit so Android can launch it.
-
-          # The app keeps its shared-storage database on Android 10.
-          # Flutter's generated manifest does not request these legacy
-          # storage permissions, so request them explicitly.
           python3 - <<'PY'
           from pathlib import Path
-
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text()
-
           text = text.replace(
               'android:name=".MainActivity"',
               'android:name="org.techwithkaushik.student_comparison.MainActivity"',
           )
-
           if "android.permission.WRITE_EXTERNAL_STORAGE" not in text:
               text = text.replace(
                   '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
@@ -76,76 +68,46 @@ jobs:
               <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
               <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'''
               )
-
           if 'android:requestLegacyExternalStorage="true"' not in text:
               text = text.replace(
                   '<application',
                   '<application android:requestLegacyExternalStorage="true"',
                   1,
               )
-
           manifest.write_text(text)
           PY
-
-          echo "===== Android manifest ====="
-          cat android/app/src/main/AndroidManifest.xml
-
       - name: Decode Keystore
         id: keystore
         uses: timheuer/base64-to-file@v2.0
         with:
-          fileName: 'dev_keystore.jks'
+          fileName: dev_keystore.jks
           encodedString: ${{ secrets.SIGNING_KEYSTORE }}
-
       - name: Flutter version
         run: flutter --version
-
       - name: Get dependencies
         run: flutter pub get
-
       - name: Analyze
         run: flutter analyze
-
       - name: Test
         run: flutter test
-
-
       - name: Build ARM32 signed APK
         run: |
           mkdir -p build/symbols
-
-          flutter build apk \
-            --release \
-            --target-platform android-arm \
-            --obfuscate \
-            --split-debug-info=build/symbols \
+          flutter build apk --release --target-platform android-arm --obfuscate --split-debug-info=build/symbols
         env:
           SIGNING_KEY_STORE: ${{ steps.keystore.outputs.filePath }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-
       - name: Verify APK signature
         if: github.event_name == 'push'
         run: |
           set -e
-
           APK="build/app/outputs/flutter-apk/app-release.apk"
-
           test -f "$APK"
-
-          echo "APK:"
           ls -lh "$APK"
-
-          echo ""
-          echo "===== APK SIGNATURE ====="
-
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
-
-          "$APKSIGNER" verify \
-            --verbose \
-            "$APK"
-
+          "$APKSIGNER" verify --verbose "$APK"
       - name: Upload signed APK
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
