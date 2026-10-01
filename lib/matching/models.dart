@@ -118,7 +118,9 @@ class UdiseStudent {
   
     return UdiseStudent(
       studentId: clean(r['studentId']),
-      studentCodeNat: clean(r['studentCodeNat']),
+      studentCodeNat: clean(r['studentCodeNat']).isEmpty
+          ? 'NA'
+          : clean(r['studentCodeNat']),
       uuidLast4: normalizeUuidLast4(uuidRaw),
       uuidStatus: clean(r['uuidStatus']),
       nameAsUuid: clean(r['nameAsUuid']),
