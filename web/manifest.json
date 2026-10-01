@@ -1,9 +1,0 @@
-{
-  "name": "Student Comparison — PSP vs UDISE",
-  "short_name": "Student Comparison",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3949ab",
-  "description": "Compare PSP and UDISE student records locally in your browser."
-}
