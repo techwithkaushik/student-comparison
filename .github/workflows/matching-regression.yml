@@ -1,0 +1,34 @@
+name: Comparison Engine Regression Tests
+
+on:
+  push:
+    branches:
+      - npm-webapp
+    paths:
+      - 'npm-webapp/index.html'
+      - 'npm-webapp/tests/**'
+      - '.github/workflows/matching-regression.yml'
+  pull_request:
+    branches:
+      - npm-webapp
+    paths:
+      - 'npm-webapp/index.html'
+      - 'npm-webapp/tests/**'
+      - '.github/workflows/matching-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  matching-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run comparison engine regression tests
+        run: node --test npm-webapp/tests/matching-regression.test.cjs
