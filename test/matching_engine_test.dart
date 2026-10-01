@@ -84,6 +84,36 @@ void main() {
       expect(rows.first.udise?.studentCodeNat, 'PEN001');
     });
 
+    test('missing UDISE PEN displays NA and student remains in comparison', () {
+      final u = UdiseStudent.fromJson({
+        'studentId': 'UDISE_NO_PEN',
+        'studentCodeNat': '',
+        'uuid': '',
+        'uuidStatus': '0',
+        'nameAsUuid': '',
+        'studentName': 'New UDISE Student',
+        'fatherName': '',
+        'motherName': '',
+        'dob': '',
+        'gender': '1',
+        'classId': '8',
+        'classDesc': 'VIII',
+        'primaryMobile': '',
+        'socialCategoryDesc': '',
+        'socCatId': '4',
+        'minorityDesc': '',
+        'minorityId': '7',
+      });
+
+      expect(u.studentCodeNat, 'NA');
+
+      final rows = runMatchingEngine([], [u]);
+      expect(rows, hasLength(1));
+      expect(rows.single.type, MatchType.notInPsp);
+      expect(rows.single.udise?.studentName, 'New UDISE Student');
+      expect(rows.single.udise?.studentCodeNat, 'NA');
+    });
+
     test('UDISE falls back to category and religion IDs', () {
       final u = UdiseStudent.fromJson({
         'studentId': '1',
