@@ -222,7 +222,11 @@ class AppDatabase {
         final studentId = _text(row['studentId']);
         final pen = _text(row['studentCodeNat']);
 
-        if (studentId.isEmpty || pen.isEmpty) continue;
+        // A newly enrolled UDISE student may not have a PEN yet.
+        // Keep the record using a stable internal unique key; the UI model
+        // displays the missing PEN as "NA".
+        if (studentId.isEmpty) continue;
+        final penKey = pen.isEmpty ? '__NO_PEN__:$studentId' : pen;
 
         final socialDesc = _text(row['socialCategoryDesc']);
         final minorityDesc = _text(row['minorityDesc']);
@@ -231,7 +235,7 @@ class AppDatabase {
           'udise_students',
           {
             'student_id': studentId,
-            'pen': pen,
+            'pen': penKey,
             'uuid_last4': _udiseAadhaarLast4(row['uuid']),
             'uuid_status': _text(row['uuidStatus']),
             'name_as_uuid': _text(row['nameAsUuid']),
