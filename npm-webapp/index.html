@@ -1,33 +1,1884 @@
 <!doctype html>
-<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123b65"><title>PSP ↔ UDISE Student Compare</title><style>
-:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#172538;background:#f3f6fa}*{box-sizing:border-box}body{margin:0}header{background:linear-gradient(120deg,#123b65,#1769aa);color:#fff;padding:22px max(16px,calc((100% - 1200px)/2))}h1{font-size:clamp(22px,4vw,32px);margin:0}header p{margin:7px 0 0;opacity:.9}.wrap{max-width:1200px;margin:auto;padding:16px}.card{background:#fff;border:1px solid #dce4ed;border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 4px 16px #102b4510}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.drop{border:1px dashed #a8bacb;border-radius:10px;padding:14px}.btn{border:0;border-radius:9px;padding:10px 14px;background:#1769aa;color:white;font-weight:650;cursor:pointer}.btn:disabled{opacity:.45}.secondary{background:#e8eff7;color:#183b5d}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.stat{padding:13px;border:1px solid #dce4ed;border-radius:10px;background:#f9fbfd;cursor:pointer}.stat b{display:block;font-size:24px;margin-top:5px}.controls{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}.controls input,.controls select,input[type=search]{padding:10px;border:1px solid #bdcbd9;border-radius:8px;font:inherit}.tablewrap{overflow:auto;max-height:65vh}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e3e9ef;vertical-align:top}th{position:sticky;top:0;background:#edf3f9;z-index:1}.pill{display:inline-block;border-radius:99px;padding:4px 8px;font-size:12px;font-weight:700;background:#e8eff7}.MATCHED{background:#d9f7e6;color:#146c3c}.MISMATCH{background:#ffe4df;color:#a52b19}.POSSIBLE_MATCH{background:#fff0c9;color:#805600}.NOT_IN_UDISE,.NOT_IN_PSP{background:#e8edf3;color:#35465b}.muted{color:#65758a;font-size:13px}.message{padding:10px;border-radius:8px;background:#eef5ff;white-space:pre-wrap}.error{background:#fff0ee;color:#a52b19}.remark{width:100%;min-width:150px;margin:5px 0;padding:7px;border:1px solid #cbd5e1;border-radius:6px}footer{color:#65758a;text-align:center;padding:18px;font-size:13px}@media(max-width:600px){.wrap{padding:9px}.card{padding:12px}header{padding:18px 14px}}
-</style></head><body><header><h1>PSP ↔ UDISE Student Comparison</h1><p>Offline-first • Browser में तुलना • कोई server/backend नहीं</p></header><main class="wrap">
-<section class="card"><h2>1. Student JSON Import</h2><p class="muted">फाइलें आपके ब्राउज़र में ही प्रोसेस होती हैं। डेटा किसी सर्वर पर अपलोड नहीं होता।</p><div class="grid"><div class="drop"><b>PSP JSON</b><p><input id="pspFile" type="file" accept=".json,application/json"></p><button class="btn" id="loadPsp">Import PSP</button><div id="pspMsg" class="muted">कोई फाइल इम्पोर्ट नहीं हुई</div></div><div class="drop"><b>UDISE JSON</b><p><input id="udFile" type="file" accept=".json,application/json"></p><button class="btn" id="loadUdise">Import UDISE</button><div id="udMsg" class="muted">कोई फाइल इम्पोर्ट नहीं हुई</div></div></div><div class="controls"><button class="btn" id="compare">Compare Now</button><button class="btn secondary" id="backup">Export Local Backup</button><button class="btn secondary" id="csv">Export CSV</button><button class="btn secondary" id="clear">Clear This Browser's Data</button></div><div id="message" class="message">शुरू करने के लिए दोनों JSON फाइलें इम्पोर्ट करें।</div></section>
-<section class="card"><h2>2. Summary</h2><div id="stats" class="stats"></div></section>
-<section class="card"><h2>3. Results</h2><div class="controls"><input id="search" type="search" placeholder="नाम, NIC, PEN खोजें…"><select id="filter"><option value="ALL">सभी रिकॉर्ड</option><option>MATCHED</option><option>MISMATCH</option><option>POSSIBLE_MATCH</option><option>NOT_IN_UDISE</option><option>NOT_IN_PSP</option></select><select id="classFilter"><option value="">सभी कक्षाएँ</option></select></div><div class="tablewrap"><table><thead><tr><th>Status</th><th>PSP विवरण</th><th>UDISE विवरण</th><th>मिलान / अंतर</th><th>Remark</th></tr></thead><tbody id="tbody"><tr><td colspan="5" class="muted">अभी तुलना नहीं हुई।</td></tr></tbody></table></div><p class="muted">Remarks इस browser में सेव होते हैं। दूसरे browser/device पर अपने-आप sync नहीं होंगे।</p></section>
-</main><footer>Student data stays in this browser. Export a backup before clearing site data.</footer>
-<script>
-const $=id=>document.getElementById(id);let psp=[],udise=[],results=[],remarks={};const STORE='psp-udise-static-v1';
-function norm(v){return String(v??'').trim().toUpperCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
-function dig(v){return String(v??'').replace(/\D/g,'')}function dob(v){let s=String(v??'').trim().replace(/[.-]/g,'/'),m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);return m?m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+m[3]:s}
-function rowsOf(d){if(Array.isArray(d))return d;if(Array.isArray(d?.data))return d.data;if(Array.isArray(d?.result))return d.result;if(Array.isArray(d?.result?.data))return d.result.data;throw Error('JSON में student records नहीं मिले।')}
-function cls(v){let s=norm(v).replace(/^(CLASS|GRADE)\s*/,'').replace(/\./g,'');const m={PREPRIMARY:0,NURSERY:0,KG:0,LKG:0,UKG:0,FIRST:1,SECOND:2,THIRD:3,FOURTH:4,FIFTH:5,SIXTH:6,SEVENTH:7,EIGHTH:8,NINTH:9,TENTH:10,ELEVENTH:11,TWELFTH:12};if(/^\d+$/.test(s))return +s;return m[s]??(Number.isFinite(+s)?+s:s)}
-function validRows(rows,type){const seen=new Set(),key=type==='psp'?'Student NIC ID':'studentId';let skipped=0;const valid=rows.filter(r=>{const id=String(r?.[key]??'').trim();if(!r||typeof r!=='object'||Array.isArray(r)||!id||seen.has(id)){skipped++;return false}seen.add(id);return true});return {valid,skipped}}
-function fieldP(r){return {id:String(r['Student NIC ID']??''),sr:String(r['SR No.']??''),name:String(r['Student Name']??''),father:String(r['Father Name']??''),mother:String(r['Mother Name']??''),dob:dob(r.DOB),gender:norm(r.Gender),cls:cls(r['Studying in Class']),mobile:dig(r['Mobile Number']),aad:dig(r['Aadhar Number']).slice(-4),category:String(r['Social Category']??''),religion:String(r.Religion??''),raw:r}}
-function fieldU(r){return {id:String(r.studentId??''),pen:String(r.studentCodeNat??''),name:String(r.studentName??''),alias:String(r.nameAsUuid??''),father:String(r.fatherName??r.guardianName??''),mother:String(r.motherName??''),dob:dob(r.dob),gender:norm(r.genderDesc??r.gender),cls:cls(r.classDesc??r.classId),mobile:dig(r.primaryMobile),aad:dig(r.uuid).slice(-4),category:String(r.socialCategoryDesc??r.socCatId??''),religion:String(r.minorityDesc??r.minorityId??''),raw:r}}
-function score(p,u){let s=0;if(p.aad&&u.aad&&p.aad===u.aad)s+=45;const pn=norm(p.name),un=norm(u.name),ua=norm(u.alias);if(pn&&[un,ua].includes(pn))s+=35;else if(pn&&un&&pn.split(' ').some(t=>t.length>2&&un.split(' ').includes(t)))s+=12;if(p.dob&&u.dob&&p.dob===u.dob)s+=22;if(p.father&&u.father&&norm(p.father)===norm(u.father))s+=12;if(p.mother&&u.mother&&norm(p.mother)===norm(u.mother))s+=8;if(p.cls!==''&&u.cls!==''&&String(p.cls)===String(u.cls))s+=8;if(p.gender&&u.gender&&p.gender===u.gender)s+=4;if(p.mobile&&u.mobile&&p.mobile===u.mobile)s+=4;return s}
-function diffs(p,u){let d=[];if(norm(p.name)!==norm(u.name))d.push('NAME');if(p.dob!==u.dob)d.push('DOB');if(p.father&&u.father&&norm(p.father)!==norm(u.father))d.push('FATHER');if(p.mother&&u.mother&&norm(p.mother)!==norm(u.mother))d.push('MOTHER');if(String(p.cls)!==String(u.cls))d.push('CLASS');if(p.gender&&u.gender&&p.gender!==u.gender)d.push('GENDER');if(p.aad&&u.aad&&p.aad!==u.aad)d.push('AADHAAR');if(p.mobile&&u.mobile&&p.mobile!==u.mobile)d.push('MOBILE');return d}
-function runCompare(){const P=psp.map(fieldP),U=udise.map(fieldU),usedP=new Set(),usedU=new Set(),out=[];const pairs=[];for(let i=0;i<P.length;i++)for(let j=0;j<U.length;j++){let s=score(P[i],U[j]);if(s>=42)pairs.push({i,j,s})}pairs.sort((a,b)=>b.s-a.s);for(const x of pairs){if(usedP.has(x.i)||usedU.has(x.j))continue;usedP.add(x.i);usedU.add(x.j);let d=diffs(P[x.i],U[x.j]);out.push({type:x.s>=70?(d.filter(k=>!['AADHAAR','MOBILE'].includes(k)).length?'MISMATCH':'MATCHED'):'POSSIBLE_MATCH',p:P[x.i],u:U[x.j],diffs:d,score:x.s})}P.forEach((p,i)=>{if(!usedP.has(i))out.push({type:'NOT_IN_UDISE',p,u:null,diffs:['No UDISE match'],score:0})});U.forEach((u,j)=>{if(!usedU.has(j))out.push({type:'NOT_IN_PSP',p:null,u,diffs:['No PSP match'],score:0})});out.sort((a,b)=>{let ac=a.p?.cls??a.u?.cls??999,bc=b.p?.cls??b.u?.cls??999;return (typeof ac==='number'?ac:999)-(typeof bc==='number'?bc:999)||norm(a.p?.name??a.u?.name).localeCompare(norm(b.p?.name??b.u?.name))});results=out;persist();render();$('message').textContent='तुलना पूरी हुई: '+out.length+' कुल पंक्तियाँ।';}
-function persist(){try{localStorage.setItem(STORE,JSON.stringify({psp,udise,remarks}))}catch(e){$('message').textContent='Browser storage भर गया है। कृपया backup export करें और बड़ी फाइलों के लिए अधिक storage वाले browser का उपयोग करें.'}}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function download(name,text,type='application/json'){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function key(r){return (r.p?.id||'')+'|'+(r.u?.pen||r.u?.id||'')}
-function render(){let counts={ALL:results.length};for(const r of results)counts[r.type]=(counts[r.type]||0)+1;$('stats').innerHTML=[['PSP',psp.length],['UDISE',udise.length],['Matched',counts.MATCHED||0],['Mismatch',counts.MISMATCH||0],['Possible',counts.POSSIBLE_MATCH||0],['PSP only',counts.NOT_IN_UDISE||0],['UDISE only',counts.NOT_IN_PSP||0]].map(([n,v])=>'<div class="stat">'+esc(n)+'<b>'+v+'</b></div>').join('');const classes=[...new Set(results.map(r=>String(r.p?.cls??r.u?.cls??'')).filter(x=>x&&x!=='999'))].sort((a,b)=>Number(a)-Number(b));const cf=$('classFilter'),old=cf.value;cf.innerHTML='<option value="">सभी कक्षाएँ</option>'+classes.map(c=>'<option value="'+esc(c)+'">Class '+esc(c)+'</option>').join('');cf.value=classes.includes(old)?old:'';const q=norm($('search').value),f=$('filter').value,c=cf.value;const filtered=results.filter(r=>(f==='ALL'||r.type===f)&&(!c||String(r.p?.cls??r.u?.cls)===c)&&(!q||norm([r.p?.id,r.p?.name,r.p?.father,r.u?.pen,r.u?.id,r.u?.name].join(' ')).includes(q)));$('tbody').innerHTML=filtered.slice(0,1500).map(r=>{const k=key(r),rm=remarks[k]||{};return '<tr><td><span class="pill '+r.type+'">'+esc(r.type.replaceAll('_',' '))+'</span><p class="muted">Score: '+r.score+'</p></td><td>'+(r.p?'<b>'+esc(r.p.name)+'</b><br>NIC: '+esc(r.p.id)+'<br>Class: '+esc(r.p.cls)+'<br>DOB: '+esc(r.p.dob):'—')+'</td><td>'+(r.u?'<b>'+esc(r.u.name)+'</b><br>PEN: '+esc(r.u.pen||r.u.id)+'<br>Class: '+esc(r.u.cls)+'<br>DOB: '+esc(r.u.dob):'—')+'</td><td>'+esc(r.diffs.join(', ')||'No differences')+'</td><td><textarea class="remark" data-key="'+esc(k)+'" placeholder="Remark…">'+esc(rm.text||'')+'</textarea><select class="remark" data-status="'+esc(k)+'"><option '+(rm.status==='PENDING'||!rm.status?'selected':'')+'>PENDING</option><option '+(rm.status==='VERIFIED'?'selected':'')+'>VERIFIED</option><option '+(rm.status==='CORRECTION_REQUIRED'?'selected':'')+'>CORRECTION_REQUIRED</option></select><button class="btn secondary" data-save="'+esc(k)+'">Save</button></td></tr>'}).join('')||'<tr><td colspan="5">कोई रिकॉर्ड नहीं मिला।</td></tr>';if(filtered.length>1500)$('message').textContent='1500 rows दिखाए गए हैं। Search/filter से सूची छोटी करें।'}
-async function importFile(type){const inp=$(type==='psp'?'pspFile':'udFile'),msg=$(type==='psp'?'pspMsg':'udMsg'),file=inp.files[0];if(!file){msg.textContent='पहले JSON फाइल चुनें';return}try{msg.textContent='Reading…';const data=JSON.parse((await file.text()).replace(/^\uFEFF/,''));const v=validRows(rowsOf(data),type);if(!v.valid.length)throw Error('Valid student records नहीं मिले');if(type==='psp')psp=v.valid;else udise=v.valid;persist();msg.textContent='Imported '+v.valid.length+' records; skipped '+v.skipped+'.';$('message').textContent=type.toUpperCase()+' import सफल। अब Compare Now दबाएँ।'}catch(e){msg.textContent='Error: '+e.message}}
-$('loadPsp').onclick=()=>importFile('psp');$('loadUdise').onclick=()=>importFile('udise');$('compare').onclick=runCompare;$('search').oninput=render;$('filter').onchange=render;$('classFilter').onchange=render;
-$('tbody').addEventListener('click',e=>{const b=e.target.closest('[data-save]');if(!b)return;const k=b.dataset.save;remarks[k]={text:$('tbody').querySelector('[data-key="'+CSS.escape(k)+'"]')?.value||'',status:$('tbody').querySelector('[data-status="'+CSS.escape(k)+'"]')?.value||'PENDING'};persist();b.textContent='Saved';setTimeout(()=>b.textContent='Save',900)});
-$('backup').onclick=()=>download('student-comparison-backup.json',JSON.stringify({version:1,psp,udise,remarks},null,2));
-$('csv').onclick=()=>{const q=norm($('search').value),f=$('filter').value,c=$('classFilter').value;const list=results.filter(r=>(f==='ALL'||r.type===f)&&(!c||String(r.p?.cls??r.u?.cls)===c)&&(!q||norm([r.p?.id,r.p?.name,r.u?.pen,r.u?.name].join(' ')).includes(q)));const vals=[['Status','PSP NIC','UDISE PEN','PSP Name','UDISE Name','PSP Class','UDISE Class','PSP DOB','UDISE DOB','Differences','Score'],...list.map(r=>[r.type,r.p?.id,r.u?.pen||r.u?.id,r.p?.name,r.u?.name,r.p?.cls,r.u?.cls,r.p?.dob,r.u?.dob,r.diffs.join('; '),r.score])];download('student-comparison.csv','\uFEFF'+vals.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv;charset=utf-8')};
-$('clear').onclick=()=>{if(confirm('इस browser से imported student data और remarks मिटा दें?')){localStorage.removeItem(STORE);psp=[];udise=[];results=[];remarks={};render();$('message').textContent='इस browser का data हटा दिया गया।'}};
-try{const saved=JSON.parse(localStorage.getItem(STORE)||'{}');psp=saved.psp||[];udise=saved.udise||[];remarks=saved.remarks||{};if(psp.length&&udise.length){$('pspMsg').textContent='Restored '+psp.length+' records from this browser';$('udMsg').textContent='Restored '+udise.length+' records from this browser';runCompare()}else render()}catch(e){console.warn(e);render()}
-</script></body></html>
+<html lang="hi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PSP ↔ UDISE Student Compare</title>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f8;
+            color: #17202a;
+            font-size: 20px
+        }
+
+        .wrap {
+            max-width: 1600px;
+            margin: auto;
+            padding: 16px
+        }
+
+        .top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 26px
+        }
+
+        .title p {
+            margin: 6px 0;
+            color: #68737d
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #dde2e7;
+            border-radius: 12px;
+            padding: 13px;
+            margin: 11px 0;
+            box-shadow: 0 2px 8px #00000008
+        }
+
+        .imports {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        .imp {
+            border: 1px dashed #b8c1ca;
+            padding: 13px;
+            border-radius: 10px
+        }
+
+        .imp h3 {
+            margin: 0 0 7px
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 9px 13px;
+            font-size: 18px;
+            background: #1769aa;
+            color: #fff;
+            cursor: pointer
+        }
+
+        .btn.secondary {
+            background: #5d6872
+        }
+
+        .btn.green {
+            background: #248a45
+        }
+
+        .btn.warn {
+            background: #a46a00
+        }
+
+        .btn:disabled {
+            opacity: .55;
+            cursor: not-allowed
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 7px
+        }
+
+        .stat {
+            padding: 10px;
+            border-radius: 9px;
+            background: #f7f8fa;
+            border: 1px solid #e1e5e8;
+            cursor: pointer
+        }
+
+        .stat b {
+            font-size: 22px;
+            display: block
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .toolbar input,
+        .toolbar select {
+            padding: 9px;
+            font-size: 18px;
+            border: 1px solid #ccd3d9;
+            border-radius: 8px
+        }
+
+        .toolbar input {
+            min-width: 230px
+        }
+
+        .tablewrap {
+            overflow: auto;
+            max-height: 70vh
+        }
+
+        .compare {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 18px
+        }
+
+        .compare th,
+        .compare td {
+            border-bottom: 1px solid #e4e7ea;
+            padding: 9px;
+            text-align: left;
+            vertical-align: top
+        }
+
+        .compare th {
+            position: sticky;
+            top: 0;
+            background: #eef2f5;
+            z-index: 2
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 5px
+        }
+
+        .filter-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            flex: 1 1 100%;
+            margin-top: 4px
+        }
+
+        .filter-badge {
+            border: 1px solid #d7dde2;
+            background: #f7f8fa;
+            color: #3d4650;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .12s ease
+        }
+
+        .filter-badge:hover {
+            transform: translateY(-1px);
+            border-color: #9eabb6
+        }
+
+        .filter-badge.active {
+            background: #1769aa;
+            color: #fff;
+            border-color: #1769aa
+        }
+
+        .filter-badge .count {
+            opacity: .8;
+            margin-left: 4px
+        }
+
+        .matched {
+            color: #176b31;
+            background: #eaf7ee
+        }
+
+        .mismatch {
+            color: #805b00;
+            background: #fff7dc
+        }
+
+        .possible {
+            color: #165a93;
+            background: #e8f3fc
+        }
+
+        .missing {
+            color: #9a2020;
+            background: #fdecec
+        }
+
+        .muted {
+            color: #7b858e
+        }
+
+        .diff {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px
+        }
+
+        .diff span {
+            background: #f3f4f6;
+            border: 1px solid #ddd;
+            padding: 3px 6px;
+            border-radius: 5px;
+            font-size: 18px
+        }
+
+        .two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px
+        }
+
+        .student {
+            min-width: 260px
+        }
+
+        .field-mismatch {
+            color: #a31313;
+            font-weight: 600
+        }
+
+        .field-missing {
+            color: #805b00;
+            font-weight: 600
+        }
+
+        .student strong {
+            display: block
+        }
+
+        .small {
+            font-size: 14px
+        }
+
+        .msg {
+            margin-top: 7px;
+            color: #1769aa;
+            white-space: pre-wrap
+        }
+
+        .err {
+            color: #9a2020
+        }
+
+        .ok {
+            color: #176b31
+        }
+
+        .progress {
+            height: 5px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 7px
+        }
+
+        .progress i {
+            display: block;
+            width: 0;
+            height: 100%;
+            background: #1769aa;
+            transition: width .2s
+        }
+
+        .remark-box {
+            margin-top: 9px;
+            padding-top: 7px;
+            border-top: 1px dashed #d5dadd
+        }
+
+        .remark-box textarea {
+            width: 100%;
+            min-height: 58px;
+            padding: 7px;
+            border: 1px solid #ccd3d9;
+            border-radius: 7px;
+            font: 16px Arial;
+            resize: vertical
+        }
+
+        .remark-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 5px;
+            flex-wrap: wrap
+        }
+
+        .remark-actions .btn {
+            padding: 5px 9px;
+            font-size: 18px
+        }
+
+        .remark-status {
+            font-size: 18px
+        }
+
+        .confidence {
+            font-size: 18px;
+            margin-top: 3px
+        }
+
+        @media(max-width:1100px) {
+            .stats {
+                grid-template-columns: repeat(4, 1fr)
+            }
+        }
+
+        @media(max-width:800px) {
+
+            .imports,
+            .two {
+                grid-template-columns: 1fr
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .title h1 {
+                font-size: 22px
+            }
+
+            .toolbar input {
+                min-width: 100%
+            }
+        }
+
+        .detail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .58);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            z-index: 9999
+        }
+
+        .detail-overlay.open {
+            display: flex
+        }
+
+        .detail-dialog {
+            width: min(1100px, 100%);
+            max-height: 92vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 60px #00000040
+        }
+
+        .detail-head {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #fff;
+            border-bottom: 1px solid #e1e5e8;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px
+        }
+
+        .detail-head h2 {
+            margin: 0;
+            font-size: 22px
+        }
+
+        .detail-close {
+            border: 0;
+            background: #eef2f5;
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            font-size: 24px;
+            cursor: pointer
+        }
+
+        .detail-body {
+            padding: 14px 16px 20px
+        }
+
+        .detail-source {
+            border: 1px solid #dde2e7;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0
+        }
+
+        .detail-source h3 {
+            margin: 0;
+            padding: 10px 12px;
+            background: #f4f6f8;
+            font-size: 18px
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr))
+        }
+
+        .detail-field {
+            padding: 9px 11px;
+            border-top: 1px solid #edf0f2;
+            min-width: 0
+        }
+
+        .detail-field:nth-child(odd) {
+            border-right: 1px solid #edf0f2
+        }
+
+        .detail-label {
+            color: #68737d;
+            font-size: 18px;
+            margin-bottom: 3px
+        }
+
+        .detail-value {
+            font-size: 18px;
+            white-space: pre-wrap;
+            word-break: break-word
+        }
+
+        .detail-diff {
+            background: #fff8e1
+        }
+
+        .student.clickable {
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 5px
+        }
+
+        .student.clickable:hover {
+            background: #f4f8fb;
+            box-shadow: inset 0 0 0 1px #d9e5ee
+        }
+
+        .tap-hint {
+            font-size: 14px;
+            color: #1769aa;
+            margin-top: 5px
+        }
+
+        @media(max-width:700px) {
+            .detail-grid {
+                grid-template-columns: 1fr
+            }
+
+            .detail-field:nth-child(odd) {
+                border-right: 0
+            }
+
+            .detail-dialog {
+                max-height: 95vh
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="top">
+            <div class="title">
+                <h1>PSP ↔ UDISE Student Data Comparator</h1>
+                <p><b>PSP data authoritative है</b> — UDISE को PSP के हिसाब से जाँचा जाता है।</p>
+            </div>
+            <div>
+                <button id="compareBtn" class="btn green" onclick="compare()">🔄 Compare Now</button>
+                <button class="btn secondary" onclick="downloadBackup()">💾 Backup DB</button>
+            </div>
+        </div>
+
+        <div class="card imports">
+            <div class="imp">
+                <h3>1. PSP Student Data</h3>
+                <div class="small">PSP JSON report import करें — सभी source fields DB में अलग columns में save होंगे।</div>
+                <input id="pspFile" type="file" accept=".json,application/json">
+                <button id="pspBtn" class="btn" onclick="imp('psp')">Import PSP</button>
+                <div id="pspMsg" class="msg"></div>
+                <div class="progress"><i id="pspProg"></i></div>
+            </div>
+            <div class="imp">
+                <h3>2. UDISE Data</h3>
+                <div class="small">UDISE API JSON — <b>{ data: [...] }</b> भी supported है। सभी source fields DB में अलग columns में save होंगे।</div>
+                <input id="udFile" type="file" accept=".json,application/json">
+                <button id="udBtn" class="btn" onclick="imp('udise')">Import UDISE</button>
+                <div id="udMsg" class="msg"></div>
+                <div class="progress"><i id="udProg"></i></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="stats" id="stats"></div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <input id="q" placeholder="नाम / पिता / माता / NIC / PEN / SR / Mobile" autocomplete="off">
+                <button class="btn" id="searchBtn" type="button">🔎 Search</button>
+                <!-- 🎓 Dynamic Class Filter Dropdown -->
+                <select id="classFilter">
+                    <option value="">All Classes (सभी कक्षाएं)</option>
+                    <option value="1">Class 1</option>
+                    <option value="2">Class 2</option>
+                    <option value="3">Class 3</option>
+                    <option value="4">Class 4</option>
+                    <option value="5">Class 5</option>
+                    <option value="6">Class 6</option>
+                    <option value="7">Class 7</option>
+                    <option value="8">Class 8</option>
+                </select>
+
+                <select id="filter" aria-label="Mismatch filter">
+                    <option value="ALL">सभी</option>
+                    <option value="MATCHED">✓ Matched</option>
+                    <option value="MISMATCH">⚠ Mismatch</option>
+                    <option value="NAME_MISMATCH">Name mismatch</option>
+                    <option value="DOB_MISMATCH">DOB mismatch</option>
+                    <option value="FATHER_MISMATCH">Father mismatch</option>
+                    <option value="MOTHER_MISMATCH">Mother mismatch</option>
+                    <option value="CLASS_MISMATCH">Class mismatch</option>
+                    <option value="GENDER_MISMATCH">Gender mismatch</option>
+                    <option value="CATEGORY_MISMATCH">Category mismatch</option>
+                    <option value="RELIGION_MISMATCH">Religion mismatch</option>
+                    <option value="AADHAAR_MISMATCH">Aadhaar mismatch</option>
+                    <option value="AADHAAR_NOT_FOUND">Aadhaar not found</option>
+                    <option value="MOBILE_MISMATCH">Mobile mismatch</option>
+                    <option value="MOBILE_NOT_FOUND">Mobile not found</option>
+                    <option value="POSSIBLE_MATCH">Possible review</option>
+                    <option value="NOT_IN_UDISE">PSP only</option>
+                    <option value="NOT_IN_PSP">UDISE only</option>
+                </select>
+                <div id="filterBadges" class="filter-badges" aria-label="Quick filters"></div>
+                <div id="classBadges" class="filter-badges class-badges" aria-label="Class filters"></div>
+                <b class="stat" id="filterCount">0</b>
+                <button class="btn secondary" onclick="load(true)">Refresh</button>
+                <button class="btn" id="exportBtn">⬇️ Export Current CSV</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tablewrap">
+                <table class="compare">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>PSP — Correct Data</th>
+                            <th>UDISE — Current Data</th>
+                            <th>Differences / Review</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <tr>
+                            <td colspan="4" class="muted">पहले दोनों JSON import करें और Compare Now दबाएँ।</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailOverlay" class="detail-overlay" onclick="closeDetail(event)">
+        <div class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+            <div class="detail-head">
+                <h2 id="detailTitle">Student Details</h2><button class="detail-close" onclick="closeDetail()" aria-label="Close">×</button>
+            </div>
+            <div id="detailBody" class="detail-body"></div>
+        </div>
+    </div>
+    <script>
+/* GitHub Pages browser adapter: preserves the original legacy_web UI and
+   comparison engine while replacing Express/SQLite APIs with local browser storage. */
+(function(){
+ const KEYS={psp:'student_compare_psp_v1',udise:'student_compare_udise_v1',remarks:'student_compare_remarks_v1'};
+ const read=(k,fallback)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??fallback}catch{return fallback}};
+ const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+ const makeResponse=(data,ok=true,status=200)=>({ok,status,json:async()=>data,text:async()=>JSON.stringify(data),blob:async()=>new Blob([JSON.stringify(data,null,2)],{type:'application/json'})});
+ const PSP_FIELDS = ["S.No.", "Session", "Student NIC ID", "SR No.", "Aadhar Number", "Student Name", "Father Name", "Mother Name", "DOB", "Gender", "Social Category", "Religion", "Mother Tongue", "Rural/Urban", "Date of Admission", "Admission Number/SR No", "Belong To BPL", "Belong to Disadvantaged Group", "Getting Free Education", "Studying in Class", "Class Studied in Prev. Year", "If in Class 1, Status of Previous Year", "Days child attended school (in the prev. year)", "Medium of Instruction", "Type of Disablity", "Facilities received by CWSN", "No. Of Uniform Sets", "Free Text Books", "Free Transport", "Free Escort", "MDM Beneficiary", "Free Hostel Facility", "Child attended Special Training", "In Last Examination Appeard", "In Last Examination Passed", "Stream (Grades 11 & 12)", "Trade/Sector (Grades 9 to 12)", "Iron & Folic Acid Tablets", "Deworming Tablets", "Vitamin-A Supplement", "Mobile Number", "Habitation or Locality", "In Last Examination % Marks", "Email Address"];
+const UDISE_FIELDS = ["studentId", "studentCodeNat", "studentCodeState", "schoolId", "studentName", "gender", "genderDesc", "socCatId", "socialCategoryList", "socialCategoryDesc", "minorityId", "minorityDesc", "uuid", "uuidMasked", "isUuidAvailable", "isValidUuid", "nameAsUuid", "uuidStatus", "uuidStatusDesc", "uuidValidateRemarks", "uuidValidateDate", "dob", "guardianName", "fatherName", "motherName", "address", "pincode", "primaryMobile", "secondaryMobile", "isBplYN", "aayBplYN", "ewsYN", "cwsnYN", "natIndYN", "natOtherCountry", "motherTongue", "motherTongueDesc", "email", "acYearId", "lastYearId", "lastYearIdDesc", "classId", "classDesc", "classPyId", "classPyDesc", "sectionDesc", "sectionPyDesc", "sectionId", "impairmentType", "disabilityCerti", "impairmentPercent", "ooscYN", "ooscMainstreamedYN", "profileStatus", "formStatus", "ageCheckSkipped", "academicStreamDesc", "admnNumber", "isRepeater", "inactiveDate", "statusId", "statusDesc", "statusL1Id", "statusL1Desc", "statusL2Id", "statusL2Desc", "isNew", "bloodGroup", "bloodGroupDesc", "deleteReason", "deleteReasonDesc", "schUdiseCode", "schoolName", "yearId", "studentMovType", "lastModifiedOn", "lastModifiedBy", "apaarIdStatus", "apaarId", "apaarIdStatusDesc", "schoolPY", "mbuStatusDesc", "examFormStatus", "nameChangeCountTotal", "nameChangeCountAdmin", "nameChangeCountSchool"];
+const qid = s => '"' + String(s).replace(/"/g, '""') + '"';
+const clean = v => String(v ?? '').trim();
+const norm = v => clean(v).toUpperCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+const digits = v => clean(v).replace(/\D/g, '');
+const last4 = v => {
+    const x = digits(v);
+    return x.length >= 4 ? x.slice(-4) : '';
+};
+
+function normalizeDob(v) {
+    const x = clean(v).replace(/[.-]/g, '/');
+    const m = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return m ? `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}` : x;
+}
+
+function classNum(v) {
+    const x = norm(v).replace(/^(CLASS|GRADE)\s*/, '').replace(/\./g, '').trim();
+    const map = {
+        PREPRIMARY: 0,
+        NURSERY: 0,
+        KG: 0,
+        LKG: 0,
+        UKG: 0,
+        FIRST: 1,
+        SECOND: 2,
+        THIRD: 3,
+        FOURTH: 4,
+        FIFTH: 5,
+        SIXTH: 6,
+        SEVENTH: 7,
+        EIGHT: 8,
+        EIGHTH: 8,
+        NINTH: 9,
+        TENTH: 10,
+        ELEVENTH: 11,
+        TWELFTH: 12,
+        I: 1,
+        II: 2,
+        III: 3,
+        IV: 4,
+        V: 5,
+        VI: 6,
+        VII: 7,
+        VIII: 8,
+        IX: 9,
+        X: 10,
+        XI: 11,
+        XII: 12
+    };
+    if (/^\d+(?:\.0+)?$/.test(x)) return Number(x);
+    if (map[x] !== undefined) return map[x];
+    const m = x.match(/^(\d{1,2})(?:ST|ND|RD|TH)?$/);
+    return m ? Number(m[1]) : null;
+}
+const classCanon = v => {
+    const n = classNum(v);
+    return n === null ? norm(v) : String(n)
+};
+
+function genderNorm(v) {
+    const x = norm(v);
+    return ['1', 'MALE', 'M'].includes(x) ? 'MALE' : ['2', 'FEMALE', 'F'].includes(x) ? 'FEMALE' : x;
+}
+
+function socialCatNorm(v) {
+    const x = norm(v);
+    if (x.includes('GENERAL') || x === '1') return 'GENERAL';
+    if (x.includes('OBC') || x === '4') return 'OBC';
+    if (x.includes('SC') || x === '2') return 'SC';
+    if (x.includes('ST') || x === '3') return 'ST';
+    if (x.includes('SBC') || x === '5') return 'SBC';
+    console.log("Category "+x);
+    return x;
+}
+
+function religionNorm(v) {
+    const x = norm(v);
+    if (x.includes('MUSLIM') || x === '1') return 'MUSLIM';
+    if (x.includes('CHRISTIAN') || x === '2') return 'CHRISTIAN';
+    if (x.includes('SIKH') || x === '3') return 'SIKH';
+    if (x.includes('BUDDHIST') || x === '4') return 'BUDDHIST';
+    if (x.includes('PARSI') || x === '5') return 'PARSI';
+    if (x.includes('JAIN') || x === '6') return 'JAIN';
+    // UDISE में 7, NA या खाली होने पर उसे HINDU (Non-Minority) माना जाएगा
+    if (x.includes('HINDU') || x.includes('NON MINORITY') || x === '7' || x === 'NA' || !x) return 'HINDU';
+    console.log("Religion "+x);
+    return x;
+}
+
+function nameCompatible(a, b, alias = '') {
+    const A = norm(a),
+        B = norm(b),
+        C = norm(alias);
+    if (!A || !B) return false;
+    const variants = [B, C].filter(Boolean);
+    const tokenCompat = (x, y) => {
+        if (x === y) return true;
+        const xt = x.split(' ').filter(Boolean),
+            yt = y.split(' ').filter(Boolean);
+        if (xt.length === 0 || yt.length === 0) return false;
+        const short = xt.length <= yt.length ? xt : yt,
+            long = xt.length <= yt.length ? yt : xt;
+        // First-name-only vs first+last-name (e.g. KAPTAN vs KAPTAN SINGH).
+        if (short.every(t => long.includes(t))) return true;
+        // Allow minor spelling/transliteration variation in a token, but do not
+        // treat arbitrary sibling names as compatible.
+        if (short.length === 1) return sim(short[0], long[0]) >= 0.75;
+        return short.length === long.length && short.every((t, i) => sim(t, long[i]) >= 0.80);
+    };
+    return variants.some(v => tokenCompat(A, v));
+}
+
+function nameEvidence(p, u) {
+    // UDISE can contain the name used in the student profile and the name
+    // returned by Aadhaar validation. Either can establish name compatibility.
+    return nameCompatible(p.student_name, u.student_name, u.name_as_uuid);
+}
+
+function pspMap(r) {
+    const aad = clean(r['Aadhar Number']);
+    return {
+        psp_nic_id: clean(r['Student NIC ID']),
+        sr_no: clean(r['SR No.']),
+        aadhaar_last4: last4(aad),
+        student_name: clean(r['Student Name']),
+        father_name: clean(r['Father Name']),
+        mother_name: clean(r['Mother Name']),
+        dob: normalizeDob(r['DOB']),
+        gender: clean(r['Gender']),
+        studying_class: clean(r['Studying in Class']),
+        mobile: clean(r['Mobile Number']),
+        social_category: clean(r['Social Category']), // <-- नया फील्ड
+        religion: clean(r['Religion']),
+        raw: r,
+        _nameNorm: norm(r['Student Name']),
+        _fatherNorm: norm(r['Father Name']),
+        _motherNorm: norm(r['Mother Name']),
+        _dobNorm: normalizeDob(r['DOB']),
+        _genderNorm: genderNorm(r['Gender']),
+        _mobileDigits: digits(r['Mobile Number']),
+        _classCanon: classCanon(r['Studying in Class']),
+        _categoryNorm: socialCatNorm(r['Social Category']),
+        _religionNorm: religionNorm(r['Religion'])
+    };
+}
+
+function udiseMap(r) {
+    const aad = clean(r.uuid);
+    const present = !!aad && !/^\*+9999$/.test(aad) && last4(aad) !== '9999';
+    return {
+        student_id: clean(r.studentId),
+        student_code_nat: clean(r.studentCodeNat),
+        uuid_last4: present ? last4(aad) : '',
+        uuid_status: r.uuidStatus,
+        name_as_uuid: clean(r.nameAsUuid),
+        student_name: clean(r.studentName),
+        father_name: clean(r.fatherName),
+        mother_name: clean(r.motherName),
+        dob: normalizeDob(r.dob),
+        gender: genderNorm(r.gender),
+        class_id: clean(r.classId),
+        class_desc: clean(r.classDesc),
+        mobile: clean(r.primaryMobile),
+        social_category: socialCatNorm(r.socialCategoryDesc || r.socCatId), // <-- नया फील्ड
+        religion: religionNorm(r.minorityDesc || r.minorityId),
+        raw: r,
+        _nameNorm: norm(r.studentName),
+        _nameUuidNorm: norm(r.nameAsUuid),
+        _fatherNorm: norm(r.fatherName),
+        _motherNorm: norm(r.motherName),
+        _dobNorm: normalizeDob(r.dob),
+        _genderNorm: genderNorm(r.gender),
+        _mobileDigits: digits(r.primaryMobile),
+        _classIdCanon: classCanon(r.classId),
+        _classDescCanon: classCanon(r.classDesc),
+        _categoryNorm: socialCatNorm(r.socialCategoryDesc || r.socCatId),
+        _religionNorm: religionNorm(r.minorityDesc || r.minorityId)
+    };
+}
+
+ function aadhaarState(p, u) {
+    const pa = !!p.aadhaar_last4,
+        ua = !!u.uuid_last4;
+    if (!pa && !ua) return 'NOT_FOUND';
+    if (pa !== ua) return 'MISMATCH';
+    return p.aadhaar_last4 === u.uuid_last4 ? 'MATCH' : 'MISMATCH';
+}
+
+function compare(p, u) {
+    const d = [];
+    const aadhaar = aadhaarState(p, u);
+
+    // Aadhaar/mobile are REVIEW FLAGS, not identity-breaking mismatches.
+    if (aadhaar === 'MISMATCH') d.push('AADHAAR_MISMATCH');
+    if (aadhaar === 'NOT_FOUND') d.push('AADHAAR_NOT_FOUND');
+
+    if (norm(p.student_name) !== norm(u.student_name)) d.push('NAME_MISMATCH');
+    if (normalizeDob(p.dob) !== normalizeDob(u.dob)) d.push('DOB_MISMATCH');
+    if (p.father_name && u.father_name && norm(p.father_name) !== norm(u.father_name)) d.push('FATHER_MISMATCH');
+    if (p.mother_name && u.mother_name && norm(p.mother_name) !== norm(u.mother_name)) d.push('MOTHER_MISMATCH');
+    if (classCanon(p.studying_class) !== classCanon(u.class_id) && classCanon(p.studying_class) !== classCanon(u.class_desc)) d.push('CLASS_MISMATCH');
+    if (p.gender && u.gender && genderNorm(p.gender) !== genderNorm(u.gender)) d.push('GENDER_MISMATCH');
+
+    const pm = digits(p.mobile);
+    const um = digits(u.mobile);
+    if (!pm || !um) d.push('MOBILE_NOT_FOUND');
+    else if (pm !== um) d.push('MOBILE_MISMATCH');
+
+    if (socialCatNorm(p.social_category) !== socialCatNorm(u.social_category)) d.push('CATEGORY_MISMATCH');
+    if (religionNorm(p.religion) !== religionNorm(u.religion)) d.push('RELIGION_MISMATCH');
+    return d;
+}
+
+function hasCoreIdentityMismatch(diffs) {
+    // A student remains MATCHED when only Aadhaar/mobile are missing or different.
+    // These two fields are deliberately excluded from the identity decision.
+    return diffs.some(d => !['AADHAAR_MISMATCH', 'AADHAAR_NOT_FOUND', 'MOBILE_MISMATCH', 'MOBILE_NOT_FOUND'].includes(d));
+}
+
+function score(p, u) {
+    const w = {
+            aad_score: 5,
+            name_score: 20,
+            dob_score: 20,
+            father_score: 15,
+            mother_score: 10,
+            class_score: 10,
+            gender_score: 5,
+            mobile_score: 5,
+            category_score: 5,
+            religion_score: 5
+        },
+        a = aadhaarState(p, u);
+    let e = 0,
+        t = 0;
+    t += w.aad_score;
+    if (a === 'MATCH') e += w.aad_score;
+    if (p.student_name || u.student_name) {
+        t += w.name_score;
+        if (norm(p.student_name) === norm(u.student_name)) e += w.name_score
+    }
+    if (p.dob || u.dob) {
+        t += w.dob_score;
+        if (normalizeDob(p.dob) === normalizeDob(u.dob)) e += w.dob_score
+    }
+    if (p.father_name && u.father_name) {
+        t += w.father_score;
+        if (norm(p.father_name) === norm(u.father_name)) e += w.father_score
+    }
+    if (p.mother_name && u.mother_name) {
+        t += w.mother_score;
+        if (norm(p.mother_name) === norm(u.mother_name)) e += w.mother_score
+    }
+    if (p.studying_class || u.class_id || u.class_desc) {
+        t += w.class_score;
+        if (classCanon(p.studying_class) === classCanon(u.class_id) || classCanon(p.studying_class) === classCanon(u.class_desc)) e += w.class_score
+    }
+    if (p.gender || u.gender) {
+        t += w.gender_score;
+        if (genderNorm(p.gender) === genderNorm(u.gender)) e += w.gender_score
+    }
+    if (p.mobile && u.mobile) {
+        t += w.mobile_score;
+        if (digits(p.mobile) === digits(u.mobile)) e += w.mobile_score
+    }
+    // सोशल कैटेगरी और रिलिजन का स्कोर इवैल्यूएशन (नये)
+    if (p.social_category || u.social_category) {
+        t += w.category_score;
+        if (socialCatNorm(p.social_category) === socialCatNorm(u.social_category)) e += w.category_score;
+    }
+    if (p.religion || u.religion) {
+        t += w.religion_score;
+        if (religionNorm(p.religion) === religionNorm(u.religion)) e += w.religion_score;
+    }
+    return t ? Math.round(e / t * 100) : 0;
+}
+
+function candScore(p, u) {
+    const ns = Math.max(sim(p.student_name, u.student_name), sim(p.student_name, u.name_as_uuid));
+    let s = Math.round(ns * 20) + Math.round(sim(p.father_name, u.father_name) * 15) + Math.round(sim(p.mother_name, u.mother_name) * 10);
+    if (p.dob && u.dob && normalizeDob(p.dob) === normalizeDob(u.dob)) s += 20;
+    if (classCanon(p.studying_class) === classCanon(u.class_id) || classCanon(p.studying_class) === classCanon(u.class_desc)) s += 10;
+    if (genderNorm(p.gender) === genderNorm(u.gender) && genderNorm(p.gender)) s += 5;
+    if (aadhaarState(p, u) === 'MATCH') s += 5;
+    if (digits(p.mobile) && digits(p.mobile) === digits(u.mobile)) s += 5;
+    if (socialCatNorm(p.social_category) === socialCatNorm(u.social_category)) s += 5;
+    if (religionNorm(p.religion) === religionNorm(u.religion)) s += 5;
+    return Math.min(100, s);
+}
+
+// Optimized helper: Re-uses a single typed array pool to eliminate memory allocations in loops
+function sim(a, b) {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+
+    if (a.length < b.length) [a, b] = [b, a];
+
+    const lenA = a.length;
+    const lenB = b.length;
+    let prev = new Int32Array(lenB + 1);
+    let cur = new Int32Array(lenB + 1);
+
+    for (let j = 0; j <= lenB; j++) prev[j] = j;
+
+    for (let i = 1; i <= lenA; i++) {
+        cur[0] = i;
+        for (let j = 1; j <= lenB; j++) {
+            const sub = prev[j - 1] + (a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1);
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, sub);
+        }
+        [prev, cur] = [cur, prev];
+    }
+    return 1 - prev[lenB] / lenA;
+}
+
+ function variants(u) {
+    return [u.student_name, u.name_as_uuid].map(norm).filter(Boolean);
+}
+
+function nameCompat(p, u) {
+    const A = norm(p.student_name);
+    if (!A) return false;
+    for (const B of variants(u)) {
+        if (A === B) return true;
+        const at = A.split(/\s+/).filter(Boolean);
+        const bt = B.split(/\s+/).filter(Boolean);
+        if (at.length === 0 || bt.length === 0) continue;
+        if (at.every(t => bt.includes(t)) || bt.every(t => at.includes(t))) return true;
+        if (at.length === 1 && bt.length === 1 && sim(at[0], bt[0]) >= 0.75) return true;
+        if (at.length === bt.length && at.length > 1 && at.every((t, i) => sim(t, bt[i]) >= 0.80)) return true;
+    }
+    return false;
+}
+
+function ev(p, u) {
+    const A = p._nameNorm;
+    const variants = [u._nameNorm, u._nameUuidNorm].filter(Boolean);
+    if (!A || !variants.length) return null;
+
+    const tokenCompat = (x, y) => {
+        if (x === y) return true;
+        const xt = x.split(' ').filter(Boolean);
+        const yt = y.split(' ').filter(Boolean);
+        if (!xt.length || !yt.length) return false;
+
+        const short = xt.length <= yt.length ? xt : yt;
+        const long = xt.length <= yt.length ? yt : xt;
+
+        if (short.every(t => long.includes(t))) return true;
+        if (short.length === 1) return sim(short[0], long[0]) >= 0.75;
+        return short.length === long.length &&
+            short.every((t, i) => sim(t, long[i]) >= 0.80);
+    };
+
+    if (!variants.some(v => tokenCompat(A, v))) return null;
+
+    const ns = Math.max(
+        sim(A, u._nameNorm || ''),
+        sim(A, u._nameUuidNorm || '')
+    );
+
+    const e = {
+        nameExact: variants.includes(A),
+        nameSim: ns,
+        dobSame: !!p._dobNorm && !!u._dobNorm && p._dobNorm === u._dobNorm,
+        mobileSame: !!p._mobileDigits && !!u._mobileDigits && p._mobileDigits === u._mobileDigits,
+        aadhaarSame: aadhaarState(p, u) === 'MATCH',
+        classSame: !!p._classCanon &&
+            (p._classCanon === u._classIdCanon || p._classCanon === u._classDescCanon),
+        genderSame: !!p._genderNorm && !!u._genderNorm && p._genderNorm === u._genderNorm,
+        fatherSame: !!p._fatherNorm && !!u._fatherNorm && p._fatherNorm === u._fatherNorm,
+        motherSame: !!p._motherNorm && !!u._motherNorm && p._motherNorm === u._motherNorm,
+        categorySame: !!p._categoryNorm && !!u._categoryNorm && p._categoryNorm === u._categoryNorm,
+        religionSame: !!p._religionNorm && !!u._religionNorm && p._religionNorm === u._religionNorm
+    };
+
+    const parents = Number(e.fatherSame) + Number(e.motherSame);
+    const support = Number(e.mobileSame) + Number(e.aadhaarSame) +
+        Number(e.classSame) + Number(e.genderSame) + parents;
+
+    let tier = 0;
+    if (e.aadhaarSame && (e.dobSame || e.mobileSame || e.classSame || parents >= 1)) tier = 3;
+    if (e.nameExact && e.mobileSame && e.classSame && parents >= 1) tier = 3;
+    if (e.nameSim >= 0.92 && e.mobileSame && (e.classSame || parents >= 1)) tier = 3;
+    if (e.nameExact && e.dobSame && support >= 2) tier = 3;
+    if (e.nameSim >= 0.88 && e.dobSame && support >= 2) tier = 3;
+
+    if (tier < 3) {
+        if (e.nameExact && e.dobSame && (parents >= 1 || e.mobileSame || e.classSame)) tier = 2;
+        else if (e.nameSim >= 0.90 && e.mobileSame && (e.classSame || parents >= 1)) tier = 2;
+        else if (e.nameSim >= 0.88 && e.dobSame &&
+            (e.mobileSame || parents >= 1 || e.classSame)) tier = 2;
+    }
+
+    if (tier < 2 &&
+        ((e.nameSim >= 0.92 && e.dobSame) || (e.nameSim >= 0.88 && support >= 2))) {
+        tier = 1;
+    }
+
+    if (!tier) return null;
+
+    const calculatedScore =
+        (e.nameExact ? 35 : Math.round(e.nameSim * 30)) +
+        (e.dobSame ? 25 : 0) +
+        (e.aadhaarSame ? 20 : 0) +
+        (e.mobileSame ? 10 : 0) +
+        (e.classSame ? 5 : 0) +
+        (e.fatherSame ? 4 : 0) +
+        (e.motherSame ? 4 : 0) +
+        (e.genderSame ? 2 : 0);
+
+    return { ...e, tier, score: calculatedScore };
+}
+// Helper to run matching pipeline core logic efficiently
+function runMatchingEngine(psp, ud) {
+    const udiseByAadhaar = new Map();
+    const udiseByInitial = new Map();
+
+    for (let ui = 0; ui < ud.length; ui++) {
+        const u = ud[ui];
+        if (u.uuid_last4) {
+            if (!udiseByAadhaar.has(u.uuid_last4)) udiseByAadhaar.set(u.uuid_last4, []);
+            udiseByAadhaar.get(u.uuid_last4).push(ui);
+        }
+        const uName = norm(u.student_name);
+        if (uName) {
+            const initial = uName.charAt(0);
+            if (!udiseByInitial.has(initial)) udiseByInitial.set(initial, []);
+            udiseByInitial.get(initial).push(ui);
+        }
+    }
+
+    const edges = [];
+
+    for (let pi = 0; pi < psp.length; pi++) {
+        const p = psp[pi];
+        const candidates = new Set();
+
+        if (p.aadhaar_last4 && udiseByAadhaar.has(p.aadhaar_last4)) {
+            udiseByAadhaar.get(p.aadhaar_last4).forEach(ui => candidates.add(ui));
+        }
+        const pName = norm(p.student_name);
+        if (pName) {
+            const initial = pName.charAt(0);
+            if (udiseByInitial.has(initial)) {
+                udiseByInitial.get(initial).forEach(ui => candidates.add(ui));
+            }
+        }
+
+        for (const ui of candidates) {
+            const e = ev(p, ud[ui]);
+            if (e) edges.push({ pi, ui, e });
+        }
+    }
+    
+    edges.sort((a, b) => b.e.tier - a.e.tier || b.e.score - a.e.score || b.e.nameSim - a.e.nameSim);
+
+    const usedP = new Set();
+    const usedU = new Set();
+    const rows = [];
+
+    for (const x of edges) {
+        if (usedP.has(x.pi) || usedU.has(x.ui)) continue;
+        usedP.add(x.pi);
+        usedU.add(x.ui);
+        const p = psp[x.pi];
+        const u = ud[x.ui];
+        const diffs = compare(p, u);
+        rows.push({
+            type: hasCoreIdentityMismatch(diffs) ? 'MISMATCH' : 'MATCHED',
+            psp: p,
+            udise: u,
+            diffs,
+            score: score(p, u),
+            matchTier: x.e.tier
+        });
+    }
+
+    const globallyMatchedNICs = new Set();
+    const globallyMatchedPENs = new Set();
+    for (const x of rows) {
+        if (x.psp && x.psp.psp_nic_id) globallyMatchedNICs.add(x.psp.psp_nic_id);
+        if (x.udise && x.udise.student_code_nat) globallyMatchedPENs.add(x.udise.student_code_nat);
+    }
+
+    for (let pi = 0; pi < psp.length; pi++) {
+        if (usedP.has(pi)) continue;
+        const p = psp[pi];
+        if (p.psp_nic_id && globallyMatchedNICs.has(p.psp_nic_id)) continue;
+
+        const candidates = new Set();
+        if (p.aadhaar_last4 && udiseByAadhaar.has(p.aadhaar_last4)) {
+            udiseByAadhaar.get(p.aadhaar_last4).forEach(ui => candidates.add(ui));
+        }
+        const pName = norm(p.student_name);
+        if (pName) {
+            const initial = pName.charAt(0);
+            if (udiseByInitial.has(initial)) {
+                udiseByInitial.get(initial).forEach(ui => candidates.add(ui));
+            }
+        }
+
+        const c = [];
+        for (const ui of candidates) {
+            if (usedU.has(ui)) continue;
+            const u = ud[ui];
+            if (u.student_code_nat && globallyMatchedPENs.has(u.student_code_nat)) continue;
+            const e = ev(p, u);
+            if (e) c.push({ ui, e });
+        }
+
+        if (c.length > 0) {
+            c.sort((a, b) => b.e.tier - a.e.tier || b.e.score - a.e.score);
+            const best = c[0];
+            const second = c[1];
+            
+            if (best && best.e.score >= 70 && (!second || best.e.score - second.e.score >= 12)) {
+                usedP.add(pi);
+                usedU.add(best.ui);
+                const u = ud[best.ui];
+                if (p.psp_nic_id) globallyMatchedNICs.add(p.psp_nic_id);
+                if (u.student_code_nat) globallyMatchedPENs.add(u.student_code_nat);
+                const diffs = compare(p, u);
+                rows.push({
+                    type: 'POSSIBLE_MATCH',
+                    psp: p,
+                    udise: u,
+                    diffs: ['REVIEW_MATCH', ...diffs],
+                    score: score(p, u),
+                    matchTier: best.e.tier
+                });
+                continue;
+            }
+        }
+
+        rows.push({
+            type: 'NOT_IN_UDISE',
+            psp: p,
+            udise: null,
+            diffs: ['PSP_BUT_NOT_IN_UDISE'],
+            score: 0
+        });
+    }
+
+    for (let ui = 0; ui < ud.length; ui++) {
+        if (!usedU.has(ui)) {
+            rows.push({
+                type: 'NOT_IN_PSP',
+                psp: null,
+                udise: ud[ui],
+                diffs: ['UDISE_BUT_NOT_IN_PSP'],
+                score: 0
+            });
+        }
+    }
+    // --- GLOBAL CLASS & ALPHABETICAL SORTING ENGINE PASS ---
+    rows.sort((a, b) => {
+        // 1. Safely derive clean numeric identifiers out of whichever data profile side is present
+        const aObj = a.psp || a.udise;
+        const bObj = b.psp || b.udise;
+        
+        if (!aObj) return 1;
+        if (!bObj) return -1;
+        
+        const aClassStr = a.psp ? a.psp.studying_class : (a.udise.class_desc || a.udise.class_id);
+        const bClassStr = b.psp ? b.psp.studying_class : (b.udise.class_desc || b.udise.class_id);
+        
+        // Convert using your existing classNum function (defaults to 999 if unresolvable)
+        const aClassNum = classNum(aClassStr) !== null ? classNum(aClassStr) : 999;
+        const bClassNum = classNum(bClassStr) !== null ? classNum(bClassStr) : 999;
+        
+        // 2. Evaluate Class Sort Order
+        if (aClassNum !== bClassNum) {
+            return aClassNum - bClassNum;
+        }
+        
+        // 3. Alphabetical Fallback (Evaluates name tokens safely from A to Z)
+        const aName = norm(aObj.student_name || '');
+        const bName = norm(bObj.student_name || '');
+        
+        return aName.localeCompare(bName);
+    });
+
+    return rows;
+}
+
+function prepareRowsForSearch(rows) {
+    for (const row of rows) {
+        const p = row.psp;
+        const u = row.udise;
+        const values = [
+            p?.psp_nic_id, p?.sr_no, p?.student_name, p?.father_name, p?.mother_name,
+            p?.mobile, p?.aadhaar_last4, p?.studying_class, p?.social_category, p?.religion,
+            u?.student_id, u?.student_code_nat, u?.student_name, u?.father_name, u?.mother_name,
+            u?.mobile, u?.uuid_last4, u?.class_id, u?.class_desc, u?.social_category, u?.religion
+        ];
+        Object.defineProperty(row, '_searchText', {
+            value: norm(values.filter(Boolean).join(' ')),
+            enumerable: false
+        });
+    }
+    return rows;
+}
+
+// ==========================================================
+// 3. REFACTORED APIS COMPARE ROUTE
+// ==========================================================
+
+ function allRows(){const p=read(KEYS.psp,[]).map(pspMap),u=read(KEYS.udise,[]).map(udiseMap);const rows=prepareRowsForSearch(runMatchingEngine(p,u));const counts={ALL:rows.length,MATCHED:0,MISMATCH:0,POSSIBLE_MATCH:0,NOT_IN_UDISE:0,NOT_IN_PSP:0};for(const row of rows){counts[row.type]=(counts[row.type]||0)+1;for(const d of row.diffs||[])counts[d]=(counts[d]||0)+1;const rs=read(KEYS.remarks,{});row.remark=rs[norm(row.psp?.psp_nic_id)||norm(row.udise?.student_code_nat)]||null;}return {rows,counts,totals:{psp:p.length,udise:u.length}};}
+ function download(name,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ window.downloadBackup=()=>download('student_compare_backup.json',JSON.stringify({psp:read(KEYS.psp,[]),udise:read(KEYS.udise,[]),remarks:read(KEYS.remarks,{})},null,2),'application/json');
+ const realFetch=window.fetch.bind(window);
+ window.fetch=async function(input,options={}){
+  const url=typeof input==='string'?input:input.url;
+  if(!url.startsWith('/api/')) return realFetch(input,options);
+  try {
+   if(url==='/api/stats') return makeResponse({psp:read(KEYS.psp,[]).length,udise:read(KEYS.udise,[]).length});
+   if(url==='/api/compare'){
+    const result=allRows();const q=new URLSearchParams(url.includes('?')?url.split('?')[1]:'');return makeResponse(result);
+   }
+   if(url.startsWith('/api/import/')){
+    const type=url.split('/').pop();if(!['psp','udise'].includes(type))return makeResponse({error:'Unknown import type'},false,400);
+    const file=options.body?.get?.('file');if(!file)return makeResponse({error:'JSON file missing'},false,400);
+    const parsed=JSON.parse(await file.text());const rows=Array.isArray(parsed)?parsed:Array.isArray(parsed?.data)?parsed.data:Array.isArray(parsed?.result)?parsed.result:Array.isArray(parsed?.result?.data)?parsed.result.data:[];
+    const seen=new Set(),valid=[];let invalid=0;
+    for(const row of rows){const key=type==='psp'?String(row?.['Student NIC ID']??'').trim():String(row?.studentId??'').trim();if(!row||typeof row!=='object'||Array.isArray(row)||!key||seen.has(key)){invalid++;continue;}seen.add(key);valid.push(row);}
+    write(type==='psp'?KEYS.psp:KEYS.udise,valid);return makeResponse({count:valid.length,total:rows.length,storedFields:type==='psp'?PSP_FIELDS.length:UDISE_FIELDS.length,invalid});
+   }
+   if(url==='/api/remark'&&(options.method||'GET').toUpperCase()==='PUT'){
+    const body=JSON.parse(options.body||'{}');const remarks=read(KEYS.remarks,{});const key=norm(body.psp_nic)||norm(body.udise_pen);const record={remark_id:body.remark_id||key,psp_nic:body.psp_nic||null,udise_pen:body.udise_pen||null,remark:String(body.remark||''),review_status:body.review_status||'PENDING',updated_at:new Date().toISOString()};remarks[key]=record;write(KEYS.remarks,remarks);return makeResponse(record);
+   }
+   if(url.startsWith('/api/export/psp.json'))return makeResponse(read(KEYS.psp,[]));
+   if(url.startsWith('/api/export/udise.json'))return makeResponse(read(KEYS.udise,[]));
+   if(url.startsWith('/api/backup'))return makeResponse({psp:read(KEYS.psp,[]),udise:read(KEYS.udise,[]),remarks:read(KEYS.remarks,{})});
+   if(url.startsWith('/api/export/mismatch.csv'))return makeResponse({error:'CSV export is handled by the original app UI.'},false,501);
+   return makeResponse({error:'Unsupported browser route: '+url},false,404);
+  }catch(e){return makeResponse({error:e?.message||'Browser operation failed'},false,500);}
+ };
+})();
+
+        let data = [],
+            counts = {};
+
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        } [c]));
+        const js = s => JSON.stringify(String(s ?? ''));
+
+        async function imp(type) {
+            const id = type === 'psp' ? 'psp' : 'ud';
+            const file = document.getElementById(type === 'psp' ? 'pspFile' : 'udFile').files[0];
+            const msg = document.getElementById(id + 'Msg'),
+                btn = document.getElementById(id + 'Btn'),
+                prog = document.getElementById(id + 'Prog');
+            if (!file) {
+                msg.textContent = 'JSON file चुनें';
+                msg.className = 'msg err';
+                return
+            }
+            btn.disabled = true;
+            prog.style.width = '20%';
+            msg.textContent = 'Import हो रहा है…';
+            msg.className = 'msg';
+            try {
+                const fd = new FormData();
+                fd.append('file', file);
+                const r = await fetch('/api/import/' + type, {
+                    method: 'POST',
+                    body: fd
+                });
+                prog.style.width = '80%';
+                const j = await r.json();
+                if (!r.ok) throw new Error(j.error || 'Import failed');
+                msg.className = 'msg ok';
+                msg.textContent = `Imported: ${j.count} / ${j.total} records\nDB columns: ${j.storedFields}\n${j.invalid?`Invalid/Duplicate skipped: ${j.invalid}`:''}`;
+                prog.style.width = '100%';
+                await load(true);
+            } catch (e) {
+                msg.className = 'msg err';
+                msg.textContent = e.message;
+                prog.style.width = '0%'
+            } finally {
+                btn.disabled = false
+            }
+        }
+
+// =========================================================
+        // CLIENT STATE & FILTERING
+        // =========================================================
+        let cachedMasterRecords = [];
+        let cachedCounts = {};
+        let activeSearch = '';
+
+        const filterEl = document.getElementById('filter');
+        const filterBadgesEl = document.getElementById('filterBadges');
+        const classBadgesEl = document.getElementById('classBadges');
+        const classFilterEl = document.getElementById('classFilter');
+        const searchEl = document.getElementById('q');
+        const searchBtnEl = document.getElementById('searchBtn');
+
+        function norm(v) {
+            return String(v ?? '')
+                .trim()
+                .toUpperCase()
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function buildClientSearchIndex(rows) {
+            for (const row of rows) {
+                const p = row.psp || {};
+                const u = row.udise || {};
+                row._searchText = norm([
+                    p.psp_nic_id, p.sr_no, p.student_name, p.father_name,
+                    p.mother_name, p.mobile, p.aadhaar_last4, p.studying_class,
+                    p.social_category, p.religion,
+                    u.student_id, u.student_code_nat, u.student_name,
+                    u.father_name, u.mother_name, u.mobile, u.uuid_last4,
+                    u.class_id, u.class_desc, u.social_category, u.religion
+                ].filter(Boolean).join(' '));
+            }
+            return rows;
+        }
+
+        function localClassNum(v) {
+            if (!v) return null;
+            const x = String(v).trim().toUpperCase()
+                .replace(/^(CLASS|GRADE)\s*/, '').replace(/\./g, '').trim();
+            const map = {
+                I:1,FIRST:1,II:2,SECOND:2,III:3,THIRD:3,IV:4,FOURTH:4,
+                V:5,FIFTH:5,VI:6,SIXTH:6,VII:7,SEVENTH:7,
+                VIII:8,EIGHT:8,EIGHTH:8
+            };
+            if (/^\d+$/.test(x)) return Number(x);
+            return map[x] !== undefined ? map[x] : x;
+        }
+
+        function localClassCanon(v) {
+            const n = localClassNum(v);
+            return n === null ? String(v).trim().toUpperCase() : String(n);
+        }
+
+        function matchesActiveFilters(row) {
+            const filter = filterEl.value || 'ALL';
+            const classValue = classFilterEl.value || '';
+
+            if (filter !== 'ALL' &&
+                row.type !== filter &&
+                !(row.diffs || []).includes(filter)) return false;
+
+            if (classValue) {
+                // PSP is authoritative for class filtering. A matching UDISE
+                // class alone must never make a row pass the filter.
+                const pClass = row.psp ? localClassCanon(row.psp.studying_class) : '';
+                if (!row.psp || pClass !== localClassCanon(classValue)) return false;
+            }
+
+            return !activeSearch || row._searchText?.includes(activeSearch);
+        }
+
+        function applyClientSideFilters() {
+            data = cachedMasterRecords.filter(matchesActiveFilters);
+            render();
+        }
+
+        async function load(force = false) {
+            try {
+                const statsPromise = fetch('/api/stats').then(r => r.json());
+
+                if (force || cachedMasterRecords.length === 0) {
+                    document.getElementById('tbody').innerHTML =
+                        '<tr><td colspan="4" class="muted">Loading comparison data…</td></tr>';
+
+                    const response = await fetch('/api/compare');
+                    const result = await response.json();
+
+                    if (!response.ok || result.error) {
+                        throw new Error(result.error || 'Comparison load failed');
+                    }
+
+                    cachedMasterRecords = buildClientSearchIndex(result.rows || []);
+                    cachedCounts = result.counts || {};
+                }
+
+                renderStats(await statsPromise);
+                applyClientSideFilters();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('tbody').innerHTML =
+                    `<tr><td colspan="4" class="err">${esc(e.message)}</td></tr>`;
+            }
+        }
+
+        function performSearch() {
+            activeSearch = norm(searchEl.value || '');
+            applyClientSideFilters();
+        }
+
+        searchBtnEl.addEventListener('click', performSearch);
+        searchEl.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+
+        filterEl.addEventListener('change', () => {
+            renderFilterBadges();
+            applyClientSideFilters();
+        });
+        classFilterEl.addEventListener('change', () => { renderClassBadges(); applyClientSideFilters(); });
+
+        function renderStats(s) {
+            const items = [
+                ['PSP', s.psp ?? '-', 'ALL'],
+                ['UDISE', s.udise ?? '-', 'ALL'],
+                ['MATCHED', cachedCounts.MATCHED || 0, 'MATCHED'],
+                ['MISMATCH', cachedCounts.MISMATCH || 0, 'MISMATCH'],
+                ['POSSIBLE', cachedCounts.POSSIBLE_MATCH || 0, 'POSSIBLE_MATCH'],
+                ['PSP Missing UDISE', cachedCounts.NOT_IN_UDISE || 0, 'NOT_IN_UDISE'],
+                ['UDISE Extra', cachedCounts.NOT_IN_PSP || 0, 'NOT_IN_PSP'],
+                ['Aadhaar Issues', (cachedCounts.AADHAAR_MISMATCH || 0) + (cachedCounts.AADHAAR_NOT_FOUND || 0), 'AADHAAR_MISMATCH']
+            ];
+
+            document.getElementById('stats').innerHTML = items.map(x => `
+                <div class="stat" data-filter-value="${x[2]}">
+                    <div style="font-size:20px;color:#666;font-weight:bold;text-transform:uppercase">${esc(x[0])}</div>
+                    <div style="font-size:20px;font-weight:bold;color:#111;margin-top:4px">${esc(x[1])}</div>
+                </div>
+            `).join('');
+
+            renderFilterBadges();
+            renderClassBadges();
+        }
+
+        function renderFilterBadges() {
+            const filters = [
+                ['ALL', 'All', cachedMasterRecords.length],
+                ['MATCHED', '✓ Matched', cachedCounts.MATCHED],
+                ['MISMATCH', '⚠ Mismatch', cachedCounts.MISMATCH],
+                ['NAME_MISMATCH', 'Name', cachedCounts.NAME_MISMATCH],
+                ['DOB_MISMATCH', 'DOB', cachedCounts.DOB_MISMATCH],
+                ['FATHER_MISMATCH', 'Father', cachedCounts.FATHER_MISMATCH],
+                ['MOTHER_MISMATCH', 'Mother', cachedCounts.MOTHER_MISMATCH],
+                ['CLASS_MISMATCH', 'Class', cachedCounts.CLASS_MISMATCH],
+                ['GENDER_MISMATCH', 'Gender', cachedCounts.GENDER_MISMATCH],
+                ['CATEGORY_MISMATCH', 'Category', cachedCounts.CATEGORY_MISMATCH],
+                ['RELIGION_MISMATCH', 'Religion', cachedCounts.RELIGION_MISMATCH],
+                ['AADHAAR_MISMATCH', 'Aadhaar ✗', cachedCounts.AADHAAR_MISMATCH],
+                ['AADHAAR_NOT_FOUND', 'Aadhaar —', cachedCounts.AADHAAR_NOT_FOUND],
+                ['MOBILE_MISMATCH', 'Mobile ✗', cachedCounts.MOBILE_MISMATCH],
+                ['MOBILE_NOT_FOUND', 'Mobile —', cachedCounts.MOBILE_NOT_FOUND],
+                ['POSSIBLE_MATCH', 'Possible Review', cachedCounts.POSSIBLE_MATCH],
+                ['NOT_IN_UDISE', 'PSP only', cachedCounts.NOT_IN_UDISE],
+                ['NOT_IN_PSP', 'UDISE only', cachedCounts.NOT_IN_PSP]
+            ];
+
+            const active = filterEl.value || 'ALL';
+            filterBadgesEl.innerHTML = filters.map(([value, label, count]) => `
+                <button type="button" class="filter-badge ${active === value ? 'active' : ''}"
+                        data-filter-value="${esc(value)}">
+                    ${esc(label)} <span class="count">${Number(count || 0)}</span>
+                </button>
+            `).join('');
+
+            // Buttons are handled by one delegated listener below.
+
+        }
+
+        filterBadgesEl.addEventListener('click', e => {
+            const button = e.target.closest('button[data-filter-value]');
+            if (!button || !filterBadgesEl.contains(button)) return;
+            e.preventDefault();
+            setFilter(button.dataset.filterValue || 'ALL');
+        });
+
+        function renderClassBadges() {
+            const classCounts = new Map();
+            for (const row of cachedMasterRecords) {
+                const value = row.psp?.studying_class;
+                if (!value) continue;
+                const key = localClassCanon(value);
+                classCounts.set(key, (classCounts.get(key) || 0) + 1);
+            }
+
+            const classes = [...classCounts.entries()].sort((a, b) => {
+                const na = Number(a[0]), nb = Number(b[0]);
+                if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+                return String(a[0]).localeCompare(String(b[0]));
+            });
+
+            const active = classFilterEl.value || '';
+            classBadgesEl.innerHTML = [
+                `<button type="button" class="filter-badge ${!active ? 'active' : ''}" data-class-value="">All Classes <span class="count">${cachedMasterRecords.length}</span></button>`,
+                ...classes.map(([value, count]) => `
+                    <button type="button" class="filter-badge ${active === String(value) ? 'active' : ''}" data-class-value="${esc(value)}">
+                        Class ${esc(value)} <span class="count">${count}</span>
+                    </button>`)
+            ].join('');
+        }
+
+        // Class badges are also rebuilt dynamically, so keep their delegated
+        // handler separate from the filter badges above.
+        classBadgesEl.addEventListener('click', e => {
+            const button = e.target.closest('[data-class-value]');
+            if (!button) return;
+            classFilterEl.value = button.dataset.classValue || '';
+            renderClassBadges();
+            applyClientSideFilters();
+        });
+
+        document.getElementById('stats').addEventListener('click', e => {
+            const card = e.target.closest('[data-filter-value]');
+            if (!card) return;
+            setFilter(card.dataset.filterValue);
+        });
+
+// Intermediary event bridge function to parse properties safely
+function handleBadgeClick(element) {
+    const filterValue = element.getAttribute('data-filter-value');
+    if (filterValue) {
+        setFilter(filterValue);
+    }
+}
+
+function setFilter(v) {
+    const value = String(v || 'ALL');
+    const option = Array.from(filterEl.options).find(o => o.value === value);
+    filterEl.value = option ? value : 'ALL';
+    renderFilterBadges();
+    applyClientSideFilters();
+}
+
+        function badge(t) {
+            const c = t === 'MATCHED' ? 'matched' : t === 'MISMATCH' ? 'mismatch' : t === 'POSSIBLE_MATCH' ? 'possible' : 'missing';
+            const txt = {
+                MATCHED: 'MATCHED',
+                MISMATCH: 'MISMATCH',
+                POSSIBLE_MATCH: 'POSSIBLE MATCH',
+                CATEGORY_MISMATCH: 'CATEGORY_MISMATCH',
+                RELIGION_MISMATCH: 'RELIGION_MISMATCH',
+                NOT_IN_UDISE: 'NOT IN UDISE',
+                NOT_IN_PSP: 'NOT IN PSP'
+            } [t] || t;
+            return `<span class="badge ${c}">${esc(txt)}</span>`;
+        }
+
+        function aadhaarBadge(x, ud) {
+            if (!x) return '';
+            const v = ud ? x.uuid_last4 : x.aadhaar_last4;
+            if (!v) return '<span class="badge missing">AADHAAR NOT FOUND</span>';
+            let html = `<span class="badge possible">AADHAAR ****${esc(v)}</span>`;
+            if (ud) {
+                const st = Number(x.uuidStatus ?? x.uuid_status ?? 0);
+                const labels = {
+                    1: '✓',
+                    2: '✗',
+                    0: '•'
+                };
+                if (labels[st]) html += ` <span class="badge ${st===1?'matched':st===2?'missing':'possible'}">${labels[st]}</span>`;
+                const n = String(x.name_as_uuid ?? '').trim();
+                if ((st === 1 || st === 2) && n) html += `<span class="small"><br>Name in Aadhaar: <b>${esc(n)}</b></span>`;
+            }
+            return html;
+        }
+
+        function displayValue(v) {
+            if (v === null || v === undefined || v === '') return '—';
+            if (typeof v === 'object') {
+                try {
+                    return JSON.stringify(v, null, 2)
+                } catch {}
+            }
+            return String(v);
+        }
+
+        function sourceFields(obj, ud, diffs) {
+            if (!obj) return '';
+            const raw = obj.raw && typeof obj.raw === 'object' ? obj.raw : obj;
+            const bad = new Set(diffs || []);
+            const map = ud ?
+                {
+                    studentName: 'NAME_MISMATCH',
+                    fatherName: 'FATHER_MISMATCH',
+                    motherName: 'MOTHER_MISMATCH',
+                    dob: 'DOB_MISMATCH',
+                    classId: 'CLASS_MISMATCH',
+                    classDesc: 'CLASS_MISMATCH',
+                    gender: 'GENDER_MISMATCH',
+                    genderDesc: 'GENDER_MISMATCH',
+                    primaryMobile: 'MOBILE_MISMATCH',
+                    secondaryMobile: 'MOBILE_MISMATCH',
+                    uuid: 'AADHAAR_MISMATCH',
+                    socCatId: 'CATEGORY_MISMATCH',
+                    minorityId: 'RELIGION_MISMATCH'
+                } :
+                {
+                    'Student Name': 'NAME_MISMATCH',
+                    'Father Name': 'FATHER_MISMATCH',
+                    'Mother Name': 'MOTHER_MISMATCH',
+                    'DOB': 'DOB_MISMATCH',
+                    'Studying in Class': 'CLASS_MISMATCH',
+                    'Gender': 'GENDER_MISMATCH',
+                    'Mobile Number': 'MOBILE_MISMATCH',
+                    'Aadhar Number': 'AADHAAR_MISMATCH',
+                    'Social Category': 'CATEGORY_MISMATCH',
+                    'Religion': 'RELIGION_MISMATCH'
+                };
+            return Object.entries(raw).map(([key, value]) => {
+                const extra = map[key] && bad.has(map[key]) ? ' detail-diff' : '';
+                return `<div class="detail-field${extra}"><div class="detail-label">${esc(key)}</div><div class="detail-value">${esc(displayValue(value))}</div></div>`;
+            }).join('');
+        }
+
+// ==========================================================
+// 1. DATA CARD WRAPPER (Saves entire row snapshot as Base64)
+// ==========================================================
+function card(x, ud, d, fullRowObject) {
+    if (!x) return '<div class="muted">—</div>';
+    const bad = new Set(d || []);
+    const cls = k => bad.has(k) ? 'field field-mismatch' : 'field';
+    const side = ud ? 'UDISE' : 'PSP';
+
+    const rowKey = fullRowObject.psp?.psp_nic_id || fullRowObject.udise?.student_code_nat || '';
+
+    return `<div class="student clickable" role="button" tabindex="0"
+            onclick="openDetailByKey(this, '${side}')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openDetailByKey(this, '${side}')}"
+            data-side="${side}"
+            data-row-key="${esc(rowKey)}">
+            <strong class="${cls('NAME_MISMATCH')}">${esc(x.student_name)}</strong>
+            <div class="${cls('FATHER_MISMATCH')}"><b>Father:</b> ${esc(x.father_name)}</div>
+            <div class="${cls('MOTHER_MISMATCH')}"><b>Mother:</b> ${esc(x.mother_name)}</div>
+            <div class="${cls('DOB_MISMATCH')}"><b>DOB:</b> ${esc(x.dob)}</div>
+            <div class="${cls('CLASS_MISMATCH')}"><b>Class:</b> ${esc(ud?x.class_desc:x.studying_class)}</div>
+            <div class="${cls('GENDER_MISMATCH')}"><b>Gender:</b> ${esc(x.gender)}</div>
+            <div class="${cls('CATEGORY_MISMATCH')}"><b>Category:</b> ${esc(x.social_category)}</div>
+            <div class="${cls('RELIGION_MISMATCH')}"><b>Religion:</b> ${esc(x.religion)}</div>
+            <div>${!ud?'<b>NIC ID:</b> '+esc(x.psp_nic_id)+' | <b>SR:</b> '+esc(x.sr_no):'<b>PEN:</b> '+esc(x.student_code_nat)}</div>
+            <div class="${cls('MOBILE_MISMATCH')}"><b>Mobile:</b> ${esc(x.mobile)}</div>
+            <div>${aadhaarBadge(x,ud)}</div>
+            </div>`;
+}
+
+// ==========================================================
+// 2. STABLE ID-BASED ELEMENT PAYLOAD DECODER
+// ==========================================================
+function openDetailByKey(element, activeSide) {
+    const rowKey = element.getAttribute('data-row-key');
+    if (!rowKey) return;
+
+    const row = data.find(x =>
+        (x.psp?.psp_nic_id || x.udise?.student_code_nat || '') === rowKey
+    );
+
+    if (row) renderDetailModal(row, activeSide);
+}
+
+// ==========================================================
+// 3. TARGET OVERLAY POPUP DOM POPULATION (Strict Mismatch Cards)
+// ==========================================================
+function renderDetailModal(row, activeSide) {
+    const modal = document.getElementById('detailModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    if (!modal || !modalBody) {
+        console.error("Modal component target wrapper keys missing in document outline!");
+        return;
+    }
+
+    modalTitle.innerHTML = `${activeSide} Student Profile Review — <span class="badge-${row.type}">${row.type}</span>`;
+    
+    const flags = new Set(row.diffs || []);
+    const themeColor = activeSide === 'PSP' ? '#0056b3' : '#28a745';
+
+    const buildDynamicGrid = (rawDataObject, isUdise) => {
+        if (!rawDataObject) return '<p class="muted" style="color:#777; font-style:italic;">No profile data context found.</p>';
+        
+        let htmlBuffer = `
+            <style>
+                .modal-data-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+                @media (min-width: 768px) { .modal-data-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+            </style>
+            <div class="modal-data-grid" style="max-height: 460px; overflow-y: auto; padding: 10px 5px;">`;
+        
+        for (const [key, value] of Object.entries(rawDataObject)) {
+            // Trim down column keys to run safe exact comparisons
+            const cleanKey = key.trim();
+            let isMismatch = false;
+
+            // STRICT MAP ARCHITECTURE: Pin warning flags strictly to their exact single field keys
+            if (isUdise) {
+                if (cleanKey === 'studentName') isMismatch = flags.has('NAME_MISMATCH');
+                else if (cleanKey === 'fatherName') isMismatch = flags.has('FATHER_MISMATCH');
+                else if (cleanKey === 'motherName') isMismatch = flags.has('MOTHER_MISMATCH');
+                else if (cleanKey === 'dob') isMismatch = flags.has('DOB_MISMATCH');
+                else if (cleanKey === 'classId' || cleanKey === 'classDesc') isMismatch = flags.has('CLASS_MISMATCH');
+                else if (cleanKey === 'gender' || cleanKey === 'genderDesc') isMismatch = flags.has('GENDER_MISMATCH');
+                else if (cleanKey === 'primaryMobile') isMismatch = flags.has('MOBILE_MISMATCH');
+                else if (cleanKey === 'uuid') isMismatch = flags.has('AADHAAR_MISMATCH');
+                else if (cleanKey === 'socCatId') isMismatch = flags.has('CATEGORY_MISMATCH');
+                else if (cleanKey === 'minorityId') isMismatch = flags.has('RELIGION_MISMATCH');
+            } else {
+                if (cleanKey === 'Student Name') isMismatch = flags.has('NAME_MISMATCH');
+                else if (cleanKey === 'Father Name') isMismatch = flags.has('FATHER_MISMATCH');
+                else if (cleanKey === 'Mother Name') isMismatch = flags.has('MOTHER_MISMATCH');
+                else if (cleanKey === 'DOB') isMismatch = flags.has('DOB_MISMATCH');
+                else if (cleanKey === 'Studying in Class') isMismatch = flags.has('CLASS_MISMATCH');
+                else if (cleanKey === 'Gender') isMismatch = flags.has('GENDER_MISMATCH');
+                else if (cleanKey === 'Mobile Number') isMismatch = flags.has('MOBILE_MISMATCH');
+                else if (cleanKey === 'Aadhar Number') isMismatch = flags.has('AADHAAR_MISMATCH');
+                else if (cleanKey === 'Social Categiry') isMismatch = flags.has('CATEGORY_MISMATCH');
+                else if (cleanKey === 'Religion') isMismatch = flags.has('RELIGION_MISMATCH');
+            }
+
+            const cellBorder = isMismatch ? 'border: 1px solid #dc3545; border-left: 5px solid #dc3545; background-color: #fff5f5;' : 'border: 1px solid #eef0f2; background-color: #ffffff;';
+            const labelColor = isMismatch ? '#b31c1c' : '#666';
+            const valueWeight = isMismatch ? 'font-weight: bold; color: #b31c1c;' : 'color: #111;';
+
+            const humanKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            const displayValue = (value === null || value === undefined || String(value).trim() === "") ? '<span style="color:#bbb; font-style:italic;">empty</span>' : esc(value);
+            
+            htmlBuffer += `
+                <div class="grid-card-cell" style="display: flex; flex-direction: column; padding: 10px 14px; border-radius: 6px; font-family: sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,0.01); box-sizing: border-box; ${cellBorder}">
+                    <span style="font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; color: ${labelColor};">
+                        ${esc(humanKey)} ${isMismatch ? '⚠️ Mismatch' : ''}
+                    </span>
+                    <span style="font-size: 18px; word-break: break-word; ${valueWeight}">
+                        ${displayValue}
+                    </span>
+                </div>`;
+        }
+        
+        htmlBuffer += '</div>';
+        return htmlBuffer;
+    };
+
+    const rawPspData = row.psp && row.psp.raw ? row.psp.raw : row.psp;
+    const rawUdiseData = row.udise && row.udise.raw ? row.udise.raw : row.udise;
+    
+    const isUdiseSide = activeSide === 'UDISE';
+    const targetData = isUdiseSide ? rawUdiseData : rawPspData;
+
+    modalBody.innerHTML = `
+        <div class="panel-container" style="border-top: 4px solid ${themeColor}; padding: 12px 0 5px 0; margin-top: 10px;">
+            <h3 style="margin: 0 0 15px 5px; color: ${themeColor}; font-family: sans-serif; font-size: 20px;">
+                Verified ${activeSide} Database Attributes
+            </h3>
+            ${buildDynamicGrid(targetData, isUdiseSide)}
+        </div>
+        
+        <div class="modal-audit-summary" style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #6c757d; font-family: sans-serif; font-size: 13px;">
+            <p style="margin: 0 0 5px 0;"><b>Active Conflict Flags:</b> <span style="color: #dc3545; font-weight:bold;">${row.diffs && row.diffs.length ? esc(row.diffs.join(', ')) : 'None (Clean Match)'}</span></p>
+            <p style="margin: 0;"><b>Cross-System Match Confidence Score:</b> <strong style="color: #007bff;">${row.score}%</strong></p>
+        </div>
+    `;
+
+    modal.style.display = 'block';
+}
+
+        function closeDetail(event) {
+            if (event && event.target && event.target.id !== 'detailOverlay') return;
+            document.getElementById('detailOverlay').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeDetail()
+        });
+
+
+        function render() {
+            const rows = data;
+            document.getElementById('filterCount').textContent = rows.length;
+            document.getElementById('tbody').innerHTML = rows.map((x, i) => `
+    <tr data-key="${esc(x.psp?.psp_nic_id||x.udise?.student_code_nat||('row-'+i))}">
+      <td>${badge(x.type)}<div class="confidence">Score: <b>${x.score||0}%</b></div>
+      ${x.matchMethod?`<div class="small muted">${esc(x.matchMethod)}</div>`:''}</td>
+      <td>${card(x.psp,false,x.diffs,x)}</td>
+      <td>${card(x.udise,true,x.diffs,x)}</td>
+      <td>
+        <div class="diff">${(x.diffs||[]).map(d=>`<span>${esc(d==='AADHAAR_NOT_FOUND'?'AADHAAR NOT FOUND':d==='MOBILE_NOT_FOUND'?'MOBILE NOT FOUND':d)}</span>`).join('')}</div>
+        ${x.type==='POSSIBLE_MATCH'?'<div class="small">⚠️ Automatic final match नहीं है। Manually verify करें।</div>':''}
+        <div class="remark-box">
+          <textarea class="remark-text" placeholder="Remark लिखें...">${esc(x.remark?.remark||'')}</textarea>
+          <div class="remark-actions">
+            <select class="review-status">
+              ${['PENDING','VERIFIED','CORRECTION_REQUIRED'].map(s=>`<option value="${s}" ${x.remark?.review_status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('')}
+            </select>
+            <button class="btn secondary" onclick="saveRemark(this)">💾 Save</button>
+            <span class="remark-status"></span>
+          </div>
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="4">कोई record नहीं मिला।</td></tr>';
+        }
+        async function saveRemark(button) {
+            const tr = button.closest('tr'),
+                box = button.closest('.remark-box');
+            const rowKey = tr.dataset.key,
+                row = data.find(x => (x.psp?.psp_nic_id || x.udise?.student_code_nat) === rowKey);
+            if (!row) return;
+            const status = box.querySelector('.remark-status'),
+                remark = box.querySelector('.remark-text').value.trim();
+            const review_status = box.querySelector('.review-status').value;
+            button.disabled = true;
+            status.textContent = 'Saving...';
+            status.className = 'remark-status muted';
+            try {
+                const r = await fetch('/api/remark', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        remark_id: row.remark?.remark_id || null,
+                        psp_nic: row.psp?.psp_nic_id || null,
+                        udise_pen: row.udise?.student_code_nat || null,
+                        remark,
+                        review_status
+                    })
+                });
+                const j = await r.json();
+                if (!r.ok) throw new Error(j.error || 'Remark save failed');
+                row.remark = j;
+                status.textContent = '✓ Saved';
+                status.className = 'remark-status ok';
+                setTimeout(() => status.textContent = '', 2000);
+            } catch (e) {
+                status.textContent = '✗ ' + e.message;
+                status.className = 'remark-status err'
+            } finally {
+                button.disabled = false
+            }
+        }
+
+        function csvCell(v) {
+            return '"' + String(v ?? '').replace(/"/g, '""') + '"'
+        }
+        load();
+    </script>
+<!-- 📊 Master Student Details Review Modal Overlay -->
+<div id="detailModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+    <div style="background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 70%; max-width: 800px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative;">
+        <!-- Close Button -->
+        <span onclick="document.getElementById('detailModal').style.display='none'" style="position: absolute; right: 20px; top: 15px; font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer;">&times;</span>
+        
+        <h2 id="modalTitle" style="margin-top: 0; font-family: sans-serif; color: #333;">Student Comparison Review</h2>
+        <div id="modalBody" style="font-family: sans-serif; line-height: 1.5; color: #444;"></div>
+        
+        <div style="margin-top: 25px; text-align: right;">
+            <button onclick="document.getElementById('detailModal').style.display='none'" style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Close Review</button>
+        </div>
+    </div>
+</div>
+
+</body>
+
+</html>
