@@ -6,6 +6,7 @@ on:
       - npm-webapp
     paths:
       - "npm-webapp/index.html"
+      - "npm-webapp/schema.sql"
       - ".github/workflows/npm-webapp-pages.yml"
   workflow_dispatch:
 
