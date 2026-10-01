@@ -191,7 +191,7 @@ class AppDatabase {
       final oldDir = await getDatabasesPath();
       final oldFile = File(p.join(oldDir, _dbName));
       final newFile = File(target);
-      if (!await newFile.exists() && await oldFile.exists()) {
+      if (_activeProfileId == 'legacy' && !await newFile.exists() && await oldFile.exists()) {
         await oldFile.copy(target);
       }
 
