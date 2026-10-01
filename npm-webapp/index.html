@@ -507,6 +507,7 @@
             <div>
                 <button id="compareBtn" class="btn green" onclick="compare()">🔄 Compare Now</button>
                 <button class="btn secondary" onclick="downloadBackup()">💾 Backup DB</button>
+                <button class="btn secondary" onclick="exportSqliteDb()">🗄️ Export .db</button>
             </div>
         </div>
 
@@ -1228,6 +1229,55 @@ function prepareRowsForSearch(rows) {
  function allRows(){const p=read(KEYS.psp,[]).map(pspMap),u=read(KEYS.udise,[]).map(udiseMap);const rows=prepareRowsForSearch(runMatchingEngine(p,u));const counts={ALL:rows.length,MATCHED:0,MISMATCH:0,POSSIBLE_MATCH:0,NOT_IN_UDISE:0,NOT_IN_PSP:0};for(const row of rows){counts[row.type]=(counts[row.type]||0)+1;for(const d of row.diffs||[])counts[d]=(counts[d]||0)+1;const rs=read(KEYS.remarks,{});row.remark=rs[norm(row.psp?.psp_nic_id)||norm(row.udise?.student_code_nat)]||null;}return {rows,counts,totals:{psp:p.length,udise:u.length}};}
  function download(name,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  window.downloadBackup=()=>download('student_compare_backup.json',JSON.stringify({psp:read(KEYS.psp,[]),udise:read(KEYS.udise,[]),remarks:read(KEYS.remarks,{})},null,2),'application/json');
+
+ window._sqlJsPromise=null;
+ window.exportSqliteDb=async function(){
+  const buttons=[...document.querySelectorAll('button')];
+  const btn=buttons.find(b=>b.textContent.includes('Export .db'));
+  if(btn){btn.disabled=true;btn.textContent='⏳ Preparing .db…';}
+  try{
+   if(!window._sqlJsPromise){
+    window._sqlJsPromise=new Promise((resolve,reject)=>{
+     const script=document.createElement('script');
+     script.src='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
+     script.onload=()=>window.initSqlJs({locateFile:file=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/'+file}).then(resolve,reject);
+     script.onerror=()=>reject(new Error('SQLite library load नहीं हुई। Internet connection जाँचें.'));
+     document.head.appendChild(script);
+    });
+   }
+   const SQL=await window._sqlJsPromise;
+   const schemaResponse=await fetch(new URL('schema.sql',document.baseURI));
+   if(!schemaResponse.ok)throw new Error('SQLite schema load नहीं हो सकी.');
+   const db=new SQL.Database();
+   db.exec(await schemaResponse.text());
+   const importTable=(table,fields,rows)=>{
+    const cols=fields.map(f=>'"'+f.replace(/"/g,'""')+'"').join(',');
+    const placeholders=fields.map(()=>'?').join(',');
+    const stmt=db.prepare('INSERT INTO "'+table+'" ('+cols+') VALUES ('+placeholders+')');
+    try{
+     for(const row of rows){
+      stmt.run(fields.map(f=>Object.prototype.hasOwnProperty.call(row,f)?(row[f]===null?null:String(row[f])):null));
+     }
+    }finally{stmt.free();}
+   };
+   importTable('psp_student_data',PSP_FIELDS,read(KEYS.psp,[]));
+   importTable('udise_data',UDISE_FIELDS,read(KEYS.udise,[]));
+   const remarks=read(KEYS.remarks,{});
+   const stmt=db.prepare('INSERT INTO student_remarks(psp_nic,udise_pen,remark,review_status,updated_at) VALUES(?,?,?,?,?)');
+   try{
+    for(const r of Object.values(remarks)){
+     stmt.run([r.psp_nic||null,r.udise_pen||null,r.remark||'',r.review_status||'PENDING',r.updated_at||new Date().toISOString()]);
+    }
+   }finally{stmt.free();}
+   const bytes=db.export();db.close();
+   const blob=new Blob([bytes],{type:'application/x-sqlite3'});
+   const url=URL.createObjectURL(blob);const a=document.createElement('a');
+   a.href=url;a.download='student_compare.sqlite';document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }catch(e){alert('SQLite export असफल: '+(e?.message||e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='🗄️ Export .db';}}
+ };
+
  const realFetch=window.fetch.bind(window);
  window.fetch=async function(input,options={}){
   const url=typeof input==='string'?input:input.url;
