@@ -1265,8 +1265,9 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
           _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p?.nicId, udise: u?.studentCodeNat),
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-            _AadhaarPreviewRow(row: row),
-          ],
+          _AadhaarPreviewRow(row: row),
+        ],
+      ),
     );
   }
 
