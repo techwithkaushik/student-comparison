@@ -12,10 +12,12 @@ import '../matching/models.dart';
 
 class ComparisonDashboardScreen extends StatefulWidget {
   final List<ComparisonRow> initialRows;
+  final String schoolName;
 
   const ComparisonDashboardScreen({
     super.key,
     this.initialRows = const <ComparisonRow>[],
+    this.schoolName = 'Comparison',
   });
 
   @override
@@ -486,9 +488,11 @@ class _ComparisonDashboardScreenState
                   isDense: true,
                 ),
               )
-            : const Text(
-                'Comparison',
-                style: TextStyle(
+            : Text(
+                widget.schoolName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
