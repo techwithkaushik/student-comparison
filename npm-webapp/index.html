@@ -507,6 +507,8 @@
             <div>
                 <button id="compareBtn" class="btn green" onclick="compare()">🔄 Compare Now</button>
                 <button class="btn secondary" onclick="downloadBackup()">💾 Backup DB</button>
+                <button class="btn secondary" onclick="document.getElementById('sqliteDbFile').click()">📂 Import .db</button>
+                <input id="sqliteDbFile" type="file" accept=".db,.sqlite,.sqlite3,application/octet-stream" hidden onchange="importSqliteDb(event)">
                 <button class="btn secondary" onclick="exportSqliteDb()">🗄️ Export .db</button>
             </div>
         </div>
@@ -1231,53 +1233,103 @@ function prepareRowsForSearch(rows) {
  window.downloadBackup=()=>download('student_compare_backup.json',JSON.stringify({psp:read(KEYS.psp,[]),udise:read(KEYS.udise,[]),remarks:read(KEYS.remarks,{})},null,2),'application/json');
 
  window._sqlJsPromise=null;
- window.exportSqliteDb=async function(){
-  const buttons=[...document.querySelectorAll('button')];
-  const btn=buttons.find(b=>b.textContent.includes('Export .db'));
-  if(btn){btn.disabled=true;btn.textContent='⏳ Preparing .db…';}
+ window.loadSqlJs=async function(){
+  if(!window._sqlJsPromise){
+   window._sqlJsPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
+    script.onload=()=>window.initSqlJs({locateFile:file=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/'+file}).then(resolve,reject);
+    script.onerror=()=>reject(new Error('SQLite library load नहीं हुई। Internet connection जाँचें.'));
+    document.head.appendChild(script);
+   });
+  }
+  return window._sqlJsPromise;
+ };
+ window.importSqliteDb=async function(event){
+  const input=event?.target, file=input?.files?.[0];
+  if(!file)return;
+  if(!confirm('Import .db करने पर इस browser में मौजूद PSP, UDISE और remarks data replace हो जाएगा। पहले Backup DB कर लें। आगे बढ़ें?')){input.value='';return;}
+  const btn=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Import .db'));
+  if(btn){btn.disabled=true;btn.textContent='⏳ Importing .db…';}
+  let db;
   try{
-   if(!window._sqlJsPromise){
-    window._sqlJsPromise=new Promise((resolve,reject)=>{
-     const script=document.createElement('script');
-     script.src='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
-     script.onload=()=>window.initSqlJs({locateFile:file=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/'+file}).then(resolve,reject);
-     script.onerror=()=>reject(new Error('SQLite library load नहीं हुई। Internet connection जाँचें.'));
-     document.head.appendChild(script);
-    });
+   const SQL=await window.loadSqlJs();
+   const bytes=new Uint8Array(await file.arrayBuffer());
+   db=new SQL.Database(bytes);
+   const tables=db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+   const names=new Set((tables[0]?.values||[]).map(r=>String(r[0])));
+   for(const required of ['psp_students','udise_students','student_remarks']){
+    if(!names.has(required))throw new Error('यह DB supported structure की नहीं है। आवश्यक table missing: '+required);
    }
-   const SQL=await window._sqlJsPromise;
+   const readRows=table=>{
+    const result=db.exec('SELECT * FROM "'+table+'"');
+    if(!result.length)return [];
+    const {columns,values}=result[0];
+    return values.map(values=>Object.fromEntries(columns.map((c,i)=>[c,values[i]])));
+   };
+   const parseRaw=(row,fields,table)=>{
+    if(row.raw_json){
+     try{const value=JSON.parse(row.raw_json);if(value&&typeof value==='object'&&!Array.isArray(value))return value;}catch{}
+    }
+    const out={};
+    const mappings=table==='psp_students'?{
+     'Student NIC ID':'nic_id','SR No.':'sr_no','Aadhar Number':'aadhaar_last4','Student Name':'student_name','Father Name':'father_name','Mother Name':'mother_name','DOB':'dob','Gender':'gender','Studying in Class':'studying_class','Mobile Number':'mobile','Social Category':'social_category','Religion':'religion'
+    }:{
+     studentId:'student_id',studentCodeNat:'pen',uuid:'uuid_last4',uuidStatus:'uuid_status',nameAsUuid:'name_as_uuid',studentName:'student_name',fatherName:'father_name',motherName:'mother_name',dob:'dob',gender:'gender',classId:'class_id',classDesc:'class_desc',primaryMobile:'mobile',socialCategoryDesc:'social_category',minorityDesc:'religion'
+    };
+    for(const field of fields){const col=mappings[field];if(col&&row[col]!=null)out[field]=row[col];}
+    return out;
+   };
+   const pspRows=readRows('psp_students').map(r=>parseRaw(r,PSP_FIELDS,'psp_students')).filter(r=>String(r['Student NIC ID']??'').trim());
+   const udiseRows=readRows('udise_students').map(r=>parseRaw(r,UDISE_FIELDS,'udise_students')).filter(r=>String(r.studentId??'').trim());
+   const remarkMap={};
+   for(const r of readRows('student_remarks')){
+    const psp_nic=String(r.psp_nic||'').trim(),udise_pen=String(r.udise_pen||'').trim();
+    const key=norm(psp_nic)||norm(udise_pen);
+    if(!key)continue;
+    remarkMap[key]={remark_id:r.id||key,psp_nic:psp_nic||null,udise_pen:udise_pen||null,remark:String(r.remark||''),review_status:'PENDING',updated_at:r.updated_at||new Date().toISOString()};
+   }
+   if(!pspRows.length&&!udiseRows.length)throw new Error('DB में PSP और UDISE दोनों tables खाली हैं या source records पढ़े नहीं जा सके।');
+   write(KEYS.psp,pspRows);write(KEYS.udise,udiseRows);write(KEYS.remarks,remarkMap);
+   alert('DB import सफल!\\nPSP: '+pspRows.length+'\\nUDISE: '+udiseRows.length+'\\nRemarks: '+Object.keys(remarkMap).length+'\\nअब Compare Now दबाएँ।');
+   if(typeof load==='function')await load(true);
+  }catch(e){alert('SQLite import असफल: '+(e?.message||e));}
+  finally{if(db)db.close();if(btn){btn.disabled=false;btn.textContent='📂 Import .db';}if(input)input.value='';}
+ };
+ window.exportSqliteDb=async function(){
+  const btn=[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Export .db'));
+  if(btn){btn.disabled=true;btn.textContent='⏳ Preparing .db…';}
+  let db;
+  try{
+   const SQL=await window.loadSqlJs();
    const schemaResponse=await fetch(new URL('schema.sql',document.baseURI));
    if(!schemaResponse.ok)throw new Error('SQLite schema load नहीं हो सकी.');
-   const db=new SQL.Database();
-   db.exec(await schemaResponse.text());
-   const importTable=(table,fields,rows)=>{
-    const cols=fields.map(f=>'"'+f.replace(/"/g,'""')+'"').join(',');
-    const placeholders=fields.map(()=>'?').join(',');
-    const stmt=db.prepare('INSERT INTO "'+table+'" ('+cols+') VALUES ('+placeholders+')');
-    try{
-     for(const row of rows){
-      stmt.run(fields.map(f=>Object.prototype.hasOwnProperty.call(row,f)?(row[f]===null?null:String(row[f])):null));
-     }
-    }finally{stmt.free();}
+   db=new SQL.Database();db.exec(await schemaResponse.text());
+   const insert=(table,columns,values)=>{
+    const q=columns.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',');
+    const stmt=db.prepare('INSERT INTO "'+table+'" ('+q+') VALUES ('+columns.map(()=>'?').join(',')+')');
+    try{for(const row of values)stmt.run(row);}finally{stmt.free();}
    };
-   importTable('psp_student_data',PSP_FIELDS,read(KEYS.psp,[]));
-   importTable('udise_data',UDISE_FIELDS,read(KEYS.udise,[]));
+   const psp=read(KEYS.psp,[]);
+   insert('psp_students',['nic_id','sr_no','aadhaar_last4','student_name','father_name','mother_name','dob','gender','studying_class','mobile','social_category','religion','raw_json'],psp.map(r=>[
+    String(r['Student NIC ID']??''),r['SR No.']??null,String(r['Aadhar Number']??'').replace(/\\D/g,'').slice(-4)||null,r['Student Name']??null,r['Father Name']??null,r['Mother Name']??null,r.DOB??null,r.Gender??null,r['Studying in Class']??null,r['Mobile Number']??null,r['Social Category']??null,r.Religion??null,JSON.stringify(r)
+   ]).filter(r=>r[0]));
+   const udise=read(KEYS.udise,[]);
+   insert('udise_students',['student_id','pen','uuid_last4','uuid_status','name_as_uuid','student_name','father_name','mother_name','dob','gender','class_id','class_desc','mobile','social_category','religion','raw_json'],udise.map(r=>[
+    String(r.studentId??''),String(r.studentCodeNat??r.studentId??''),String(r.uuid??'').replace(/\\D/g,'').slice(-4)||null,r.uuidStatus==null?null:String(r.uuidStatus),r.nameAsUuid??null,r.studentName??null,r.fatherName??null,r.motherName??null,r.dob??null,r.gender==null?null:String(r.gender),r.classId==null?null:String(r.classId),r.classDesc??null,r.primaryMobile??null,r.socialCategoryDesc??r.socCatId??null,r.minorityDesc??r.minorityId??null,JSON.stringify(r)
+   ]).filter(r=>r[0]&&r[1]));
    const remarks=read(KEYS.remarks,{});
-   const stmt=db.prepare('INSERT INTO student_remarks(psp_nic,udise_pen,remark,review_status,updated_at) VALUES(?,?,?,?,?)');
-   try{
-    for(const r of Object.values(remarks)){
-     stmt.run([r.psp_nic||null,r.udise_pen||null,r.remark||'',r.review_status||'PENDING',r.updated_at||new Date().toISOString()]);
-    }
-   }finally{stmt.free();}
-   const bytes=db.export();db.close();
+   insert('student_remarks',['psp_nic','udise_pen','remark','created_at','updated_at'],Object.values(remarks).map(r=>[
+    String(r.psp_nic||''),String(r.udise_pen||''),String(r.remark||''),String(r.updated_at||new Date().toISOString()),String(r.updated_at||new Date().toISOString())
+   ]));
+   const bytes=db.export();db.close();db=null;
    const blob=new Blob([bytes],{type:'application/x-sqlite3'});
-   const url=URL.createObjectURL(blob);const a=document.createElement('a');
-   a.href=url;a.download='student_compare.sqlite';document.body.appendChild(a);a.click();a.remove();
+   const url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download='student_comparison.db';document.body.appendChild(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),1500);
   }catch(e){alert('SQLite export असफल: '+(e?.message||e));}
-  finally{if(btn){btn.disabled=false;btn.textContent='🗄️ Export .db';}}
+  finally{if(db)db.close();if(btn){btn.disabled=false;btn.textContent='🗄️ Export .db';}}
  };
-
  const realFetch=window.fetch.bind(window);
  window.fetch=async function(input,options={}){
   const url=typeof input==='string'?input:input.url;
