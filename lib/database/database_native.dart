@@ -513,7 +513,7 @@ class AppDatabase {
         final studentId = _text(row['studentId']);
         if (studentId.isEmpty) continue;
         final pen = _text(row['studentCodeNat']);
-        final penKey = pen.isEmpty ? '__NO_PEN__:' + studentId : pen;
+        final penKey = pen.isEmpty ? '__NO_PEN__:$studentId : pen;
         final socialDesc = _text(row['socialCategoryDesc']);
         final minorityDesc = _text(row['minorityDesc']);
 
@@ -602,7 +602,7 @@ class AppDatabase {
     final target = await _requireActiveProfile();
     final tempPath = p.join(
       await getDatabasesPath(),
-      'student_import_' + DateTime.now().microsecondsSinceEpoch.toString() + '.db',
+      'student_import_${DateTime.now().microsecondsSinceEpoch}.db',
     );
     final tempFile = File(tempPath);
     await tempFile.writeAsBytes(bytes, flush: true);
@@ -626,8 +626,7 @@ class AppDatabase {
       final missing = required.where((name) => !tables.contains(name)).toList();
       if (missing.isNotEmpty) {
         throw Exception(
-          'Database import rejected: school-aware database required. Missing: ' +
-              missing.join(', '),
+          'Database import rejected: school-aware database required. Missing: ${missing.join(', ')}',
         );
       }
 
@@ -723,7 +722,7 @@ class AppDatabase {
     Database db,
     String table,
   ) async {
-    final rows = await db.rawQuery('PRAGMA table_info(' + table + ')');
+    final rows = await db.rawQuery('PRAGMA table_info($table)');
     return rows
         .map((row) => row['name']?.toString() ?? '')
         .where((name) => name.isNotEmpty)
@@ -930,7 +929,7 @@ class AppDatabase {
           // Migrate the old per-school SQLite database into the new single DB.
           if (Platform.isAndroid) {
             final oldDbFile = File(
-              p.join(_publicFolder, 'student_comparison_' + id + '.db'),
+              p.join(_publicFolder, 'student_comparison_$id.db'),
             );
             if (await oldDbFile.exists()) {
               await _importLegacySchoolDatabase(
