@@ -1332,7 +1332,7 @@ function prepareRowsForSearch(rows) {
  };
  const realFetch=window.fetch.bind(window);
  window.fetch=async function(input,options={}){
-  const url=typeof input==='string'?input:input.url;
+  const url=typeof input==='string'?input:(input instanceof URL?input.href:(input?.url||String(input)));
   if(!url.startsWith('/api/')) return realFetch(input,options);
   try {
    if(url==='/api/stats') return makeResponse({psp:read(KEYS.psp,[]).length,udise:read(KEYS.udise,[]).length});
