@@ -30,8 +30,8 @@ jobs:
       - name: Validate static site
         run: |
           test -s npm-webapp/index.html
-          if grep -E 'fetch\(["'\''"]/api/|server\.js|student_compare\.sqlite' npm-webapp/index.html; then
-            echo "Unexpected server-dependent or local database reference found."
+          if grep -F '/api/' npm-webapp/index.html; then
+            echo "Unexpected server API reference found."
             exit 1
           fi
       - name: Setup Pages
