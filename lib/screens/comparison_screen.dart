@@ -629,7 +629,7 @@ class _ComparisonDashboardScreenState
                     itemBuilder: (_, index) {
                       final row = filtered[index];
                       return _StudentRow(
-                        key: ValueKey((row.psp?.nicId ?? '') + '|' + (row.udise?.studentCodeNat ?? '') + '|' + index.toString()),
+                        key: ValueKey('${row.psp?.nicId ?? ''}|${row.udise?.studentCodeNat ?? ''}|$index'),
                         row: row,
                         hasRemark: _hasRemark(row),
                         statusText: _statusText(row),
