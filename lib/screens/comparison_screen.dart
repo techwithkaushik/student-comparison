@@ -619,25 +619,24 @@ class _ComparisonDashboardScreenState
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(
-                      8,
-                      2,
-                      8,
-                      8,
-                    ),
+                    // The sliver already wraps rows in repaint boundaries.
+                    // Do not retain off-screen row states for this read-only list.
+                    addAutomaticKeepAlives: false,
+                    addRepaintBoundaries: true,
+                    semanticChildCount: filtered.length,
+                    padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
                     itemCount: filtered.length,
                     itemBuilder: (_, index) {
-                      return RepaintBoundary(
-                        child: _StudentRow(
-                        row: filtered[index],
-                        hasRemark: _hasRemark(filtered[index]),
-                        statusText:
-                            _statusText(filtered[index]),
-                        statusColor: _statusColor(context, filtered[index]),
-                        rteText: _pspRte(filtered[index]),
-                        remark: _remarkFor(filtered[index])?['remark']?.toString() ?? '',
-                        onRemarkTap: () => _editRemark(filtered[index]),
-                        ),
+                      final row = filtered[index];
+                      return _StudentRow(
+                        key: ValueKey((row.psp?.nicId ?? '') + '|' + (row.udise?.studentCodeNat ?? '') + '|' + index.toString()),
+                        row: row,
+                        hasRemark: _hasRemark(row),
+                        statusText: _statusText(row),
+                        statusColor: _statusColor(context, row),
+                        rteText: _pspRte(row),
+                        remark: _remarkFor(row)?['remark']?.toString() ?? '',
+                        onRemarkTap: () => _editRemark(row),
                       );
                     },
                   ),
@@ -1074,6 +1073,7 @@ class _StudentRow extends StatelessWidget {
   final VoidCallback onRemarkTap;
 
   const _StudentRow({
+    super.key,
     required this.row,
     required this.hasRemark,
     required this.statusText,
@@ -1097,15 +1097,15 @@ class _StudentRow extends StatelessWidget {
     final u = row.udise;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      elevation: 1,
-      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.only(bottom: 4),
+      // Flat rows avoid per-card shadows and expensive offscreen clipping.
+      elevation: 0,
+      clipBehavior: Clip.none,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: statusColor.withValues(alpha: .25)),
+        side: BorderSide(color: statusColor.withValues(alpha: .22), width: .7),
       ),
-      child: SelectionArea(
-        child: Column(
+      child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(8, 5, 8, 4),
@@ -1267,8 +1267,6 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
             _AadhaarPreviewRow(row: row),
           ],
-        ),
-      ),
     );
   }
 
