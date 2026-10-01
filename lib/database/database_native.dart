@@ -902,7 +902,7 @@ class AppDatabase {
           final udise = _text(old['udiseCode']);
           final id = _text(old['id']);
 
-          // The former legacy/placeholder profile is intentionally discarded.
+          // Remove the former placeholder/legacy profile completely.
           if (name.isEmpty || psp.isEmpty || udise.isEmpty || id.isEmpty) {
             continue;
           }
@@ -926,13 +926,144 @@ class AppDatabase {
               });
             } catch (_) {}
           }
+
+          // Migrate the old per-school SQLite database into the new single DB.
+          if (Platform.isAndroid) {
+            final oldDbFile = File(
+              p.join(_publicFolder, 'student_comparison_' + id + '.db'),
+            );
+            if (await oldDbFile.exists()) {
+              await _importLegacySchoolDatabase(
+                oldDbFile,
+                schoolPspId: psp,
+                schoolUdiseCode: udise,
+              );
+              try {
+                await oldDbFile.delete();
+              } catch (_) {}
+            }
+          }
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // A broken legacy JSON file must never prevent the app from opening.
+    }
 
     try {
       await file.delete();
     } catch (_) {}
+  }
+
+  Future<void> _importLegacySchoolDatabase(
+    File oldDbFile, {
+    required String schoolPspId,
+    required String schoolUdiseCode,
+  }) async {
+    Database? oldDb;
+    try {
+      oldDb = await openDatabase(oldDbFile.path, readOnly: true);
+      final names = (await oldDb.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      ))
+          .map((row) => row['name']?.toString() ?? '')
+          .toSet();
+
+      if (names.contains('psp_students')) {
+        final rows = await oldDb.query('psp_students');
+        final batch = _db!.batch();
+        for (final row in rows) {
+          final nic = _text(row['nic_id']);
+          final raw = _text(row['raw_json']);
+          if (nic.isEmpty || raw.isEmpty) continue;
+          batch.insert(
+            'psp_students',
+            {
+              'school_psp_id': schoolPspId,
+              'nic_id': nic,
+              'sr_no': row['sr_no'],
+              'aadhaar_last4': row['aadhaar_last4'],
+              'student_name': row['student_name'],
+              'father_name': row['father_name'],
+              'mother_name': row['mother_name'],
+              'dob': row['dob'],
+              'gender': row['gender'],
+              'studying_class': row['studying_class'],
+              'mobile': row['mobile'],
+              'social_category': row['social_category'],
+              'religion': row['religion'],
+              'raw_json': raw,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+
+      if (names.contains('udise_students')) {
+        final rows = await oldDb.query('udise_students');
+        final batch = _db!.batch();
+        for (final row in rows) {
+          final studentId = _text(row['student_id']);
+          final pen = _text(row['pen']);
+          final raw = _text(row['raw_json']);
+          if (studentId.isEmpty || raw.isEmpty) continue;
+          batch.insert(
+            'udise_students',
+            {
+              'school_udise_code': schoolUdiseCode,
+              'student_id': studentId,
+              'pen': pen.isEmpty ? '__NO_PEN__:' + studentId : pen,
+              'uuid_last4': row['uuid_last4'],
+              'uuid_status': row['uuid_status'],
+              'name_as_uuid': row['name_as_uuid'],
+              'student_name': row['student_name'],
+              'father_name': row['father_name'],
+              'mother_name': row['mother_name'],
+              'dob': row['dob'],
+              'gender': row['gender'],
+              'class_id': row['class_id'],
+              'class_desc': row['class_desc'],
+              'mobile': row['mobile'],
+              'social_category': row['social_category'],
+              'religion': row['religion'],
+              'raw_json': raw,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+
+      if (names.contains('student_remarks')) {
+        final rows = await oldDb.query('student_remarks');
+        final batch = _db!.batch();
+        for (final row in rows) {
+          final pspNic = _text(row['psp_nic']);
+          final udisePen = _text(row['udise_pen']);
+          if (pspNic.isEmpty && udisePen.isEmpty) continue;
+          batch.insert(
+            'student_remarks',
+            {
+              'school_psp_id': schoolPspId,
+              'school_udise_code': schoolUdiseCode,
+              'psp_nic': pspNic,
+              'udise_pen': udisePen,
+              'remark': _text(row['remark']),
+              'created_at': _text(row['created_at']).isEmpty
+                  ? DateTime.now().toIso8601String()
+                  : _text(row['created_at']),
+              'updated_at': _text(row['updated_at']).isEmpty
+                  ? DateTime.now().toIso8601String()
+                  : _text(row['updated_at']),
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    } finally {
+      await oldDb?.close();
+    }
   }
 
   static String _text(dynamic value) {
