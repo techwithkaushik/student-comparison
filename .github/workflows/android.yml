@@ -53,6 +53,8 @@ jobs:
         run: |
           set -e
           cp files/build.gradle.kts android/app/build.gradle.kts
+          mkdir -p android/app/src/main/kotlin/org/techwithkaushik/student_comparison
+          cp files/MainActivity.kt android/app/src/main/kotlin/org/techwithkaushik/student_comparison/MainActivity.kt
           python3 - <<'PY'
           from pathlib import Path
           manifest = Path("android/app/src/main/AndroidManifest.xml")
