@@ -691,7 +691,7 @@ class AppDatabase {
     final target = await _requireActiveProfile();
     final tempPath = p.join(
       await getDatabasesPath(),
-      'student_remarks_import_' + DateTime.now().microsecondsSinceEpoch.toString() + '.db',
+      'student_remarks_import_${DateTime.now().microsecondsSinceEpoch}.db',
     );
     final tempFile = File(tempPath);
     await tempFile.writeAsBytes(bytes, flush: true);
@@ -716,7 +716,7 @@ class AppDatabase {
       final missing = requiredColumns.where((c) => !columns.contains(c)).toList();
       if (missing.isNotEmpty) {
         throw Exception(
-          'Remarks import rejected: required columns are missing: ' + missing.join(', ') + '.',
+          'Remarks import rejected: required columns are missing: ${missing.join(', ')}.',
         );
       }
 
