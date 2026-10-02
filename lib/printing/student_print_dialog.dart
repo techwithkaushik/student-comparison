@@ -71,7 +71,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
         if(scope=='CLASS')DropdownButtonFormField<String>(initialValue:selectedClass.isEmpty?null:selectedClass,decoration:const InputDecoration(labelText:'Class'),items:cs.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c'))).toList(),onChanged:(v)=>set(() =>selectedClass=v??'')),
         const SizedBox(height:10),Text('Select fields',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800)),
         ...labels.entries.map((e)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(e.value),value:fields.contains(e.key),onChanged:(v)=>set(() { if(v==true&&!fields.contains(e.key)) fields=[...fields,e.key]; if(v==false&&fields.length>1) fields=fields.where((x)=>x!=e.key).toList(); }))),
-      ])),
+      ]))),
       actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton.icon(onPressed:()=>Navigator.pop(context,true),icon:const Icon(Icons.print),label:const Text('Print'))],
     );
   }));
