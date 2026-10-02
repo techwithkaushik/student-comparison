@@ -75,14 +75,25 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton.icon(onPressed:()=>Navigator.pop(context,true),icon:const Icon(Icons.print),label:const Text('Print'))],
     );
   }));
-  if(ok!=true||!context.mounted)return;
-  if(scope=='CLASS'&&selectedClass.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select a class.')));return;}
+  if (ok != true || !context.mounted) {
+    return;
+  }
+  if (scope == 'CLASS' && selectedClass.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select a class.')),
+    );
+    return;
+  }
 
-  var data=rows.where((r)=>source=='PSP'?r.psp!=null:r.udise!=null).toList();
-  if(scope=='CLASS')data=data.where((r){
+  var data = rows
+      .where((r) => source == 'PSP' ? r.psp != null : r.udise != null)
+      .toList();
+  if (scope == 'CLASS') {
+    data = data.where((r) {
     final c=source=='PSP'?(r.psp?.classCanonValue??''):(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
     return c==selectedClass;
-  }).toList();
+    }).toList();
+  }
 
   final cols=['S.No',...fields.map((x)=>labels[x]!)];
   String val(ComparisonRow r, String k) {
