@@ -17,7 +17,7 @@ Future<PrintSettings?> showPrintPageSetup(BuildContext context, {required PrintS
             DropdownMenuItem(value:'A3',child:Text('A3')), DropdownMenuItem(value:'LETTER',child:Text('Letter')),
             DropdownMenuItem(value:'LEGAL',child:Text('Legal')),
           ],
-          onChanged:(v)=>set(()=>s=s.copyWith(paper:v)),
+          onChanged:(v)=>set(() { s=s.copyWith(paper:v); }),
         ),
         DropdownButtonFormField<String>(
           initialValue:s.orientation,
@@ -27,13 +27,13 @@ Future<PrintSettings?> showPrintPageSetup(BuildContext context, {required PrintS
             DropdownMenuItem(value:'portrait',child:Text('Portrait')),
             DropdownMenuItem(value:'landscape',child:Text('Landscape')),
           ],
-          onChanged:(v)=>set(()=>s=s.copyWith(orientation:v)),
+          onChanged:(v)=>set(() { s=s.copyWith(orientation:v); }),
         ),
-        Row(children:[const Text('Margin'),Expanded(child:Slider(min:2,max:20,divisions:18,value:s.margin.toDouble(),label:'${s.margin} mm',onChanged:(v)=>set(()=>s=s.copyWith(margin:v.round())))),Text('${s.margin} mm')]),
-        Row(children:[const Text('Table font'),Expanded(child:Slider(min:7,max:16,divisions:9,value:s.fontSize,label:'${s.fontSize.toStringAsFixed(0)} pt',onChanged:(v)=>set(()=>s=s.copyWith(fontSize:v)))),Text('${s.fontSize.toStringAsFixed(0)} pt')]),
-        SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Auto-fit columns'),value:s.autoFit,onChanged:(v)=>set(()=>s=s.copyWith(autoFit:v))),
-        SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Repeat table header'),value:s.repeatHeader,onChanged:(v)=>set(()=>s=s.copyWith(repeatHeader:v))),
-        SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Page number'),value:s.pageNumber,onChanged:(v)=>set(()=>s=s.copyWith(pageNumber:v))),
+        Row(children:[const Text('Margin'),Expanded(child:Slider(min:2,max:20,divisions:18,value:s.margin.toDouble(),label:'${s.margin} mm',onChanged:(v)=>set(() { s=s.copyWith(margin:v.round()); }))),Text('${s.margin} mm')]),
+        Row(children:[const Text('Table font'),Expanded(child:Slider(min:7,max:16,divisions:9,value:s.fontSize,label:'${s.fontSize.toStringAsFixed(0)} pt',onChanged:(v)=>set(() { s=s.copyWith(fontSize:v); }))),Text('${s.fontSize.toStringAsFixed(0)} pt')]),
+        SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Auto-fit columns'),value:s.autoFit,onChanged:(v)=>set(() { s=s.copyWith(autoFit:v); })),
+        SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Repeat table header'),value:s.repeatHeader,onChanged:(v)=>set(() { s=s.copyWith(repeatHeader:v); })),
+        SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Page number'),value:s.pageNumber,onChanged:(v)=>set(() { s=s.copyWith(pageNumber:v); })),
       ])),
       actions:[
         TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Cancel')),
@@ -51,7 +51,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   required PrintSettings settings,
 }) async {
   var source='PSP'; var scope='ALL'; String selectedClass='';
-  var fields=<String>['id','name','father','mother','dob','admission','mobile'];
+  var fields=<String>['id','sr','name','father','mother','dob','admission','mobile'];
   const labels={'id':'NIC ID / PEN','sr':'S.No / SR','name':'Name','father':'Father Name','mother':'Mother Name','dob':'DOB','admission':'Admission Date','mobile':'Mobile'};
 
   final ok=await showDialog<bool>(context:context,builder:(_)=>StatefulBuilder(builder:(context,set){
@@ -67,8 +67,8 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       content:SizedBox(width:480,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         SegmentedButton<String>(segments:const[ButtonSegment(value:'PSP',label:Text('PSP')),ButtonSegment(value:'UDISE',label:Text('UDISE'))],selected:{source},onSelectionChanged:(v)=>set(() { source=v.first; selectedClass=''; })),
         const SizedBox(height:10),
-        SegmentedButton<String>(segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],selected:{scope},onSelectionChanged:(v)=>set(()=>scope=v.first)),
-        if(scope=='CLASS')DropdownButtonFormField<String>(initialValue:selectedClass.isEmpty?null:selectedClass,decoration:const InputDecoration(labelText:'Class'),items:cs.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c'))).toList(),onChanged:(v)=>set(()=>selectedClass=v??'')),
+        SegmentedButton<String>(segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],selected:{scope},onSelectionChanged:(v)=>set(() =>scope=v.first)),
+        if(scope=='CLASS')DropdownButtonFormField<String>(initialValue:selectedClass.isEmpty?null:selectedClass,decoration:const InputDecoration(labelText:'Class'),items:cs.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c'))).toList(),onChanged:(v)=>set(() =>selectedClass=v??'')),
         const SizedBox(height:10),Text('Select fields',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800)),
         ...labels.entries.map((e)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(e.value),value:fields.contains(e.key),onChanged:(v)=>set(() { if(v==true&&!fields.contains(e.key)) fields=[...fields,e.key]; if(v==false&&fields.length>1) fields=fields.where((x)=>x!=e.key).toList(); }))),
       ])),
