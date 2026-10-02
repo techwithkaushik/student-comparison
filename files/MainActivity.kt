@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -203,14 +204,31 @@ public class MainActivity extends FlutterActivity {
         @Override
         public void onWrite(PageRange[] pages, ParcelFileDescriptor destination,
                             CancellationSignal cancellationSignal, WriteResultCallback callback) {
-            try (FileOutputStream out = new FileOutputStream(destination.getFileDescriptor())) {
-                PdfCanvasWriter writer = new PdfCanvasWriter(out);
-                writer.write(this);
+            PdfDocument pdf = new PdfDocument();
+            try {
+                int total = pageCount();
+                for (int page = 0; page < total; page++) {
+                    if (cancellationSignal.isCanceled()) {
+                        callback.onWriteCancelled();
+                        return;
+                    }
+                    PdfDocument.PageInfo info =
+                            new PdfDocument.PageInfo.Builder(pageWidthPoints(), pageHeightPoints(), page + 1).create();
+                    PdfDocument.Page pdfPage = pdf.startPage(info);
+                    drawPage(pdfPage.getCanvas(), page, total);
+                    pdf.finishPage(pdfPage);
+                }
+                pdf.writeTo(new FileOutputStream(destination.getFileDescriptor()));
                 callback.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES});
             } catch (Exception e) {
                 callback.onWriteFailed(e.getMessage());
+            } finally {
+                pdf.close();
             }
         }
+
+        private int pageWidthPoints() { return Math.max(1, Math.round(pageWidth * 0.072f)); }
+        private int pageHeightPoints() { return Math.max(1, Math.round(pageHeight * 0.072f)); }
 
         private void drawPage(Canvas c, int page, int totalPages) {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -306,20 +324,6 @@ public class MainActivity extends FlutterActivity {
             }
             if (!value.equals(text) && value.length() > 1) value = value.substring(0, value.length() - 1) + "…";
             c.drawText(value, x + 4, baseline - 7, p);
-        }
-    }
-
-    // PrintDocumentAdapter writes Android's print output through the system print service.
-    private static class PdfCanvasWriter {
-        private final FileOutputStream out;
-        PdfCanvasWriter(FileOutputStream out) { this.out = out; }
-        void write(StudentTablePrintAdapter adapter) throws IOException {
-            // Android PrintDocumentAdapter normally writes a PDF file descriptor supplied
-            // by the system. The Canvas drawing is performed by a tiny PDF-backed canvas
-            // in the system adapter below.
-            // This class is intentionally replaced by the Android PrintDocumentAdapter
-            // Canvas implementation in writeToParcel().
-            throw new IOException("Print canvas backend unavailable");
         }
     }
 
