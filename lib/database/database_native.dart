@@ -391,7 +391,7 @@ class AppDatabase {
   }) async {
     final db = await database;
     final name = schoolName.trim();
-    final psp = pspCode.trim();
+    final psp = pspCode.trim().toUpperCase();
     final udise = udiseCode.trim();
 
     if (name.isEmpty || psp.isEmpty || udise.isEmpty) {
