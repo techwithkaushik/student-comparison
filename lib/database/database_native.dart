@@ -877,8 +877,8 @@ class AppDatabase {
       'student_remarks',
       where: 'school_psp_id = ? AND school_udise_code = ? AND psp_nic = ? AND udise_pen = ?',
       whereArgs: [
-        _text(profile['psp_code']),
-        _text(profile['udise_code']),
+        _text(profile['pspCode']),
+        _text(profile['udiseCode']),
         pspNic ?? '',
         udisePen ?? '',
       ],
@@ -902,8 +902,8 @@ class AppDatabase {
     await db.insert(
       'student_remarks',
       {
-        'school_psp_id': _text(profile['psp_code']),
-        'school_udise_code': _text(profile['udise_code']),
+        'school_psp_id': _text(profile['pspCode']),
+        'school_udise_code': _text(profile['udiseCode']),
         'psp_nic': pspNic ?? '',
         'udise_pen': udisePen ?? '',
         'remark': remark,
@@ -924,8 +924,8 @@ class AppDatabase {
       'student_remarks',
       where: 'school_psp_id = ? AND school_udise_code = ? AND psp_nic = ? AND udise_pen = ?',
       whereArgs: [
-        _text(profile['psp_code']),
-        _text(profile['udise_code']),
+        _text(profile['pspCode']),
+        _text(profile['udiseCode']),
         pspNic ?? '',
         udisePen ?? '',
       ],
@@ -939,8 +939,8 @@ class AppDatabase {
       'student_remarks',
       where: 'school_psp_id = ? AND school_udise_code = ?',
       whereArgs: [
-        _text(profile['psp_code']),
-        _text(profile['udise_code']),
+        _text(profile['pspCode']),
+        _text(profile['udiseCode']),
       ],
       orderBy: 'updated_at DESC',
     );
