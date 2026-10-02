@@ -86,7 +86,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
 
   final cols=['S.No',...fields.map((x)=>labels[x]!)];
   String val(ComparisonRow r,String k){
-    if(source=='PSP'){final p=r.psp!;switch(k){case'id':return p.nicId;case'sr':return p.srNo;case'name':return p.studentName;case'father':return p.fatherName;case'mother':return p.motherName;case'dob':return p.dob;case'admission':return _raw(p.raw);case'mobile':return p.mobile;}}
+    if(source=='PSP'){ final p=r.psp!; switch(k){case'id':return p.nicId;case'sr':return p.srNo;case'name':return p.studentName;case'father':return p.fatherName;case'mother':return p.motherName;case'dob':return p.dob;case'admission':return _raw(p.raw);case'mobile':return p.mobile;} }
     final u=r.udise!;switch(k){case'id':return u.studentCodeNat;case'sr':return u.studentId;case'name':return u.studentName;case'father':return u.fatherName;case'mother':return u.motherName;case'dob':return u.dob;case'admission':return _raw(u.raw);case'mobile':return u.mobile;}return '';
   }
   final table=<List<String>>[];
