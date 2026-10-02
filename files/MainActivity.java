@@ -109,19 +109,19 @@ public class MainActivity extends FlutterActivity {
 
         PrintAttributes.MediaSize media;
         if ("A5".equalsIgnoreCase(paper)) {
-            media = landscape ? PrintAttributes.MediaSize.ISO_A5.rotate()
+            media = landscape ? landscapeMediaSize(PrintAttributes.MediaSize.ISO_A5)
                     : PrintAttributes.MediaSize.ISO_A5;
         } else if ("A3".equalsIgnoreCase(paper)) {
-            media = landscape ? PrintAttributes.MediaSize.ISO_A3.rotate()
+            media = landscape ? landscapeMediaSize(PrintAttributes.MediaSize.ISO_A3)
                     : PrintAttributes.MediaSize.ISO_A3;
         } else if ("LETTER".equalsIgnoreCase(paper)) {
-            media = landscape ? PrintAttributes.MediaSize.NA_LETTER.rotate()
+            media = landscape ? landscapeMediaSize(PrintAttributes.MediaSize.NA_LETTER)
                     : PrintAttributes.MediaSize.NA_LETTER;
         } else if ("LEGAL".equalsIgnoreCase(paper)) {
-            media = landscape ? PrintAttributes.MediaSize.NA_LEGAL.rotate()
+            media = landscape ? landscapeMediaSize(PrintAttributes.MediaSize.NA_LEGAL)
                     : PrintAttributes.MediaSize.NA_LEGAL;
         } else {
-            media = landscape ? PrintAttributes.MediaSize.ISO_A4.rotate()
+            media = landscape ? landscapeMediaSize(PrintAttributes.MediaSize.ISO_A4)
                     : PrintAttributes.MediaSize.ISO_A4;
         }
 
@@ -322,6 +322,14 @@ public class MainActivity extends FlutterActivity {
             if (!value.equals(text) && value.length() > 1) value = value.substring(0, value.length() - 1) + "…";
             c.drawText(value, x + 4, baseline - 7, p);
         }
+    }
+
+    private static PrintAttributes.MediaSize landscapeMediaSize(PrintAttributes.MediaSize portrait) {
+        return new PrintAttributes.MediaSize(
+                portrait.getId() + "_LANDSCAPE",
+                portrait.getLabel(getResources()),
+                portrait.getHeightMils(),
+                portrait.getWidthMils());
     }
 
     private static int asInt(Object v, int fallback) {
