@@ -253,9 +253,16 @@ class _ComparisonDashboardScreenState
       final bytes = Uint8List.fromList(utf8.encode(
         const JsonEncoder.withIndent('  ').convert(rows),
       ));
+      final profile = await AppDatabase.instance.getActiveSchoolProfile();
+      final code = pspExport
+          ? profile?['pspCode']?.toString().trim() ?? ''
+          : profile?['udiseCode']?.toString().trim() ?? '';
+      if (code.isEmpty) {
+        throw StateError('No active school profile code is available.');
+      }
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Export ${pspExport ? 'PSP' : 'UDISE'} JSON',
-        fileName: '${pspExport ? 'psp' : 'udise'}_export.json',
+        fileName: '${pspExport ? 'psp' : 'udise'}_$code.json',
         bytes: bytes,
       );
       if (path != null && mounted) {
