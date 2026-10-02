@@ -34,7 +34,7 @@ Future<PrintSettings?> showPrintPageSetup(BuildContext context, {required PrintS
         SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Auto-fit columns'),value:s.autoFit,onChanged:(v)=>set(() { s=s.copyWith(autoFit:v); })),
         SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Repeat table header'),value:s.repeatHeader,onChanged:(v)=>set(() { s=s.copyWith(repeatHeader:v); })),
         SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Page number'),value:s.pageNumber,onChanged:(v)=>set(() { s=s.copyWith(pageNumber:v); })),
-      ]))),
+      ])),
       actions:[
         TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Cancel')),
         FilledButton(onPressed:()async{await NativePrintService.saveSettings(s);if(context.mounted)Navigator.pop(context,s);},child:const Text('Save')),
