@@ -681,6 +681,131 @@ class AppDatabase {
     return rows;
   }
 
+  /// Imports only remarks from an older per-school SQLite database.
+  ///
+  /// The old database schema is intentionally not imported as a database: only
+  /// the legacy student_remarks table is read. Remarks are accepted only when
+  /// their PSP NIC or UDISE PEN exists in the currently selected school's
+  /// student data, preventing remarks from another school being mixed in.
+  Future<int> importLegacyRemarksBytes(List<int> bytes) async {
+    final target = await _requireActiveProfile();
+    final tempPath = p.join(
+      await getDatabasesPath(),
+      'student_remarks_import_' + DateTime.now().microsecondsSinceEpoch.toString() + '.db',
+    );
+    final tempFile = File(tempPath);
+    await tempFile.writeAsBytes(bytes, flush: true);
+
+    Database? source;
+    try {
+      source = await openDatabase(tempPath, readOnly: true);
+      final tables = (await source.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      ))
+          .map((row) => row['name']?.toString() ?? '')
+          .toSet();
+
+      if (!tables.contains('student_remarks')) {
+        throw Exception(
+          'Remarks import rejected: this database has no student remarks table.',
+        );
+      }
+
+      final columns = await _columnNames(source, 'student_remarks');
+      const requiredColumns = {'psp_nic', 'udise_pen', 'remark'};
+      final missing = requiredColumns.where((c) => !columns.contains(c)).toList();
+      if (missing.isNotEmpty) {
+        throw Exception(
+          'Remarks import rejected: required columns are missing: ' + missing.join(', ') + '.',
+        );
+      }
+
+      // If the source is already school-aware, verify that it belongs to the
+      // selected school. Older per-school DBs have no school_profiles table,
+      // so for those databases student-ID matching below is the safety check.
+      if (tables.contains('school_profiles')) {
+        final targetPsp = _text(target['pspCode']);
+        final targetUdise = _text(target['udiseCode']);
+        final profile = await source.query(
+          'school_profiles',
+          where: 'LOWER(psp_code) = LOWER(?) AND LOWER(udise_code) = LOWER(?)',
+          whereArgs: [targetPsp, targetUdise],
+          limit: 1,
+        );
+        if (profile.isEmpty) {
+          throw Exception(
+            'Remarks import rejected: this database belongs to another school.',
+          );
+        }
+      }
+
+      final profileId = _text(target['id']);
+      final pspRows = await _db!.query(
+        'psp_students',
+        columns: ['nic_id'],
+        where: 'school_profile_id = ?',
+        whereArgs: [profileId],
+      );
+      final udiseRows = await _db!.query(
+        'udise_students',
+        columns: ['pen'],
+        where: 'school_profile_id = ?',
+        whereArgs: [profileId],
+      );
+      final pspNics = pspRows
+          .map((row) => _text(row['nic_id']).toUpperCase())
+          .where((value) => value.isNotEmpty)
+          .toSet();
+      final udisePens = udiseRows
+          .map((row) => _text(row['pen']).toUpperCase())
+          .where((value) => value.isNotEmpty && !value.startsWith('__NO_PEN__:'))
+          .toSet();
+
+      final remarks = await source.query('student_remarks');
+      var imported = 0;
+      await _db!.transaction((txn) async {
+        for (final row in remarks) {
+          final pspNic = _text(row['psp_nic']);
+          final udisePen = _text(row['udise_pen']);
+          final remark = _text(row['remark']);
+          if (remark.isEmpty) continue;
+
+          final pspMatches =
+              pspNic.isNotEmpty && pspNics.contains(pspNic.toUpperCase());
+          final udiseMatches =
+              udisePen.isNotEmpty && udisePens.contains(udisePen.toUpperCase());
+          if (!pspMatches && !udiseMatches) continue;
+
+          final now = DateTime.now().toIso8601String();
+          await txn.insert(
+            'student_remarks',
+            {
+              'school_psp_id': _text(target['pspCode']),
+              'school_udise_code': _text(target['udiseCode']),
+              'psp_nic': pspNic,
+              'udise_pen': udisePen,
+              'remark': remark,
+              'created_at': _text(row['created_at']).isEmpty
+                  ? now
+                  : _text(row['created_at']),
+              'updated_at': _text(row['updated_at']).isEmpty
+                  ? now
+                  : _text(row['updated_at']),
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          imported++;
+        }
+      });
+      return imported;
+    } finally {
+      await source?.close();
+      try {
+        if (await tempFile.exists()) await tempFile.delete();
+      } catch (_) {}
+    }
+  }
+
   Future<SqliteImportResult> importSqliteBytes(List<int> bytes) async {
     final target = await _requireActiveProfile();
     final tempPath = p.join(
