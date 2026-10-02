@@ -236,14 +236,14 @@ public class MainActivity extends FlutterActivity {
             float right = pageWidth - 12f;
             float y = 18f;
 
-            p.setTextSize(fontSize * 1.25f);
+            p.setTextSize(fontSize);
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
             c.drawText(title, left, y, p);
-            y += fontSize * 1.7f;
+            y += fontSize * 1.45f;
 
             p.setTextSize(fontSize);
             c.drawText(subtitle, left, y, p);
-            y += fontSize * 1.8f;
+            y += fontSize * 1.45f;
 
             int start;
             int end;
