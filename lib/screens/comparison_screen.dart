@@ -9,6 +9,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../database/database.dart';
 import '../matching/matching_engine.dart';
 import '../matching/models.dart';
+import '../printing/native_print_service.dart';
+import '../printing/student_print_dialog.dart';
 
 String expectedSourceJsonFileName({required bool psp, required String code}) {
   final normalizedCode = psp ? code.trim().toLowerCase() : code.trim();
@@ -385,6 +387,46 @@ class _ComparisonDashboardScreenState
   bool _hasRemark(ComparisonRow row) =>
       _remarkKeys.contains(_remarkKeyFor(row));
 
+  Future<void> _printReport() async {
+    try {
+      final profile = await AppDatabase.instance.getActiveSchoolProfile();
+      if (profile == null) {
+        throw StateError('Please select a school profile before printing.');
+      }
+      final settings = await NativePrintService.loadSettings();
+      if (!mounted) return;
+      await showStudentPrintDialog(
+        context,
+        rows: _rows,
+        schoolName: profile['schoolName']?.toString() ?? widget.schoolName,
+        pspCode: profile['pspCode']?.toString() ?? '',
+        udiseCode: profile['udiseCode']?.toString() ?? '',
+        settings: settings,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Print setup failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _printPageSetup() async {
+    try {
+      final current = await NativePrintService.loadSettings();
+      if (!mounted) return;
+      await showPrintPageSetup(context, initial: current);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Print page setup failed: $e')),
+        );
+      }
+    }
+  }
+
+
   List<ComparisonRow> get _filteredRows {
     final q = _search.trim().toLowerCase();
 
@@ -624,6 +666,7 @@ class _ComparisonDashboardScreenState
                 case 'export_psp': _exportSourceJson(true); break;
                 case 'export_udise': _exportSourceJson(false); break;
                 case 'export_database': _exportDatabase(); break;
+                case 'print_setup': _printPageSetup(); break;
               }
             },
             itemBuilder: (_) => [
@@ -639,6 +682,9 @@ class _ComparisonDashboardScreenState
               const PopupMenuItem(value: 'export_udise', child: Text('Export UDISE JSON')),
               if (!kIsWeb)
                 const PopupMenuItem(value: 'export_database', child: Text('Export SQLite database')),
+              if (!kIsWeb)
+                const PopupMenuItem(value: 'print_setup', child: Text('Print Page Setup')),
+
             ],
           ),
         ],
@@ -697,6 +743,7 @@ class _ComparisonDashboardScreenState
             onClassChanged: (value) {
               setState(() => _classFilter = value);
             },
+            onPrint: _printReport,
           ),
 
           Expanded(
@@ -765,6 +812,7 @@ class _SummarySection extends StatelessWidget {
   final List<String> classes;
   final String classFilter;
   final ValueChanged<String> onClassChanged;
+  final VoidCallback onPrint;
 
   const _SummarySection({
     required this.all,
@@ -791,6 +839,7 @@ class _SummarySection extends StatelessWidget {
     required this.classes,
     required this.classFilter,
     required this.onClassChanged,
+    required this.onPrint,
   });
 
   @override
@@ -938,6 +987,12 @@ class _SummarySection extends StatelessWidget {
                   ],
                   onChanged: (value) => onClassChanged(value ?? ''),
                 ),
+              ),
+              IconButton(
+                tooltip: 'Print',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.print_rounded, size: 21),
+                onPressed: onPrint,
               ),
             ],
           ),
