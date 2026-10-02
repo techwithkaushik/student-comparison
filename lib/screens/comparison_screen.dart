@@ -255,8 +255,8 @@ class _ComparisonDashboardScreenState
       ));
       final profile = await AppDatabase.instance.getActiveSchoolProfile();
       final code = pspExport
-          ? profile?['pspCode']?.toString().trim() ?? ''
-          : profile?['udiseCode']?.toString().trim() ?? '';
+          ? (profile == null ? '' : profile['pspCode']?.toString().trim() ?? '')
+          : (profile == null ? '' : profile['udiseCode']?.toString().trim() ?? '');
       if (code.isEmpty) {
         throw StateError('No active school profile code is available.');
       }
