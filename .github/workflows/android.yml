@@ -90,7 +90,7 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
       - name: Format Dart
-        run: dart format lib/*
+        run: flutter format lib/*
 
       - name: Analyze
         run: flutter analyze
