@@ -204,6 +204,35 @@ class _ComparisonDashboardScreenState
     }
   }
 
+  Future<void> _importLegacyRemarks() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['db', 'sqlite', 'sqlite3'],
+        withData: true,
+      );
+      if (result == null) return;
+      final bytes = result.files.single.bytes;
+      if (bytes == null) throw Exception('Unable to read selected SQLite file.');
+
+      final imported = await AppDatabase.instance.importLegacyRemarksBytes(bytes);
+      await _loadRemarkKeys();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            imported == 0
+                ? 'No matching remarks found in the old database.'
+                : '$imported old remarks imported successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _dataError = 'Old remarks import failed: $e');
+    }
+  }
+
   Future<void> _exportDatabase() async {
     try {
       final bytes = await AppDatabase.instance.exportDatabaseBytes();
@@ -590,6 +619,7 @@ class _ComparisonDashboardScreenState
                 case 'import_psp': _importJson(true); break;
                 case 'import_udise': _importJson(false); break;
                 case 'import_sqlite': _importSqlite(); break;
+                case 'import_legacy_remarks': _importLegacyRemarks(); break;
                 case 'export_csv': _exportCsv(); break;
                 case 'export_psp': _exportSourceJson(true); break;
                 case 'export_udise': _exportSourceJson(false); break;
@@ -601,6 +631,8 @@ class _ComparisonDashboardScreenState
               const PopupMenuItem(value: 'import_udise', child: Text('Import UDISE JSON')),
               if (!kIsWeb)
                 const PopupMenuItem(value: 'import_sqlite', child: Text('Import SQLite database')),
+              if (!kIsWeb)
+                const PopupMenuItem(value: 'import_legacy_remarks', child: Text('Import remarks from old database')),
               const PopupMenuDivider(),
               const PopupMenuItem(value: 'export_csv', child: Text('Export comparison CSV')),
               const PopupMenuItem(value: 'export_psp', child: Text('Export PSP JSON')),
