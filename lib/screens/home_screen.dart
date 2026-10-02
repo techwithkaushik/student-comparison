@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../database/database.dart';
-import 'comparison_screen.dart' hide ScaffoldMessenger;
+import 'comparison_screen.dart';
 
 /// Main landing page: one independent comparison workspace per school.
 class HomeScreen extends StatefulWidget {
