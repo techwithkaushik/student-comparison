@@ -60,6 +60,43 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _deleteProfile(Map<String, dynamic> profile) async {
+    final name = profile['schoolName']?.toString() ?? 'this school';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete school profile?'),
+        content: Text(
+          'Delete "$name" and all PSP/UDISE data, mappings and remarks stored for this school?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await AppDatabase.instance.deleteSchoolProfile(profile['id'].toString());
+      await _loadProfiles();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('School profile deleted successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete profile: $e')),
+      );
+    }
+  }
+
   Future<void> _showProfileForm({Map<String, dynamic>? profile}) async {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(
@@ -318,10 +355,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Edit profile',
-                    onPressed: () => _showProfileForm(profile: profile),
-                    icon: const Icon(Icons.edit_outlined),
+                  PopupMenuButton<String>(
+                    tooltip: 'School profile actions',
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showProfileForm(profile: profile);
+                      } else if (value == 'delete') {
+                        _deleteProfile(profile);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Edit profile'),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Delete profile'),
+                      ),
+                    ],
                   ),
                 ],
               ),
