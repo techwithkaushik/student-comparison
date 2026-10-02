@@ -179,8 +179,8 @@ public class MainActivity extends FlutterActivity {
                 callback.onLayoutCancelled();
                 return;
             }
-            pageWidth = newAttributes.getMediaSize().getWidthMils();
-            pageHeight = newAttributes.getMediaSize().getHeightMils();
+            pageWidth = Math.round(newAttributes.getMediaSize().getWidthMils() * 0.072f);
+            pageHeight = Math.round(newAttributes.getMediaSize().getHeightMils() * 0.072f);
             rowHeight = Math.max(24f, fontSize * 2.4f);
             headerHeight = fontSize * 5.2f;
             int count = pageCount();
@@ -213,7 +213,7 @@ public class MainActivity extends FlutterActivity {
                         return;
                     }
                     PdfDocument.PageInfo info =
-                            new PdfDocument.PageInfo.Builder(pageWidthPoints(), pageHeightPoints(), page + 1).create();
+                            new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, page + 1).create();
                     PdfDocument.Page pdfPage = pdf.startPage(info);
                     drawPage(pdfPage.getCanvas(), page, total);
                     pdf.finishPage(pdfPage);
@@ -227,17 +227,14 @@ public class MainActivity extends FlutterActivity {
             }
         }
 
-        private int pageWidthPoints() { return Math.max(1, Math.round(pageWidth * 0.072f)); }
-        private int pageHeightPoints() { return Math.max(1, Math.round(pageHeight * 0.072f)); }
-
         private void drawPage(Canvas c, int page, int totalPages) {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
             p.setColor(android.graphics.Color.BLACK);
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
 
-            float left = 18f;
-            float right = pageWidth - 18f;
-            float y = 24f;
+            float left = 12f;
+            float right = pageWidth - 12f;
+            float y = 18f;
 
             p.setTextSize(fontSize * 1.25f);
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
@@ -252,14 +249,14 @@ public class MainActivity extends FlutterActivity {
             int end;
             if (page == 0) {
                 start = 0;
-                int capacity = Math.max(1, (int) ((pageHeight - y - 35f) / rowHeight));
+                int capacity = Math.max(1, (int) ((pageHeight - y - 25f) / rowHeight));
                 end = Math.min(rows.size(), capacity);
             } else {
-                int firstCapacity = Math.max(1, (int) ((pageHeight - headerHeight - 35f) / rowHeight));
-                int normalCapacity = Math.max(1, (int) ((pageHeight - 35f) / rowHeight));
+                int firstCapacity = Math.max(1, (int) ((pageHeight - headerHeight - 25f) / rowHeight));
+                int normalCapacity = Math.max(1, (int) ((pageHeight - 25f) / rowHeight));
                 start = firstCapacity + (page - 1) * normalCapacity;
                 end = Math.min(rows.size(), start + normalCapacity);
-                y = 24f;
+                y = 18f;
             }
 
             drawTable(c, y, start, end, page > 0 && repeatHeader);
