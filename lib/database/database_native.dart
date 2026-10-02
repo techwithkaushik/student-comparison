@@ -26,7 +26,7 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase._();
 
   static const _dbName = 'student_comparison.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 4;
   static const _publicFolder = '/storage/emulated/0/StudentComparison';
 
   Database? _db;
@@ -41,6 +41,7 @@ class AppDatabase {
       onCreate: (db, version) async => _createSchema(db),
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 3) await _upgradeToV3(db);
+        if (oldVersion < 4) await _upgradeToV4(db);
       },
     );
 
@@ -77,6 +78,7 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE psp_students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        school_profile_id TEXT NOT NULL,
         school_psp_id TEXT NOT NULL,
         nic_id TEXT NOT NULL,
         sr_no TEXT,
@@ -98,6 +100,7 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE udise_students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        school_profile_id TEXT NOT NULL,
         school_udise_code TEXT NOT NULL,
         student_id TEXT NOT NULL,
         pen TEXT NOT NULL,
@@ -270,6 +273,67 @@ class AppDatabase {
     await _createIndexes(db);
   }
 
+  static Future<void> _upgradeToV4(Database db) async {
+    if (await _tableExists(db, 'psp_students')) {
+      final columns = await _columnNames(db, 'psp_students');
+      if (!columns.contains('school_profile_id')) {
+        await db.execute(
+          "ALTER TABLE psp_students ADD COLUMN school_profile_id TEXT NOT NULL DEFAULT ''",
+        );
+      }
+    }
+    if (await _tableExists(db, 'udise_students')) {
+      final columns = await _columnNames(db, 'udise_students');
+      if (!columns.contains('school_profile_id')) {
+        await db.execute(
+          "ALTER TABLE udise_students ADD COLUMN school_profile_id TEXT NOT NULL DEFAULT ''",
+        );
+      }
+    }
+    if (await _tableExists(db, 'psp_students')) {
+      await db.execute('''
+        UPDATE psp_students
+        SET school_profile_id = (
+          SELECT id FROM school_profiles
+          WHERE LOWER(psp_code) = LOWER(psp_students.school_psp_id)
+          LIMIT 1
+        )
+        WHERE school_profile_id = ''
+      ''');
+    }
+    if (await _tableExists(db, 'udise_students')) {
+      await db.execute('''
+        UPDATE udise_students
+        SET school_profile_id = (
+          SELECT id FROM school_profiles
+          WHERE LOWER(udise_code) = LOWER(udise_students.school_udise_code)
+          LIMIT 1
+        )
+        WHERE school_profile_id = ''
+      ''');
+    }
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_psp_profile ON psp_students(school_profile_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_udise_profile ON udise_students(school_profile_id)',
+    );
+  }
+
+  Future<String> _profileIdForCodes(String psp, String udise) async {
+    final rows = await _db!.query(
+      'school_profiles',
+      columns: ['id'],
+      where: 'LOWER(psp_code) = LOWER(?) AND LOWER(udise_code) = LOWER(?)',
+      whereArgs: [psp, udise],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      throw StateError('School profile not found for PSP/UDISE mapping.');
+    }
+    return _text(rows.first['id']);
+  }
+
   static Future<bool> _tableExists(Database db, String table) async {
     final rows = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
@@ -381,7 +445,7 @@ class AppDatabase {
         if (oldPsp != psp) {
           await txn.update(
             'psp_students',
-            {'school_psp_id': psp},
+            {'school_profile_id': profileId, 'school_psp_id': psp},
             where: 'school_psp_id = ?',
             whereArgs: [oldPsp],
           );
@@ -395,7 +459,7 @@ class AppDatabase {
         if (oldUdise != udise) {
           await txn.update(
             'udise_students',
-            {'school_udise_code': udise},
+            {'school_profile_id': profileId, 'school_udise_code': udise},
             where: 'school_udise_code = ?',
             whereArgs: [oldUdise],
           );
@@ -439,13 +503,13 @@ class AppDatabase {
       );
       await txn.delete(
         'psp_students',
-        where: 'school_psp_id = ?',
-        whereArgs: [psp],
+        where: 'school_profile_id = ? OR school_psp_id = ?',
+        whereArgs: [profileId, psp],
       );
       await txn.delete(
         'udise_students',
-        where: 'school_udise_code = ?',
-        whereArgs: [udise],
+        where: 'school_profile_id = ? OR school_udise_code = ?',
+        whereArgs: [profileId, udise],
       );
       await txn.delete(
         'school_profiles',
@@ -470,13 +534,14 @@ class AppDatabase {
   Future<void> replacePspRows(List<Map<String, dynamic>> rows) async {
     final db = await database;
     final profile = await _requireActiveProfile();
-    final schoolPspId = _text(profile['psp_code']);
+    final schoolProfileId = _text(profile['id']);
+    final schoolPspId = _text(profile['pspCode']);
 
     await db.transaction((txn) async {
       await txn.delete(
         'psp_students',
-        where: 'school_psp_id = ?',
-        whereArgs: [schoolPspId],
+        where: 'school_profile_id = ?',
+        whereArgs: [schoolProfileId],
       );
 
       final batch = txn.batch();
@@ -489,6 +554,7 @@ class AppDatabase {
         batch.insert(
           'psp_students',
           {
+            'school_profile_id': schoolProfileId,
             'school_psp_id': schoolPspId,
             'nic_id': nic,
             'sr_no': _text(row['SR No.']),
@@ -514,13 +580,14 @@ class AppDatabase {
   Future<void> replaceUdiseRows(List<Map<String, dynamic>> rows) async {
     final db = await database;
     final profile = await _requireActiveProfile();
-    final schoolUdiseCode = _text(profile['udise_code']);
+    final schoolProfileId = _text(profile['id']);
+    final schoolUdiseCode = _text(profile['udiseCode']);
 
     await db.transaction((txn) async {
       await txn.delete(
         'udise_students',
-        where: 'school_udise_code = ?',
-        whereArgs: [schoolUdiseCode],
+        where: 'school_profile_id = ?',
+        whereArgs: [schoolProfileId],
       );
 
       final batch = txn.batch();
@@ -538,6 +605,7 @@ class AppDatabase {
         batch.insert(
           'udise_students',
           {
+            'school_profile_id': schoolProfileId,
             'school_udise_code': schoolUdiseCode,
             'student_id': studentId,
             'pen': penKey,
@@ -579,8 +647,8 @@ class AppDatabase {
     final profile = await _requireActiveProfile();
     final rows = await db.query(
       'psp_students',
-      where: 'school_psp_id = ?',
-      whereArgs: [_text(profile['psp_code'])],
+      where: 'school_profile_id = ?',
+      whereArgs: [_text(profile['id'])],
       orderBy: 'id ASC',
     );
     return _decodeRawRows(rows);
@@ -591,8 +659,8 @@ class AppDatabase {
     final profile = await _requireActiveProfile();
     final rows = await db.query(
       'udise_students',
-      where: 'school_udise_code = ?',
-      whereArgs: [_text(profile['udise_code'])],
+      where: 'school_profile_id = ?',
+      whereArgs: [_text(profile['id'])],
       orderBy: 'id ASC',
     );
     return _decodeRawRows(rows);
@@ -882,8 +950,8 @@ class AppDatabase {
     final db = await database;
     final profile = await _requireActiveProfile();
     final result = await db.rawQuery(
-      'SELECT COUNT(*) AS count FROM psp_students WHERE school_psp_id = ?',
-      [_text(profile['psp_code'])],
+      'SELECT COUNT(*) AS count FROM psp_students WHERE school_profile_id = ?',
+      [_text(profile['id'])],
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -892,8 +960,8 @@ class AppDatabase {
     final db = await database;
     final profile = await _requireActiveProfile();
     final result = await db.rawQuery(
-      'SELECT COUNT(*) AS count FROM udise_students WHERE school_udise_code = ?',
-      [_text(profile['udise_code'])],
+      'SELECT COUNT(*) AS count FROM udise_students WHERE school_profile_id = ?',
+      [_text(profile['id'])],
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -992,6 +1060,7 @@ class AppDatabase {
           batch.insert(
             'psp_students',
             {
+              'school_profile_id': await _profileIdForCodes(schoolPspId, schoolUdiseCode),
               'school_psp_id': schoolPspId,
               'nic_id': nic,
               'sr_no': row['sr_no'],
@@ -1024,6 +1093,7 @@ class AppDatabase {
           batch.insert(
             'udise_students',
             {
+              'school_profile_id': await _profileIdForCodes(schoolPspId, schoolUdiseCode),
               'school_udise_code': schoolUdiseCode,
               'student_id': studentId,
               'pen': pen.isEmpty ? '__NO_PEN__:$studentId' : pen,
