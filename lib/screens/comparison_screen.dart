@@ -11,7 +11,7 @@ import '../matching/matching_engine.dart';
 import '../matching/models.dart';
 
 String expectedSourceJsonFileName({required bool psp, required String code}) {
-  final normalizedCode = psp ? code.trim().toUpperCase() : code.trim();
+  final normalizedCode = psp ? code.trim().toLowerCase() : code.trim();
   return '${psp ? 'psp_' : 'udise_'}$normalizedCode.json';
 }
 
@@ -133,7 +133,6 @@ class _ComparisonDashboardScreenState
           ? profile['pspCode']?.toString().trim().toUpperCase() ?? ''
           : profile['udiseCode']?.toString().trim() ?? '';
       final sourceLabel = pspImport ? 'PSP' : 'UDISE';
-      final prefix = pspImport ? 'psp_' : 'udise_';
       final expectedFileName = expectedSourceJsonFileName(
         psp: pspImport,
         code: expectedCode,
@@ -257,7 +256,7 @@ class _ComparisonDashboardScreenState
       }
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Export ${pspExport ? 'PSP' : 'UDISE'} JSON',
-        fileName: '${pspExport ? 'psp' : 'udise'}_$code.json',
+        fileName: expectedSourceJsonFileName(psp: pspExport, code: code),
         bytes: bytes,
       );
       if (path != null && mounted) {
