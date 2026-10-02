@@ -125,27 +125,18 @@ class _ComparisonDashboardScreenState
       }
 
       final expectedCode = pspImport
-          ? profile['pspCode']?.toString().trim() ?? ''
+          ? profile['pspCode']?.toString().trim().toUpperCase() ?? ''
           : profile['udiseCode']?.toString().trim() ?? '';
       final sourceLabel = pspImport ? 'PSP' : 'UDISE';
       final prefix = pspImport ? 'psp_' : 'udise_';
-      final pattern = RegExp(
-        '^\${RegExp.escape(prefix)}(.+)\\.json\$',
-        caseSensitive: false,
-      );
-      final match = pattern.firstMatch(fileName);
+      final expectedFileName = '$prefix$expectedCode.json';
 
-      if (match == null) {
+      // Exact school-code filename. Examples:
+      // PSP: p12345 -> psp_p12345.json
+      // UDISE: 01234567890 -> udise_01234567890.json
+      if (fileName.toLowerCase() != expectedFileName.toLowerCase()) {
         throw FormatException(
-          'Invalid $sourceLabel file name. Use $prefix<school-code>.json.',
-        );
-      }
-
-      final fileCode = match.group(1)?.trim() ?? '';
-      if (fileCode.isEmpty ||
-          fileCode.toLowerCase() != expectedCode.toLowerCase()) {
-        throw FormatException(
-          'School code mismatch. Selected profile expects $prefix$expectedCode.json, but "$fileName" was selected.',
+          'Invalid $sourceLabel file name. Expected "$expectedFileName", but "$fileName" was selected.',
         );
       }
 
