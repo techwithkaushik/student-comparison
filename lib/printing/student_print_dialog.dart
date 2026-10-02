@@ -50,110 +50,168 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   required String udiseCode,
   required PrintSettings settings,
 }) async {
-  var source='PSP'; var scope='ALL'; String selectedClass='';
-  var fields=<String>['id','sr','name','father','mother','dob','admission','mobile'];
-  const labels={'id':'NIC ID / PEN','sr':'S.No / SR','name':'Name','father':'Father Name','mother':'Mother Name','dob':'DOB','admission':'Admission Date','mobile':'Mobile'};
+  var source='PSP';
+  var scope='ALL';
+  String selectedClass='';
+  List<String> fields=[];
+
+  List<ComparisonRow> sourceRows() =>
+      rows.where((r)=>source=='PSP'?r.psp!=null:r.udise!=null).toList();
+
+  String normKey(String key) => key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'),'');
+  String label(String key) {
+    final s=key.replaceAll(RegExp(r'[_-]+'),' ').replaceAll(RegExp(r'\\s+'),' ').trim();
+    return s.isEmpty?key:s.split(' ').map((w)=>w.isEmpty?w:'${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+  }
+
+  List<MapEntry<String,String>> availableFields() {
+    final out=<MapEntry<String,String>>[];
+    final seen=<String>{};
+    void add(String key,String text) {
+      final n=normKey(key);
+      if(n.isEmpty||seen.contains(n))return;
+      seen.add(n); out.add(MapEntry(key,text));
+    }
+    final preferred=<MapEntry<String,String>>[
+      const MapEntry('Student NIC ID','NIC ID / PEN'),
+      const MapEntry('studentCodeNat','National Student Code'),
+      const MapEntry('studentId','Student ID'),
+      const MapEntry('SR No.','S.No / SR'),
+      const MapEntry('Student Name','Name'),
+      const MapEntry('studentName','Name'),
+      const MapEntry('Father Name','Father Name'),
+      const MapEntry('fatherName','Father Name'),
+      const MapEntry('Mother Name','Mother Name'),
+      const MapEntry('motherName','Mother Name'),
+      const MapEntry('DOB','DOB'),
+      const MapEntry('dob','DOB'),
+      const MapEntry('Admission Date','Admission Date'),
+      const MapEntry('admissionDate','Admission Date'),
+      const MapEntry('dateOfAdmission','Admission Date'),
+      const MapEntry('Gender','Gender'),
+      const MapEntry('gender','Gender'),
+      const MapEntry('Studying in Class','Class'),
+      const MapEntry('classDesc','Class'),
+      const MapEntry('classId','Class ID'),
+      const MapEntry('Mobile Number','Mobile'),
+      const MapEntry('primaryMobile','Mobile'),
+      const MapEntry('Aadhar Number','Aadhaar'),
+      const MapEntry('uuid','UUID / Aadhaar'),
+      const MapEntry('uuidStatus','Aadhaar Verification Status'),
+      const MapEntry('nameAsUuid','Name as Aadhaar'),
+      const MapEntry('Social Category','Social Category'),
+      const MapEntry('socialCategoryDesc','Social Category'),
+      const MapEntry('socCatId','Social Category ID'),
+      const MapEntry('Religion','Religion'),
+      const MapEntry('minorityDesc','Religion / Minority'),
+      const MapEntry('minorityId','Religion / Minority ID'),
+    ];
+    final data=sourceRows();
+    for(final e in preferred) {
+      if(data.any((r){final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;return raw.keys.any((k)=>normKey(k)==normKey(e.key));})) add(e.key,e.value);
+    }
+    for(final r in data) {
+      final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
+      for(final k in raw.keys) add(k,label(k));
+    }
+    return out;
+  }
 
   final ok=await showDialog<bool>(context:context,builder:(_)=>StatefulBuilder(builder:(context,set){
-    final sourceRows=rows.where((r)=>source=='PSP'?r.psp!=null:r.udise!=null);
+    final entries=availableFields();
+    if(fields.isEmpty) fields=entries.take(10).map((e)=>e.key).toList();
     final classes=<String>{};
-    for(final r in sourceRows){
+    for(final r in sourceRows()){
       final c=source=='PSP'?(r.psp?.classCanonValue??''):(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
-      if(c.isNotEmpty) { classes.add(c); }
+      if(c.isNotEmpty) classes.add(c);
     }
     final cs=classes.toList()..sort();
     return AlertDialog(
       title:const Text('Print Report'),
-      content:SizedBox(width:480,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        SegmentedButton<String>(segments:const[ButtonSegment(value:'PSP',label:Text('PSP')),ButtonSegment(value:'UDISE',label:Text('UDISE'))],selected:{source},onSelectionChanged:(v)=>set(() { source=v.first; selectedClass=''; })),
+      content:SizedBox(width:520,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        SegmentedButton<String>(segments:const[ButtonSegment(value:'PSP',label:Text('PSP')),ButtonSegment(value:'UDISE',label:Text('UDISE'))],selected:{source},onSelectionChanged:(v)=>set((){source=v.first;selectedClass='';fields=[];})),
         const SizedBox(height:10),
-        SegmentedButton<String>(segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],selected:{scope},onSelectionChanged:(v)=>set(() =>scope=v.first)),
-        if(scope=='CLASS')DropdownButtonFormField<String>(initialValue:selectedClass.isEmpty?null:selectedClass,decoration:const InputDecoration(labelText:'Class'),items:cs.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c'))).toList(),onChanged:(v)=>set(() =>selectedClass=v??'')),
-        const SizedBox(height:10),Text('Select fields',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800)),
-        ...labels.entries.map((e)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(e.value),value:fields.contains(e.key),onChanged: (v) => set(() {
-          if (v == true && !fields.contains(e.key)) {
-            fields = [...fields, e.key];
-          }
-          if (v == false && fields.length > 1) {
-            fields = fields.where((x) => x != e.key).toList();
-          }
+        SegmentedButton<String>(segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],selected:{scope},onSelectionChanged:(v)=>set(()=>scope=v.first)),
+        if(scope=='CLASS')DropdownButtonFormField<String>(initialValue:selectedClass.isEmpty?null:selectedClass,decoration:const InputDecoration(labelText:'Class'),items:cs.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c'))).toList(),onChanged:(v)=>set(()=>selectedClass=v??'')),
+        const SizedBox(height:10),
+        Text('Select fields (${entries.length})',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800)),
+        ...entries.map((e)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(e.value),subtitle:Text(e.key),value:fields.contains(e.key),onChanged:(v)=>set((){
+          if(v==true&&!fields.contains(e.key)){fields=[...fields,e.key];}
+          if(v==false&&fields.length>1){fields=fields.where((x)=>x!=e.key).toList();}
         }))),
       ]))),
       actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton.icon(onPressed:()=>Navigator.pop(context,true),icon:const Icon(Icons.print),label:const Text('Print'))],
     );
   }));
-  if (ok != true || !context.mounted) {
-    return;
-  }
-  if (scope == 'CLASS' && selectedClass.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please select a class.')),
-    );
-    return;
-  }
+  if(ok!=true||!context.mounted)return;
+  if(scope=='CLASS'&&selectedClass.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select a class.')));return;}
+  if(fields.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select at least one field.')));return;}
 
-  var data = rows
-      .where((r) => source == 'PSP' ? r.psp != null : r.udise != null)
-      .toList();
-  if (scope == 'CLASS') {
-    data = data.where((r) {
-    final c=source=='PSP'?(r.psp?.classCanonValue??''):(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
-    return c==selectedClass;
+  var data=sourceRows();
+  if(scope=='CLASS'){
+    data=data.where((r){
+      final c=source=='PSP'?(r.psp?.classCanonValue??''):(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
+      return c==selectedClass;
     }).toList();
   }
 
-  final cols=['S.No',...fields.map((x)=>labels[x]!)];
-  String val(ComparisonRow r, String k) {
-    if (source == 'PSP') {
-      final p = r.psp!;
-      switch (k) {
-        case 'id':
-          return p.nicId;
-        case 'sr':
-          return p.srNo;
-        case 'name':
-          return p.studentName;
-        case 'father':
-          return p.fatherName;
-        case 'mother':
-          return p.motherName;
-        case 'dob':
-          return p.dob;
-        case 'admission':
-          return _raw(p.raw);
-        case 'mobile':
-          return p.mobile;
+  final entries=availableFields();
+  String valueFor(ComparisonRow r,String requested){
+    final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
+    final target=normKey(requested);
+    for(final e in raw.entries){
+      if(normKey(e.key)==target){
+        final v=e.value?.toString().trim()??'';
+        if(v.isNotEmpty)return v;
       }
-    } else {
-      final u = r.udise!;
-      switch (k) {
-        case 'id':
-          return u.studentCodeNat;
-        case 'sr':
-          return u.studentId;
-        case 'name':
-          return u.studentName;
-        case 'father':
-          return u.fatherName;
-        case 'mother':
-          return u.motherName;
-        case 'dob':
-          return u.dob;
-        case 'admission':
-          return _raw(u.raw);
-        case 'mobile':
-          return u.mobile;
+    }
+    if(target=='admissiondate'||target=='dateofadmission'||target=='admissiondt'){
+      for(final e in raw.entries){
+        final n=normKey(e.key);
+        if(n.contains('admission')&&(n.contains('date')||n.contains('dt'))){
+          final v=e.value?.toString().trim()??'';
+          if(v.isNotEmpty)return v;
+        }
+      }
+    }
+    final p=r.psp; final u=r.udise;
+    if(source=='PSP'&&p!=null){
+      switch(target){
+        case 'studentnicid':return p.nicId;
+        case 'srno':return p.srNo;
+        case 'studentname':return p.studentName;
+        case 'fathername':return p.fatherName;
+        case 'mothername':return p.motherName;
+        case 'dob':return p.dob;
+        case 'gender':return p.gender;
+        case 'studyinginclass':return p.studyingClass;
+        case 'mobilenumber':return p.mobile;
+        case 'socialcategory':return p.socialCategory;
+        case 'religion':return p.religion;
+        case 'aadharnumber':return p.aadhaarLast4;
+      }
+    }
+    if(source=='UDISE'&&u!=null){
+      switch(target){
+        case 'studentid':return u.studentId;
+        case 'studentcodenat':return u.studentCodeNat;
+        case 'studentname':return u.studentName;
+        case 'fathername':return u.fatherName;
+        case 'mothername':return u.motherName;
+        case 'dob':return u.dob;
+        case 'gender':return u.gender;
+        case 'classid':return u.classId;
+        case 'classdesc':return u.classDesc;
+        case 'primarymobile':return u.mobile;
+        case 'socialcategory':return u.socialCategory;
+        case 'religion':return u.religion;
       }
     }
     return '';
   }
-  final table=<List<String>>[];
-  for(var i=0;i<data.length;i++) { table.add(['${i+1}',...fields.map((k)=>val(data[i],k))]); }
-  await NativePrintService.printTable(
-    title:'($pspCode) ($udiseCode) $schoolName',
-    subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : ${table.length}',
-    columns:cols,rows:table,settings:settings,
-  );
-}
 
-String _raw(Map<String,dynamic> r){for(final k in const['Admission Date','AdmissionDate','admissionDate','admission_date']){final v=r[k]?.toString().trim()??'';if(v.isNotEmpty)return v;}return'';}
+  final selected=fields.map((k)=>entries.where((e)=>e.key==k).firstOrNull).whereType<MapEntry<String,String>>().toList();
+  final table=<List<String>>[];
+  for(var i=0;i<data.length;i++){table.add(['${i+1}',...selected.map((e)=>valueFor(data[i],e.key))]);}
+  await NativePrintService.printTable(title:'($pspCode) ($udiseCode) $schoolName',subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : ${table.length}',columns:['S.No',...selected.map((e)=>e.value)],rows:table,settings:settings);
+}
