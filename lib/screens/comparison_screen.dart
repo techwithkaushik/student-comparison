@@ -129,14 +129,14 @@ class _ComparisonDashboardScreenState
           : profile['udiseCode']?.toString().trim() ?? '';
       final prefix = pspImport ? 'psp_' : 'udise_';
       final pattern = RegExp(
-        '^\${RegExp.escape(prefix)}(.+)\\.json\\$',
+        '^${RegExp.escape(prefix)}(.+)\\.json\\$',
         caseSensitive: false,
       );
       final match = pattern.firstMatch(fileName);
 
       if (match == null) {
         throw FormatException(
-          'Invalid \${pspImport ? 'PSP' : 'UDISE'} file name. Use \${prefix}<school-code>.json.',
+          'Invalid ${pspImport ? 'PSP' : 'UDISE'} file name. Use ${prefix}<school-code>.json.',
         );
       }
 
