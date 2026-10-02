@@ -129,14 +129,14 @@ class _ComparisonDashboardScreenState
           : profile['udiseCode']?.toString().trim() ?? '';
       final prefix = pspImport ? 'psp_' : 'udise_';
       final pattern = RegExp(
-        r'^${RegExp.escape(prefix)}(.+)\.json,
+        '^\${RegExp.escape(prefix)}(.+)\\.json\\$',
         caseSensitive: false,
       );
       final match = pattern.firstMatch(fileName);
 
       if (match == null) {
         throw FormatException(
-          \'Invalid ${pspImport ? 'PSP' : 'UDISE'} file name. Use ${prefix}<school-code>.json.\',
+          'Invalid \${pspImport ? 'PSP' : 'UDISE'} file name. Use \${prefix}<school-code>.json.',
         );
       }
 
@@ -144,7 +144,7 @@ class _ComparisonDashboardScreenState
       if (fileCode.isEmpty ||
           fileCode.toLowerCase() != expectedCode.toLowerCase()) {
         throw FormatException(
-          \'School code mismatch. Selected profile expects ${prefix}${expectedCode}.json, but "${fileName}" was selected.\',
+          'School code mismatch. Selected profile expects ${prefix}${expectedCode}.json, but "${fileName}" was selected.',
         );
       }
 
