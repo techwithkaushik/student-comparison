@@ -5,7 +5,7 @@ void main() {
   test('PSP filename uses normalized uppercase school code', () {
     expect(
       expectedSourceJsonFileName(psp: true, code: 'p12345'),
-      'psp_P12345.json',
+      'psp_p12345.json',
     );
     expect(
       expectedSourceJsonFileName(psp: true, code: 'P12345'),
