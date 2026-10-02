@@ -10,6 +10,11 @@ import '../database/database.dart';
 import '../matching/matching_engine.dart';
 import '../matching/models.dart';
 
+String expectedSourceJsonFileName({required bool psp, required String code}) {
+  final normalizedCode = psp ? code.trim().toUpperCase() : code.trim();
+  return '${psp ? 'psp_' : 'udise_'}$normalizedCode.json';
+}
+
 class ComparisonDashboardScreen extends StatefulWidget {
   final List<ComparisonRow> initialRows;
   final String schoolName;
@@ -129,7 +134,10 @@ class _ComparisonDashboardScreenState
           : profile['udiseCode']?.toString().trim() ?? '';
       final sourceLabel = pspImport ? 'PSP' : 'UDISE';
       final prefix = pspImport ? 'psp_' : 'udise_';
-      final expectedFileName = '$prefix$expectedCode.json';
+      final expectedFileName = expectedSourceJsonFileName(
+        psp: pspImport,
+        code: expectedCode,
+      );
 
       // Exact school-code filename. Examples:
       // PSP: p12345 -> psp_p12345.json
