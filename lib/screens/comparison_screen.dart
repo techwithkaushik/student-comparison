@@ -127,6 +127,7 @@ class _ComparisonDashboardScreenState
       final expectedCode = pspImport
           ? profile['pspCode']?.toString().trim() ?? ''
           : profile['udiseCode']?.toString().trim() ?? '';
+      final sourceLabel = pspImport ? 'PSP' : 'UDISE';
       final prefix = pspImport ? 'psp_' : 'udise_';
       final pattern = RegExp(
         '^\${RegExp.escape(prefix)}(.+)\\.json\$',
@@ -136,7 +137,7 @@ class _ComparisonDashboardScreenState
 
       if (match == null) {
         throw FormatException(
-          'Invalid ${pspImport ? 'PSP' : 'UDISE'} file name. Use ${prefix}<school-code>.json.',
+          'Invalid $sourceLabel file name. Use $prefix<school-code>.json.',
         );
       }
 
@@ -144,7 +145,7 @@ class _ComparisonDashboardScreenState
       if (fileCode.isEmpty ||
           fileCode.toLowerCase() != expectedCode.toLowerCase()) {
         throw FormatException(
-          'School code mismatch. Selected profile expects ${prefix}${expectedCode}.json, but "${fileName}" was selected.',
+          'School code mismatch. Selected profile expects $prefix$expectedCode.json, but "$fileName" was selected.',
         );
       }
 
@@ -169,7 +170,7 @@ class _ComparisonDashboardScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${pspImport ? 'PSP' : 'UDISE'} data imported for ${profile['schoolName']?.toString() ?? 'selected school'}.',
+            '$sourceLabel data imported for ${profile['schoolName']?.toString() ?? 'selected school'}.',
           ),
         ),
       );
