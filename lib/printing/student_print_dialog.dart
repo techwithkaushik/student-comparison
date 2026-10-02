@@ -90,7 +90,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     final u=r.udise!;switch(k){case'id':return u.studentCodeNat;case'sr':return u.studentId;case'name':return u.studentName;case'father':return u.fatherName;case'mother':return u.motherName;case'dob':return u.dob;case'admission':return _raw(u.raw);case'mobile':return u.mobile;}return '';
   }
   final table=<List<String>>[];
-  for(var i=0;i<data.length;i++)table.add(['${i+1}',...fields.map((k)=>val(data[i],k))]);
+  for(var i=0;i<data.length;i++) { table.add(['${i+1}',...fields.map((k)=>val(data[i],k))]); }
   await NativePrintService.printTable(
     title:'($pspCode) ($udiseCode) $schoolName',
     subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : ${table.length}',
