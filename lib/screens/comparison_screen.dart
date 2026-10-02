@@ -119,15 +119,71 @@ class _ComparisonDashboardScreenState
       final fileName = file.name.trim();
       final profile = await AppDatabase.instance.getActiveSchoolProfile();
       if (profile == null) {
-        throw StateError('Please create and select a school profile before importing JSON.');
+        throw StateError(
+          'Please create and select a school profile before importing JSON.',
+        );
       }
 
       final expectedCode = pspImport
           ? profile['pspCode']?.toString().trim() ?? ''
           : profile['udiseCode']?.toString().trim() ?? '';
       final prefix = pspImport ? 'psp_' : 'udise_';
-      final match = RegExp(
-        '^\${RegExp.escape(prefix)}(.+)\\.json
+      final pattern = RegExp(
+        '^' + RegExp.escape(prefix) + r'(.+)\.json$',
+        caseSensitive: false,
+      );
+      final match = pattern.firstMatch(fileName);
+
+      if (match == null) {
+        throw FormatException(
+          'Invalid ' + (pspImport ? 'PSP' : 'UDISE') +
+              ' file name. Use ' + prefix + '<school-code>.json.',
+        );
+      }
+
+      final fileCode = match.group(1)?.trim() ?? '';
+      if (fileCode.isEmpty ||
+          fileCode.toLowerCase() != expectedCode.toLowerCase()) {
+        throw FormatException(
+          'School code mismatch. Selected profile expects ' +
+              prefix + expectedCode + '.json, but "' + fileName + '" was selected.',
+        );
+      }
+
+      final bytes = file.bytes;
+      if (bytes == null) {
+        throw Exception('Unable to read selected JSON file.');
+      }
+
+      final rows = await _decodeJsonRows(
+        bytes,
+        pspImport ? 'PSP' : 'UDISE',
+      );
+      if (pspImport) {
+        await AppDatabase.instance.replacePspRows(rows);
+      } else {
+        await AppDatabase.instance.replaceUdiseRows(rows);
+      }
+      await _loadData();
+      await _loadRemarkKeys();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            (pspImport ? 'PSP' : 'UDISE') +
+                ' data imported for ' +
+                (profile['schoolName']?.toString() ?? 'selected school') +
+                '.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _dataError = 'JSON import failed: $e');
+    }
+  }
+
   Future<void> _importSqlite() async {
     try {
       final result = await FilePicker.platform.pickFiles(
