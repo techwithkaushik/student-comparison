@@ -1187,7 +1187,8 @@ class _StudentRow extends StatelessWidget {
     final p = row.psp;
     final u = row.udise;
 
-    return Card(
+    return SelectionArea(
+      child: Card(
       margin: const EdgeInsets.only(bottom: 4),
       // Flat rows avoid per-card shadows and expensive offscreen clipping.
       elevation: 0,
@@ -1341,7 +1342,7 @@ class _StudentRow extends StatelessWidget {
               ],
             ),
           ),
-          // Keep the default row compact: expanded details are built only on demand.
+          // Show all comparison fields directly; no collapsed preview section.
           _ComparisonFieldRow(
             label: 'Name',
             psp: p?.studentName,
@@ -1351,29 +1352,15 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
           _ComparisonFieldRow(label: 'Class', psp: p?.studyingClass, udise: u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId, mismatch: row.diffs.contains('CLASS_MISMATCH')),
           _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p?.nicId, udise: u?.studentCodeNat),
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
-              childrenPadding: const EdgeInsets.only(bottom: 4),
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              title: Text(
-                'More details · ${row.diffs.length} differences',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant),
-              ),
-              children: [
-                _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
-                _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
-                _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
-                _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
-                _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
-                _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
-                _AadhaarPreviewRow(row: row),
-              ],
-            ),
-          ),
+          _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
+          _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
+          _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
+          _ComparisonFieldRow(label: 'Category', psp: p?.categoryNorm, udise: u?.categoryNorm, mismatch: row.diffs.contains('CATEGORY_MISMATCH')),
+          _ComparisonFieldRow(label: 'Religion', psp: p?.religionNormValue, udise: u?.religionNormValue, mismatch: row.diffs.contains('RELIGION_MISMATCH')),
+          _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
+          _AadhaarPreviewRow(row: row),
         ],
+      ),
       ),
     );
   }
