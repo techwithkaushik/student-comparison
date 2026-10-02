@@ -55,7 +55,7 @@ jobs:
           cp files/build.gradle.kts android/app/build.gradle.kts
           rm -f android/app/src/main/kotlin/org/techwithkaushik/student_comparison/MainActivity.kt
           mkdir -p android/app/src/main/java/org/techwithkaushik/student_comparison
-          cp files/MainActivity.kt android/app/src/main/java/org/techwithkaushik/student_comparison/MainActivity.java
+          cp files/MainActivity.java android/app/src/main/java/org/techwithkaushik/student_comparison/MainActivity.java
           python3 - <<'PY'
           from pathlib import Path
           manifest = Path("android/app/src/main/AndroidManifest.xml")
