@@ -172,7 +172,6 @@ public class MainActivity extends FlutterActivity {
     }
 
     private void printTable(Map<String, Object> data) {
-        String title = str(data.get("title"));
         String subtitle = str(data.get("subtitle"));
         List<String> columns = stringList(data.get("columns"));
         List<List<String>> rows = stringRows(data.get("rows"));
@@ -229,16 +228,15 @@ public class MainActivity extends FlutterActivity {
         if (pm == null) throw new IllegalStateException("Android Print service is unavailable.");
 
         pm.print(
-                "Student Comparison - " + (title.isEmpty() ? "Report" : title),
+                "Student Comparison - Report",
                 new StudentTablePrintAdapter(
-                        title, subtitle, columns, rows, fontSize, repeatHeader, pageNumber,
+                        subtitle, columns, rows, fontSize, repeatHeader, pageNumber,
                         marginTopMm, marginRightMm, marginBottomMm, marginLeftMm),
                 attrs
         );
     }
 
     private static class StudentTablePrintAdapter extends PrintDocumentAdapter {
-        private final String title;
         private final String subtitle;
         private final List<String> columns;
         private final List<List<String>> rows;
@@ -255,7 +253,7 @@ public class MainActivity extends FlutterActivity {
         private final float marginLeft;
 
         StudentTablePrintAdapter(
-                String title, String subtitle, List<String> columns, List<List<String>> rows,
+                String subtitle, List<String> columns, List<List<String>> rows,
                 float fontSize, boolean repeatHeader, boolean pageNumber,
                 int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm) {
             this.title = title;
@@ -343,15 +341,11 @@ public class MainActivity extends FlutterActivity {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
             p.setColor(android.graphics.Color.BLACK);
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            // Report header uses the same font size as table headings.
             p.setTextSize(fontSize);
 
             float left = marginLeft;
             float y = marginTop;
-            if (!title.isEmpty()) {
-                c.drawText(title, left, y, p);
-                y += fontSize * 1.45f;
-            }
-            p.setTypeface(Typeface.DEFAULT);
             c.drawText(subtitle, left, y, p);
             y += fontSize * 1.45f;
 
