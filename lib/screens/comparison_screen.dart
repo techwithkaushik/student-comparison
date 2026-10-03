@@ -397,7 +397,8 @@ class _ComparisonDashboardScreenState
       if (!mounted) return;
       await showStudentPrintDialog(
         context,
-        // Print exactly the list currently visible after all active filters/search.        rows: _filteredRows,
+        // Print exactly the list currently visible after all active filters/search.
+        rows: _filteredRows,
         schoolName: profile['schoolName']?.toString() ?? widget.schoolName,
         pspCode: profile['pspCode']?.toString() ?? '',
         udiseCode: profile['udiseCode']?.toString() ?? '',
