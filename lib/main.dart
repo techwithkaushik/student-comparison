@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/app_bloc.dart';
+import 'bloc/home_bloc.dart';
 import 'data/repositories/app_repository.dart';
 import 'data/repositories/school_repository.dart';
 import 'data/repositories/comparison_repository.dart';
@@ -24,8 +25,15 @@ class StudentComparisonApp extends StatelessWidget {
         RepositoryProvider(create: (_) => ComparisonRepository()),
         RepositoryProvider(create: (_) => PrintRepository()),
       ],
-      child: BlocProvider(
-        create: (context) => AppBloc(repository: context.read<AppRepository>())..add(const AppStarted()),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => AppBloc(repository: context.read<AppRepository>())..add(const AppStarted()),
+          ),
+          BlocProvider(
+            create: (context) => HomeBloc(repository: context.read<SchoolRepository>()),
+          ),
+        ],
         child: MaterialApp(
         title: 'PSP vs UDISE',
         debugShowCheckedModeBanner: false,
