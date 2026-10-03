@@ -6,7 +6,10 @@ class PrintSettingsCubit extends Cubit<PrintSettings> {
   PrintSettingsCubit(super.initial);
   void setPaper(String? v) { if (v != null) emit(state.copyWith(paper: v)); }
   void setOrientation(String? v) { if (v != null) emit(state.copyWith(orientation: v)); }
-  void setMargin(double v) => emit(state.copyWith(margin: v.round()));
+  void setMarginTop(int v) => emit(state.copyWith(marginTop: v.clamp(0, 50)));
+  void setMarginRight(int v) => emit(state.copyWith(marginRight: v.clamp(0, 50)));
+  void setMarginBottom(int v) => emit(state.copyWith(marginBottom: v.clamp(0, 50)));
+  void setMarginLeft(int v) => emit(state.copyWith(marginLeft: v.clamp(0, 50)));
   void setFontSize(double v) => emit(state.copyWith(fontSize: v));
   void setAutoFit(bool v) => emit(state.copyWith(autoFit: v));
   void setRepeatHeader(bool v) => emit(state.copyWith(repeatHeader: v));
