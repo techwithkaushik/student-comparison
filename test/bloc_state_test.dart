@@ -1,0 +1,44 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:student_comparison/bloc/comparison_cubit.dart';
+import 'package:student_comparison/matching/models.dart';
+
+void main() {
+  group('ComparisonState', () {
+    test('filters matched rows', () {
+      final matched = ComparisonRow(
+        type: MatchType.matched,
+        score: 100,
+        psp: null,
+        udise: null,
+        diffs: const [],
+      );
+      final mismatch = ComparisonRow(
+        type: MatchType.mismatch,
+        score: 80,
+        psp: null,
+        udise: null,
+        diffs: const ['NAME_MISMATCH'],
+      );
+
+      final state = ComparisonState(
+        rows: [matched, mismatch],
+        filter: 'MATCHED',
+      );
+
+      expect(state.filteredRows, [matched]);
+      expect(state.countType(MatchType.mismatch), 1);
+      expect(state.countDiff('NAME_MISMATCH'), 1);
+    });
+
+    test('diff filter toggles through Cubit state', () {
+      final cubit = ComparisonCubit();
+      addTearDown(cubit.close);
+
+      cubit.toggleDiffFilter('NAME_MISMATCH');
+      expect(cubit.state.filter, 'DIFF:NAME_MISMATCH');
+
+      cubit.toggleDiffFilter('NAME_MISMATCH');
+      expect(cubit.state.filter, 'ALL');
+    });
+  });
+}
