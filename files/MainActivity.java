@@ -147,6 +147,7 @@ public class MainActivity extends FlutterActivity {
     }
 
     private static class StudentTablePrintAdapter extends PrintDocumentAdapter {
+        private static final int MAX_COLUMNS_PER_PAGE = 6; // includes S.No
         private final String title;
         private final String subtitle;
         private final List<String> columns;
@@ -166,7 +167,7 @@ public class MainActivity extends FlutterActivity {
             this.subtitle = subtitle;
             this.columns = columns;
             this.rows = rows;
-            this.fontSize = Math.max(7f, Math.min(18f, fontSize));
+            this.fontSize = Math.max(7f, Math.min(16f, fontSize));
             this.repeatHeader = repeatHeader;
             this.pageNumber = pageNumber;
         }
@@ -181,8 +182,8 @@ public class MainActivity extends FlutterActivity {
             }
             pageWidth = Math.round(newAttributes.getMediaSize().getWidthMils() * 0.072f);
             pageHeight = Math.round(newAttributes.getMediaSize().getHeightMils() * 0.072f);
-            rowHeight = Math.max(24f, fontSize * 2.4f);
-            headerHeight = fontSize * 5.2f;
+            rowHeight = Math.max(30f, fontSize * 3.0f);
+            headerHeight = fontSize * 5.0f;
             int count = pageCount();
             PrintDocumentInfo info = new PrintDocumentInfo.Builder("student_comparison_report")
                     .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
@@ -191,14 +192,19 @@ public class MainActivity extends FlutterActivity {
             callback.onLayoutFinished(info, true);
         }
 
-        private int pageCount() {
-            float usable = pageHeight - 30f;
-            float first = Math.max(80f, usable - headerHeight);
-            int firstRows = Math.max(1, (int) (first / rowHeight));
-            if (rows.isEmpty()) return 1;
-            int remaining = Math.max(0, rows.size() - firstRows);
+        private int columnGroupCount() {
+            int fields = Math.max(0, columns.size() - 1);
+            return Math.max(1, (int) Math.ceil(fields / (double) (MAX_COLUMNS_PER_PAGE - 1)));
+        }
+
+        private int rowPages() {
+            float usable = pageHeight - headerHeight - 30f;
             int perPage = Math.max(1, (int) (usable / rowHeight));
-            return 1 + (int) Math.ceil(remaining / (double) perPage);
+            return Math.max(1, (int) Math.ceil(rows.size() / (double) perPage));
+        }
+
+        private int pageCount() {
+            return columnGroupCount() * rowPages();
         }
 
         @Override
@@ -207,15 +213,18 @@ public class MainActivity extends FlutterActivity {
             PdfDocument pdf = new PdfDocument();
             try {
                 int total = pageCount();
+                int rowPageCount = rowPages();
                 for (int page = 0; page < total; page++) {
                     if (cancellationSignal.isCanceled()) {
                         callback.onWriteCancelled();
                         return;
                     }
+                    int group = page / rowPageCount;
+                    int rowPage = page % rowPageCount;
                     PdfDocument.PageInfo info =
                             new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, page + 1).create();
                     PdfDocument.Page pdfPage = pdf.startPage(info);
-                    drawPage(pdfPage.getCanvas(), page, total);
+                    drawPage(pdfPage.getCanvas(), group, rowPage, rowPageCount, total, page + 1);
                     pdf.finishPage(pdfPage);
                 }
                 pdf.writeTo(new FileOutputStream(destination.getFileDescriptor()));
@@ -227,100 +236,126 @@ public class MainActivity extends FlutterActivity {
             }
         }
 
-        private void drawPage(Canvas c, int page, int totalPages) {
+        private List<Integer> groupColumnIndexes(int group) {
+            List<Integer> indexes = new ArrayList<>();
+            indexes.add(0); // S.No is always repeated.
+            int start = 1 + group * (MAX_COLUMNS_PER_PAGE - 1);
+            int end = Math.min(columns.size(), start + MAX_COLUMNS_PER_PAGE - 1);
+            for (int i = start; i < end; i++) indexes.add(i);
+            return indexes;
+        }
+
+        private void drawPage(Canvas c, int group, int rowPage, int rowPageCount,
+                              int totalPages, int displayPage) {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
             p.setColor(android.graphics.Color.BLACK);
-            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
-
-            float left = 12f;
-            float right = pageWidth - 12f;
-            float y = 18f;
-
-            p.setTextSize(fontSize);
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            p.setTextSize(fontSize);
+
+            float left = 18f;
+            float y = 18f;
             c.drawText(title, left, y, p);
             y += fontSize * 1.45f;
-
-            p.setTextSize(fontSize);
+            p.setTypeface(Typeface.DEFAULT);
             c.drawText(subtitle, left, y, p);
             y += fontSize * 1.45f;
 
-            int start;
-            int end;
-            if (page == 0) {
-                start = 0;
-                int capacity = Math.max(1, (int) ((pageHeight - y - 25f) / rowHeight));
-                end = Math.min(rows.size(), capacity);
-            } else {
-                int firstCapacity = Math.max(1, (int) ((pageHeight - headerHeight - 25f) / rowHeight));
-                int normalCapacity = Math.max(1, (int) ((pageHeight - 25f) / rowHeight));
-                start = firstCapacity + (page - 1) * normalCapacity;
-                end = Math.min(rows.size(), start + normalCapacity);
-                y = 18f;
-            }
+            int perPage = Math.max(1, (int) ((pageHeight - y - 25f) / rowHeight));
+            int start = rowPage * perPage;
+            int end = Math.min(rows.size(), start + perPage);
 
-            drawTable(c, y, start, end, page > 0 && repeatHeader);
+            drawTable(c, y, start, end, groupColumnIndexes(group),
+                    rowPage == 0 || repeatHeader);
 
             if (pageNumber) {
-                p.setTypeface(Typeface.DEFAULT);
                 p.setTextSize(Math.max(7f, fontSize - 1f));
-                c.drawText("Page " + (page + 1) + " of " + totalPages,
+                c.drawText("Page " + displayPage + " of " + totalPages,
                         left, pageHeight - 10f, p);
             }
         }
 
-        private void drawTable(Canvas c, float y, int start, int end, boolean repeat) {
+        private void drawTable(Canvas c, float y, int start, int end,
+                               List<Integer> indexes, boolean drawHeader) {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            p.setColor(android.graphics.Color.BLACK);
+            p.setAntiAlias(true);
             p.setTextSize(fontSize);
             p.setStrokeWidth(1f);
 
             float left = 18f;
             float width = pageWidth - 36f;
-            int n = Math.max(1, columns.size());
+            int n = Math.max(1, indexes.size());
             float colW = width / n;
 
-            if (repeat || start == 0) {
-                p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                c.drawRect(left, y - rowHeight + 3, left + width, y + 3, p);
-                p.setColor(android.graphics.Color.WHITE);
-                for (int i = 0; i < n; i++) {
-                    drawCellText(c, columns.get(i), left + i * colW, y, colW, p, true);
-                }
+            if (drawHeader) {
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(android.graphics.Color.rgb(235, 235, 235));
+                c.drawRect(left, y, left + width, y + rowHeight, p);
                 p.setColor(android.graphics.Color.BLACK);
+                p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                for (int i = 0; i < n; i++) {
+                    int col = indexes.get(i);
+                    drawCellText(c, columns.get(col), left + i * colW, y, colW, p, true);
+                }
                 p.setStyle(Paint.Style.STROKE);
-                c.drawRect(left, y - rowHeight + 3, left + width, y + 3, p);
+                c.drawRect(left, y, left + width, y + rowHeight, p);
                 p.setStyle(Paint.Style.FILL);
                 y += rowHeight;
             }
 
-            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+            p.setTypeface(Typeface.DEFAULT);
             for (int r = start; r < end; r++) {
                 List<String> row = rows.get(r);
                 p.setColor(android.graphics.Color.BLACK);
                 p.setStyle(Paint.Style.STROKE);
-                c.drawRect(left, y - rowHeight + 3, left + width, y + 3, p);
+                c.drawRect(left, y, left + width, y + rowHeight, p);
                 for (int i = 0; i < n; i++) {
                     float x = left + i * colW;
-                    c.drawLine(x, y - rowHeight + 3, x, y + 3, p);
-                    drawCellText(c, i < row.size() ? row.get(i) : "", x, y, colW, p, false);
+                    c.drawLine(x, y, x, y + rowHeight, p);
+                    int col = indexes.get(i);
+                    drawCellText(c, col < row.size() ? row.get(col) : "",
+                            x, y, colW, p, false);
                 }
+                c.drawLine(left + width, y, left + width, y + rowHeight, p);
                 p.setStyle(Paint.Style.FILL);
                 y += rowHeight;
             }
         }
 
-        private void drawCellText(Canvas c, String text, float x, float baseline,
+        private void drawCellText(Canvas c, String text, float x, float top,
                                   float width, Paint p, boolean bold) {
             p.setTypeface(Typeface.create(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL));
-            p.setColor(bold ? android.graphics.Color.WHITE : android.graphics.Color.BLACK);
+            p.setColor(android.graphics.Color.BLACK);
             p.setTextSize(fontSize);
-            String value = text == null ? "" : text;
-            while (p.measureText(value) > width - 8 && value.length() > 1) {
-                value = value.substring(0, value.length() - 1);
+            String value = text == null ? "" : text.trim();
+            float maxWidth = Math.max(10f, width - 8f);
+
+            if (value.isEmpty()) {
+                return;
             }
-            if (!value.equals(text) && value.length() > 1) value = value.substring(0, value.length() - 1) + "…";
-            c.drawText(value, x + 4, baseline - 7, p);
+
+            String first = value;
+            String second = "";
+            if (p.measureText(first) > maxWidth) {
+                int count = p.breakText(first, true, maxWidth, null);
+                count = Math.max(1, Math.min(count, first.length()));
+                first = first.substring(0, count).trim();
+                String rest = value.substring(count).trim();
+                if (!rest.isEmpty()) {
+                    int secondCount = p.breakText(rest, true, maxWidth - p.measureText("…"), null);
+                    secondCount = Math.max(1, Math.min(secondCount, rest.length()));
+                    second = rest.substring(0, secondCount).trim();
+                    if (secondCount < rest.length()) second += "…";
+                }
+            }
+
+            float lineHeight = fontSize * 1.15f;
+            Paint.FontMetrics fm = p.getFontMetrics();
+            float base1 = top + (rowHeight - lineHeight * (second.isEmpty() ? 1 : 2)) / 2f
+                    - fm.ascent;
+            c.drawText(first, x + 4, base1, p);
+            if (!second.isEmpty()) {
+                c.drawText(second, x + 4, base1 + lineHeight, p);
+            }
         }
     }
 
