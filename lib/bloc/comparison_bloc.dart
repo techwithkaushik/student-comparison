@@ -166,6 +166,12 @@ final class ComparisonSearchChanged extends ComparisonEvent {
   const ComparisonSearchChanged(this.value);
   @override List<Object?> get props => [value];
 }
+final class ComparisonErrorChanged extends ComparisonEvent {
+  final String message;
+  const ComparisonErrorChanged(this.message);
+  @override List<Object?> get props => [message];
+}
+
 final class ComparisonSearchActivityChanged extends ComparisonEvent {
   final bool value;
   const ComparisonSearchActivityChanged(this.value);
@@ -227,6 +233,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     on<ComparisonClassFilterChanged>((e, emit) => emit(state.copyWith(classFilter: e.value)));
     on<ComparisonSearchChanged>((e, emit) => emit(state.copyWith(search: e.value)));
     on<ComparisonSearchActivityChanged>((e, emit) => emit(state.copyWith(searchActive: e.value)));
+    on<ComparisonErrorChanged>((e, emit) => emit(state.copyWith(status: ComparisonStatus.failure, error: e.message)));
     on<ComparisonJsonImportRequested>(_onJsonImport);
     on<ComparisonSqliteImportRequested>(_onSqliteImport);
     on<ComparisonLegacyRemarksImportRequested>(_onLegacyRemarksImport);
@@ -365,6 +372,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   void setClassFilter(String value) => add(ComparisonClassFilterChanged(value));
   void setSearch(String value) => add(ComparisonSearchChanged(value));
   void setSearchActive(bool value) => add(ComparisonSearchActivityChanged(value));
+  void setError(String message) => add(ComparisonErrorChanged(message));
   Future<void> importJsonRows({required bool psp, required List<Map<String, dynamic>> rows}) {
     final c = Completer<void>(); add(ComparisonJsonImportRequested(psp: psp, rows: rows, completer: c)); return c.future;
   }
