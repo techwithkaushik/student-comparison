@@ -291,11 +291,13 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   ComparisonBloc({required ComparisonRepository repository, required SchoolRepository schoolRepository})
       : _repository = repository, _schoolRepository = schoolRepository, super(const ComparisonState()) {
     on<ComparisonLoadRequested>(_onLoad);
-    on<ComparisonFilterChanged>((e, emit) => emit(state.copyWith(filter: e.value)));
+    on<ComparisonFilterChanged>(_onFilter);
     on<ComparisonDiffFilterToggled>(_onDiffFilter);
-    on<ComparisonClassFilterChanged>((e, emit) => emit(state.copyWith(classFilter: e.value)));
-    on<ComparisonSearchChanged>((e, emit) => emit(state.copyWith(search: e.value)));
-    on<ComparisonSearchActivityChanged>((e, emit) => emit(state.copyWith(searchActive: e.value)));
+    on<ComparisonClassFilterChanged>(_onClassFilter);
+    on<ComparisonSearchChanged>(_onSearch);
+    on<ComparisonSearchActivityChanged>(
+      (e, emit) => emit(state.copyWith(searchActive: e.value)),
+    );
     on<ComparisonErrorChanged>((e, emit) => emit(state.copyWith(status: ComparisonStatus.failure, error: e.message)));
     on<ComparisonJsonImportRequested>(_onJsonImport);
     on<ComparisonLegacyRemarksImportRequested>(_onLegacyRemarksImport);
@@ -331,7 +333,16 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
         final u = row['udise_pen']?.toString().trim().toUpperCase() ?? '';
         if (p.isNotEmpty || u.isNotEmpty) remarks['$p|$u'] = Map<String, dynamic>.unmodifiable(Map<String, dynamic>.from(row));
       }
-      emit(state.copyWith(status: ComparisonStatus.ready, rows: List<ComparisonRow>.unmodifiable(rows), remarks: Map<String, Map<String, dynamic>>.unmodifiable(remarks)));
+      final readyState = ComparisonState.derive(
+        rows: rows,
+        filter: state.filter,
+        classFilter: state.classFilter,
+        search: state.search,
+        searchActive: state.searchActive,
+        remarks: remarks,
+        status: ComparisonStatus.ready,
+      );
+      emit(readyState);
       event.completer?.complete();
     } catch (e, st) {
       if (event.completer != null && !event.completer!.isCompleted) event.completer!.completeError(e, st);
@@ -339,8 +350,58 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     }
   }
 
-  void _onDiffFilter(ComparisonDiffFilterToggled event, Emitter<ComparisonState> emit) {
-    emit(state.copyWith(filter: state.filter == 'DIFF:${event.diff}' ? 'ALL' : 'DIFF:${event.diff}'));
+  ComparisonState _derive({
+    String? filter,
+    String? classFilter,
+    String? search,
+    Map<String, Map<String, dynamic>>? remarks,
+    String? error,
+    bool clearError = false,
+  }) {
+    return ComparisonState.derive(
+      rows: state.rows,
+      filter: filter ?? state.filter,
+      classFilter: classFilter ?? state.classFilter,
+      search: search ?? state.search,
+      searchActive: state.searchActive,
+      remarks: remarks ?? state.remarks,
+      status: state.status,
+      error: clearError ? null : (error ?? state.error),
+    );
+  }
+
+  void _onFilter(
+    ComparisonFilterChanged event,
+    Emitter<ComparisonState> emit,
+  ) {
+    if (event.value == state.filter) return;
+    emit(_derive(filter: event.value));
+  }
+
+  void _onDiffFilter(
+    ComparisonDiffFilterToggled event,
+    Emitter<ComparisonState> emit,
+  ) {
+    final next = state.filter == 'DIFF:${event.diff}'
+        ? 'ALL'
+        : 'DIFF:${event.diff}';
+    emit(_derive(filter: next));
+  }
+
+  void _onClassFilter(
+    ComparisonClassFilterChanged event,
+    Emitter<ComparisonState> emit,
+  ) {
+    if (event.value == state.classFilter) return;
+    emit(_derive(classFilter: event.value));
+  }
+
+  void _onSearch(
+    ComparisonSearchChanged event,
+    Emitter<ComparisonState> emit,
+  ) {
+    if (event.value == state.search) return;
+    emit(_derive(search: event.value));
   }
 
   Future<void> _onJsonImport(ComparisonJsonImportRequested event, Emitter<ComparisonState> emit) async {
@@ -412,7 +473,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       final u = row['udise_pen']?.toString().trim().toUpperCase() ?? '';
       if (p.isNotEmpty || u.isNotEmpty) remarks['$p|$u'] = Map<String, dynamic>.unmodifiable(Map<String, dynamic>.from(row));
     }
-    emit(state.copyWith(remarks: Map<String, Map<String, dynamic>>.unmodifiable(remarks)));
+    emit(_derive(remarks: remarks));
   }
 
   Future<Map<String, dynamic>?> getActiveSchoolProfile() => _schoolRepository.getActiveProfile();
