@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show compute;
 import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../database/database.dart';
@@ -125,6 +126,18 @@ class ComparisonState {
   }
 }
 
+List<ComparisonRow> _buildComparisonRowsInBackground(
+  Map<String, List<Map<String, dynamic>>> input,
+) {
+  final psp = (input['psp'] ?? const <Map<String, dynamic>>[])
+      .map(PspStudent.fromJson)
+      .toList(growable: false);
+  final udise = (input['udise'] ?? const <Map<String, dynamic>>[])
+      .map(UdiseStudent.fromJson)
+      .toList(growable: false);
+  return runMatchingEngine(psp, udise);
+}
+
 class ComparisonCubit extends Cubit<ComparisonState> {
   final AppDatabase database;
 
@@ -145,9 +158,16 @@ class ComparisonCubit extends Cubit<ComparisonState> {
     try {
       final pspRows = await database.loadPspRows();
       final udiseRows = await database.loadUdiseRows();
-      final rows = runMatchingEngine(
-        pspRows.map(PspStudent.fromJson).toList(),
-        udiseRows.map(UdiseStudent.fromJson).toList(),
+
+      // Matching is CPU-heavy for larger schools. Keep it off the Flutter
+      // UI isolate so the first frame can render immediately and the loading
+      // indicator remains responsive.
+      final rows = await compute(
+        _buildComparisonRowsInBackground,
+        <String, List<Map<String, dynamic>>>{
+          'psp': pspRows,
+          'udise': udiseRows,
+        },
       );
       if (isClosed) return;
       emit(state.copyWith(status: ComparisonStatus.ready, rows: rows));
