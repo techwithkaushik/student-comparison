@@ -45,14 +45,37 @@ Future<PrintSettings?> showPrintPageSetup(
                   ],
                   onChanged: context.read<PrintSettingsCubit>().setOrientation,
                 ),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Margins (mm)', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 6),
                 Row(children: [
-                  const Text('Margin'),
-                  Expanded(child: Slider(
-                    min: 2, max: 20, divisions: 18, value: s.margin.toDouble(),
-                    label: '${s.margin} mm',
-                    onChanged: context.read<PrintSettingsCubit>().setMargin,
+                  Expanded(child: _MarginField(
+                    label: 'Top',
+                    controller: topController,
+                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginTop(int.tryParse(v) ?? s.marginTop),
                   )),
-                  Text('${s.margin} mm'),
+                  const SizedBox(width: 8),
+                  Expanded(child: _MarginField(
+                    label: 'Right',
+                    controller: rightController,
+                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginRight(int.tryParse(v) ?? s.marginRight),
+                  )),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: _MarginField(
+                    label: 'Bottom',
+                    controller: bottomController,
+                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginBottom(int.tryParse(v) ?? s.marginBottom),
+                  )),
+                  const SizedBox(width: 8),
+                  Expanded(child: _MarginField(
+                    label: 'Left',
+                    controller: leftController,
+                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginLeft(int.tryParse(v) ?? s.marginLeft),
+                  )),
                 ]),
                 Row(children: [
                   const Text('Table font'),
@@ -121,7 +144,6 @@ class _MarginField extends StatelessWidget {
   Widget build(BuildContext context) => TextFormField(
     controller: controller,
     keyboardType: const TextInputType.numberWithOptions(decimal: false),
-    inputFormatters: const [],
     decoration: InputDecoration(
       labelText: label,
       suffixText: 'mm',
