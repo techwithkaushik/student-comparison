@@ -18,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _loading => context.read<HomeBloc>().state.status == HomeStatus.loading || context.read<HomeBloc>().state.status == HomeStatus.initial;
   String? get _error => context.read<HomeBloc>().state.error;
 
-  Future<void> _loadProfiles() async => context.read<HomeBloc>().add(const HomeLoadRequested());
+  Future<void> _loadProfiles() => context.read<HomeBloc>().load();
 
   Future<void> _openProfile(Map<String, dynamic> profile) async {
     try {
