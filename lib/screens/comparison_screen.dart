@@ -7,8 +7,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/comparison_bloc.dart';
-import '../data/repositories/comparison_repository.dart';
-import '../data/repositories/school_repository.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../matching/models.dart';
 import '../printing/native_print_service.dart';
@@ -36,34 +34,31 @@ class ComparisonDashboardScreen extends StatefulWidget {
 
 class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {
-  late final ComparisonBloc _cubit;
+  ComparisonBloc get _bloc => context.read<ComparisonBloc>();
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
-  List<ComparisonRow> get _rows => _cubit.state.rows;
-  bool get _loadingData => _cubit.state.status == ComparisonStatus.loading || _cubit.state.status == ComparisonStatus.initial;
-  String? get _dataError => _cubit.state.error;
-  String get _filter => _cubit.state.filter;
-  String get _classFilter => _cubit.state.classFilter;
-  bool get _searchActive => _cubit.state.searchActive;
-  Set<String> get _remarkKeys => _cubit.state.remarkKeys;
+  List<ComparisonRow> get _rows => _bloc.state.rows;
+  bool get _loadingData => _bloc.state.status == ComparisonStatus.loading || _bloc.state.status == ComparisonStatus.initial;
+  String? get _dataError => _bloc.state.error;
+  String get _filter => _bloc.state.filter;
+  String get _classFilter => _bloc.state.classFilter;
+  bool get _searchActive => _bloc.state.searchActive;
+  Set<String> get _remarkKeys => _bloc.state.remarkKeys;
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
-    _cubit.close();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    _cubit = ComparisonBloc(
-      repository: context.read<ComparisonRepository>(),
-      schoolRepository: context.read<SchoolRepository>(),
+    context.read<ComparisonBloc>().add(
+      ComparisonLoadRequested(initialRows: widget.initialRows),
     );
-    _cubit.load(initialRows: widget.initialRows);
   }
 
 
@@ -101,7 +96,7 @@ class _ComparisonDashboardScreenState
 
       final file = result.files.single;
       final fileName = file.name.trim();
-      final profile = await _cubit.getActiveSchoolProfile();
+      final profile = await _bloc.getActiveSchoolProfile();
       if (profile == null) {
         throw StateError(
           'Please create and select a school profile before importing JSON.',
@@ -136,9 +131,9 @@ class _ComparisonDashboardScreenState
         pspImport ? 'PSP' : 'UDISE',
       );
       if (pspImport) {
-        await _cubit.importJsonRows(psp: true, rows: rows);
+        await _bloc.importJsonRows(psp: true, rows: rows);
       } else {
-        await _cubit.importJsonRows(psp: false, rows: rows);
+        await _bloc.importJsonRows(psp: false, rows: rows);
       }
 
       if (!mounted) return;
@@ -151,7 +146,7 @@ class _ComparisonDashboardScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      _cubit.setError('JSON import failed: $e');
+      _bloc.setError('JSON import failed: $e');
     }
   }
 
@@ -165,7 +160,7 @@ class _ComparisonDashboardScreenState
       if (result == null) return;
       final bytes = result.files.single.bytes;
       if (bytes == null) throw Exception('Unable to read selected SQLite file.');
-      final imported = await _cubit.importSqlite(bytes);
+      final imported = await _bloc.importSqlite(bytes);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(
@@ -175,7 +170,7 @@ class _ComparisonDashboardScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      _cubit.setError('SQLite import failed: $e');
+      _bloc.setError('SQLite import failed: $e');
     }
   }
 
@@ -190,7 +185,7 @@ class _ComparisonDashboardScreenState
       final bytes = result.files.single.bytes;
       if (bytes == null) throw Exception('Unable to read selected SQLite file.');
 
-      final imported = await _cubit.importLegacyRemarks(bytes);
+      final imported = await _bloc.importLegacyRemarks(bytes);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -203,17 +198,17 @@ class _ComparisonDashboardScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      _cubit.setError('Old remarks import failed: $e');
+      _bloc.setError('Old remarks import failed: $e');
     }
   }
 
   Future<void> _exportDatabase() async {
     try {
-      final bytes = await _cubit.exportDatabase();
+      final bytes = await _bloc.exportDatabase();
       final path = await FilePicker.platform.saveFile(dialogTitle: 'Export SQLite database', fileName: 'student_comparison.db', bytes: bytes);
       if (path != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SQLite database exported successfully.')));
     } catch (e) {
-      if (mounted) _cubit.setError('Database export failed: $e');
+      if (mounted) _bloc.setError('Database export failed: $e');
     }
   }
   Future<void> _exportCsv() async {
@@ -238,17 +233,17 @@ class _ComparisonDashboardScreenState
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV exported successfully.')));
       }
     } catch (e) {
-      if (mounted) _cubit.setError('CSV export failed: $e');
+      if (mounted) _bloc.setError('CSV export failed: $e');
     }
   }
 
   Future<void> _exportSourceJson(bool pspExport) async {
     try {
-      final rows = await _cubit.loadSourceRows(psp: pspExport);
+      final rows = await _bloc.loadSourceRows(psp: pspExport);
       final bytes = Uint8List.fromList(utf8.encode(
         const JsonEncoder.withIndent('  ').convert(rows),
       ));
-      final profile = await _cubit.getActiveSchoolProfile();
+      final profile = await _bloc.getActiveSchoolProfile();
       final code = pspExport
           ? (profile == null ? '' : profile['pspCode']?.toString().trim() ?? '')
           : (profile == null ? '' : profile['udiseCode']?.toString().trim() ?? '');
@@ -264,7 +259,7 @@ class _ComparisonDashboardScreenState
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSON exported successfully.')));
       }
     } catch (e) {
-      if (mounted) _cubit.setError('JSON export failed: $e');
+      if (mounted) _bloc.setError('JSON export failed: $e');
     }
   }
 
@@ -278,7 +273,7 @@ class _ComparisonDashboardScreenState
 
 
   Map<String, dynamic>? _remarkFor(ComparisonRow row) =>
-      _cubit.state.remarks[_remarkKeyFor(row)];
+      _bloc.state.remarks[_remarkKeyFor(row)];
 
   String _pspRte(ComparisonRow row) {
     final raw = row.psp?.raw ?? const <String, dynamic>{};
@@ -311,10 +306,10 @@ class _ComparisonDashboardScreenState
       final text = controller.text.trim();
       if (text.isEmpty) {
         if (!mounted) return;
-        await _cubit.deleteRemark(row);
+        await _bloc.deleteRemark(row);
       } else {
         if (!mounted) return;
-        await _cubit.saveRemark(row: row, remark: text);
+        await _bloc.saveRemark(row: row, remark: text);
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remark update failed: $e')));
@@ -328,7 +323,7 @@ class _ComparisonDashboardScreenState
 
   Future<void> _printReport() async {
     try {
-      final profile = await _cubit.getActiveSchoolProfile();
+      final profile = await _bloc.getActiveSchoolProfile();
       if (profile == null) {
         throw StateError('Please select a school profile before printing.');
       }
@@ -367,13 +362,13 @@ class _ComparisonDashboardScreenState
   }
 
 
-  List<ComparisonRow> get _filteredRows => _cubit.state.filteredRows;
+  List<ComparisonRow> get _filteredRows => _bloc.state.filteredRows;
 
-  int _countType(MatchType type) => _cubit.state.countType(type);
+  int _countType(MatchType type) => _bloc.state.countType(type);
 
-  int _countDiff(String diff) => _cubit.state.countDiff(diff);
+  int _countDiff(String diff) => _bloc.state.countDiff(diff);
 
-  Set<String> get _classes => _cubit.state.classes;
+  Set<String> get _classes => _bloc.state.classes;
 
   String _statusText(ComparisonRow row) {
     switch (row.type) {
@@ -419,7 +414,7 @@ class _ComparisonDashboardScreenState
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: _cubit,
+      value: _bloc,
       child: BlocBuilder<ComparisonBloc, ComparisonState>(
         builder: (context, state) {
           final filtered = _filteredRows;
@@ -446,7 +441,7 @@ class _ComparisonDashboardScreenState
                   // Avoid rebuilding the full dashboard for every keystroke.
                   _searchDebounce?.cancel();
                   _searchDebounce = Timer(const Duration(milliseconds: 180), () {
-                    if (mounted) _cubit.setSearch(value);
+                    if (mounted) _bloc.setSearch(value);
                   });
                 },
                 decoration: const InputDecoration(
@@ -487,10 +482,10 @@ class _ComparisonDashboardScreenState
             onPressed: () {
               _searchDebounce?.cancel();
               final wasActive = _searchActive;
-              _cubit.setSearchActive(!wasActive);
+              _bloc.setSearchActive(!wasActive);
               if (wasActive) {
                 _searchController.clear();
-                _cubit.setSearch('');
+                _bloc.setSearch('');
               }
             },
           ),
@@ -585,15 +580,15 @@ class _ComparisonDashboardScreenState
             mobile: _countDiff('MOBILE_MISMATCH'),
             selected: _filter,
             onSelected: (value) {
-              _cubit.setFilter(value);
+              _bloc.setFilter(value);
             },
             onDiffSelected: (diff) {
-              _cubit.toggleDiffFilter(diff);
+              _bloc.toggleDiffFilter(diff);
             },
             classes: classes,
             classFilter: _classFilter,
             onClassChanged: (value) {
-              _cubit.setClassFilter(value);
+              _bloc.setClassFilter(value);
             },
             onPrint: _printReport,
           ),
