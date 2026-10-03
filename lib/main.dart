@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'bloc/app_cubit.dart';
+import 'bloc/app_bloc.dart';
+import 'data/repositories/app_repository.dart';
+import 'data/repositories/school_repository.dart';
+import 'data/repositories/comparison_repository.dart';
+import 'data/repositories/print_repository.dart';
 import 'screens/home_screen.dart';
 
 Future<void> main() async {
@@ -13,9 +17,16 @@ class StudentComparisonApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AppCubit()..initialize(),
-      child: MaterialApp(
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider(create: (_) => AppRepository()),
+        RepositoryProvider(create: (_) => SchoolRepository()),
+        RepositoryProvider(create: (_) => ComparisonRepository()),
+        RepositoryProvider(create: (_) => PrintRepository()),
+      ],
+      child: BlocProvider(
+        create: (context) => AppBloc(repository: context.read<AppRepository>())..add(const AppStarted()),
+        child: MaterialApp(
         title: 'PSP vs UDISE',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -23,7 +34,7 @@ class StudentComparisonApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
           visualDensity: VisualDensity.compact,
         ),
-        home: BlocBuilder<AppCubit, AppState>(
+        home: BlocBuilder<AppBloc, AppState>(
           builder: (context, state) {
             switch (state.status) {
               case AppStatus.ready:
@@ -83,7 +94,7 @@ class _StartupFailure extends StatelessWidget {
             ],
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => context.read<AppCubit>().retry(),
+              onPressed: () => context.read<AppBloc>().add(const AppRetryRequested()),
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Retry'),
             ),
