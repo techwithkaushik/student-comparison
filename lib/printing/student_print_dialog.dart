@@ -9,6 +9,10 @@ Future<PrintSettings?> showPrintPageSetup(
   required PrintSettings initial,
 }) async {
   final cubit = PrintSettingsCubit(initial);
+  final topController = TextEditingController(text: initial.marginTop.toString());
+  final rightController = TextEditingController(text: initial.marginRight.toString());
+  final bottomController = TextEditingController(text: initial.marginBottom.toString());
+  final leftController = TextEditingController(text: initial.marginLeft.toString());
   try {
     return await showDialog<PrintSettings>(
       context: context,
@@ -94,8 +98,38 @@ Future<PrintSettings?> showPrintPageSetup(
       ),
     );
   } finally {
+    topController.dispose();
+    rightController.dispose();
+    bottomController.dispose();
+    leftController.dispose();
     await cubit.close();
   }
+}
+
+class _MarginField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _MarginField({
+    required this.label,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextFormField(
+    controller: controller,
+    keyboardType: const TextInputType.numberWithOptions(decimal: false),
+    inputFormatters: const [],
+    decoration: InputDecoration(
+      labelText: label,
+      suffixText: 'mm',
+      isDense: true,
+      border: const OutlineInputBorder(),
+    ),
+    onChanged: onChanged,
+  );
 }
 
 Future<void> showStudentPrintDialog(
