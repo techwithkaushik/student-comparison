@@ -88,5 +88,6 @@ class HomeCubit extends Cubit<HomeState> {
     return database.setActiveSchoolProfile(profileId);
   }
 
+  void setError(String message) => emit(state.copyWith(status: HomeStatus.failure, error: message));
   void clearError() => emit(state.copyWith(clearError: true));
 }
