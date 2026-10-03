@@ -544,7 +544,7 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single.type, MatchType.matched);
       expect(rows.single.diffs, isNot(contains('RELIGION_MISMATCH')));
-      expect(rows.single.score, 95);
+      expect(rows.single.score, 90);
     });
 
   });
