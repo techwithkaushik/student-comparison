@@ -6,7 +6,9 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/comparison_cubit.dart';
+import '../bloc/comparison_bloc.dart';
+import '../data/repositories/comparison_repository.dart';
+import '../data/repositories/school_repository.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../matching/models.dart';
 import '../printing/native_print_service.dart';
@@ -34,7 +36,7 @@ class ComparisonDashboardScreen extends StatefulWidget {
 
 class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {
-  late final ComparisonCubit _cubit;
+  late final ComparisonBloc _cubit;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -57,7 +59,10 @@ class _ComparisonDashboardScreenState
   @override
   void initState() {
     super.initState();
-    _cubit = ComparisonCubit();
+    _cubit = ComparisonBloc(
+      repository: context.read<ComparisonRepository>(),
+      schoolRepository: context.read<SchoolRepository>(),
+    );
     _cubit.load(initialRows: widget.initialRows);
   }
 
@@ -415,7 +420,7 @@ class _ComparisonDashboardScreenState
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _cubit,
-      child: BlocBuilder<ComparisonCubit, ComparisonState>(
+      child: BlocBuilder<ComparisonBloc, ComparisonState>(
         builder: (context, state) {
           final filtered = _filteredRows;
           final pspBaseCount = _rows.where((row) => row.psp != null).length;
