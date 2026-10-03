@@ -77,6 +77,43 @@ class NativePrintService {
     await _channel.invokeMethod('savePrintSettings', settings.toMap());
   }
 
+  static Future<Map<String, dynamic>?> loadColumnPreferences({
+    required String source,
+  }) async {
+    if (kIsWeb) return null;
+    final value = await _channel.invokeMethod<dynamic>(
+      'getPrintColumnPreferences',
+      {'source': source},
+    );
+    if (value is! Map) return null;
+    final fields = value['fields'];
+    final headers = value['headers'];
+    return {
+      'fields': fields is List
+          ? fields.map((e) => e.toString()).toList()
+          : <String>[],
+      'headers': headers is Map
+          ? headers.map((key, value) => MapEntry(
+              key.toString(),
+              value.toString(),
+            ))
+          : <String, String>{},
+    };
+  }
+
+  static Future<void> saveColumnPreferences({
+    required String source,
+    required List<String> fields,
+    required Map<String, String> headers,
+  }) async {
+    if (kIsWeb) return;
+    await _channel.invokeMethod('savePrintColumnPreferences', {
+      'source': source,
+      'fields': fields,
+      'headers': headers,
+    });
+  }
+
   static Future<void> printTable({
     required String title,
     required String subtitle,
