@@ -165,7 +165,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         error: 'Could not select school profile: $e',
       ));
     }
-    Future<void> load() {
+  }
+
+  Future<void> load() {
     final completer = Completer<void>();
     add(HomeLoadRequested(completer: completer));
     return completer.future;
