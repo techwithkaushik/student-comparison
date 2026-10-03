@@ -142,9 +142,11 @@ class ComparisonCubit extends Cubit<ComparisonState> {
         pspRows.map(PspStudent.fromJson).toList(),
         udiseRows.map(UdiseStudent.fromJson).toList(),
       );
+      if (isClosed) return;
       emit(state.copyWith(status: ComparisonStatus.ready, rows: rows));
       await loadRemarks();
     } catch (e) {
+      if (isClosed) return;
       emit(state.copyWith(
         status: ComparisonStatus.failure,
         error: 'Unable to load saved data: $e',
@@ -161,21 +163,29 @@ class ComparisonCubit extends Cubit<ComparisonState> {
         final u = row['udise_pen']?.toString().trim().toUpperCase() ?? '';
         if (p.isNotEmpty || u.isNotEmpty) remarks['$p|$u'] = Map<String, dynamic>.from(row);
       }
-      emit(state.copyWith(remarks: remarks));
+      if (!isClosed) emit(state.copyWith(remarks: remarks));
     } catch (e) {
-      emit(state.copyWith(error: 'Unable to load remarks: $e'));
+      if (!isClosed) emit(state.copyWith(error: 'Unable to load remarks: $e'));
     }
   }
 
   Future<void> refresh() => load();
 
-  void setFilter(String value) => emit(state.copyWith(filter: value));
+  void setFilter(String value) {
+    if (!isClosed) emit(state.copyWith(filter: value));
+  }
   void toggleDiffFilter(String diff) {
     setFilter(state.filter == 'DIFF:$diff' ? 'ALL' : 'DIFF:$diff');
   }
-  void setClassFilter(String value) => emit(state.copyWith(classFilter: value));
-  void setSearch(String value) => emit(state.copyWith(search: value));
-  void setError(String message) => emit(state.copyWith(status: ComparisonStatus.failure, error: message));
+  void setClassFilter(String value) {
+    if (!isClosed) emit(state.copyWith(classFilter: value));
+  }
+  void setSearch(String value) {
+    if (!isClosed) emit(state.copyWith(search: value));
+  }
+  void setError(String message) {
+    if (!isClosed) emit(state.copyWith(status: ComparisonStatus.failure, error: message));
+  }
 
   Future<void> saveRemark({
     required ComparisonRow row,
