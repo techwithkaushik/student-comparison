@@ -98,7 +98,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       if(data.any((r){
         final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
         return raw.keys.any((k)=>normKey(k)==normKey(e.key));
-      })) {\n        add(e.key, e.value);\n      }
+      })) {
+        add(e.key, e.value);
+      }
     }
     for(final r in data) {
       final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
@@ -207,9 +209,17 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     }),
   );
 
-  if (ok != true || !context.mounted) {\n    return;\n  }
-  if (scope == 'CLASS' && selectedClass.isEmpty) {\n    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a class.')));\n    return;\n  }
-  if (fields.isEmpty) {\n    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one field.')));\n    return;\n  }
+  if (ok != true || !context.mounted) {
+    return;
+  }
+  if (scope == 'CLASS' && selectedClass.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a class.')));
+    return;
+  }
+  if (fields.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one field.')));
+    return;
+  }
 
   var data=sourceRows();
   if (scope == 'CLASS') {
@@ -227,7 +237,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     for (final e in raw.entries) {
       if (normKey(e.key) == target) {
         final v=e.value?.toString().trim()??'';
-        if (v.isNotEmpty) {\n          return v;\n        }
+        if (v.isNotEmpty) {
+          return v;
+        }
       }
     }
     if (target == 'admissiondate' || target == 'dateofadmission' || target == 'admissiondt') {
@@ -235,7 +247,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
         final n=normKey(e.key);
         if (n.contains('admission') && (n.contains('date') || n.contains('dt'))) {
           final v=e.value?.toString().trim()??'';
-          if (v.isNotEmpty) {\n          return v;\n        }
+          if (v.isNotEmpty) {
+          return v;
+        }
         }
       }
     }
@@ -260,7 +274,8 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   }
 
   final selected=fields.map((k){
-    for (final e in entries) {\n      if (e.key == k) {
+    for (final e in entries) {
+      if (e.key == k) {
         return e;
       }
     }
