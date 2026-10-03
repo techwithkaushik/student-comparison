@@ -226,9 +226,12 @@ class PrintReportCubit extends Cubit<PrintReportState> {
   }) async {
     if (!state.valid) throw StateError('Please select a class and at least one field.');
     final columns = selectedColumns();
+    final scopeLabel = state.scope == 'ALL' ? 'All' : 'Class: ${state.selectedClass}';
+    final reportLabel = '${state.source} Report';
+    final countLabel = 'count: ${state.printableRows.length}';
     await NativePrintService.printTable(
-      title: '($pspCode) ($udiseCode) $schoolName',
-      subtitle: '${state.scope == 'ALL' ? 'All' : 'Class : ${state.selectedClass}'}    ${state.source} REPORT    Student Count : ${state.printableRows.length}',
+      title: '',
+      subtitle: '$scopeLabel    $reportLabel    $countLabel',
       columns: columns.map((e) => e.value).toList(growable: false),
       rows: buildTable(),
       settings: settings,
