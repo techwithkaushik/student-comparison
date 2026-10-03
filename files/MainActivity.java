@@ -357,8 +357,11 @@ public class MainActivity extends FlutterActivity {
 
             if (pageNumber) {
                 p.setTextSize(Math.max(7f, fontSize - 1f));
-                c.drawText("Page " + displayPage + " of " + totalPages,
-                        left, pageHeight - marginBottom - 10f, p);
+                String pageLabel = "Page " + displayPage + " of " + totalPages;
+                float pageLabelWidth = p.measureText(pageLabel);
+                float pageRight = pageWidth - marginRight;
+                c.drawText(pageLabel,
+                        pageRight - pageLabelWidth, marginTop + fontSize, p);
             }
         }
 
