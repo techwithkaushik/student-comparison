@@ -37,7 +37,10 @@ Future<PrintSettings?> showPrintPageSetup(BuildContext context, {required PrintS
       ])),
       actions:[
         TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Cancel')),
-        FilledButton(onPressed:()async{await NativePrintService.saveSettings(s);if(context.mounted)Navigator.pop(context,s);},child:const Text('Save')),
+        FilledButton(onPressed:()async{
+          await NativePrintService.saveSettings(s);
+          if(context.mounted){Navigator.pop(context,s);}
+        },child:const Text('Save')),
       ],
     )),
   );
