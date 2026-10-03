@@ -231,7 +231,8 @@ public class MainActivity extends FlutterActivity {
         pm.print(
                 "Student Comparison - " + (title.isEmpty() ? "Report" : title),
                 new StudentTablePrintAdapter(
-                        title, subtitle, columns, rows, fontSize, repeatHeader, pageNumber),
+                        title, subtitle, columns, rows, fontSize, repeatHeader, pageNumber,
+                        marginTopMm, marginRightMm, marginBottomMm, marginLeftMm),
                 attrs
         );
     }
@@ -248,10 +249,15 @@ public class MainActivity extends FlutterActivity {
         private int pageWidth;
         private float rowHeight;
         private float headerHeight;
+        private final float marginTop;
+        private final float marginRight;
+        private final float marginBottom;
+        private final float marginLeft;
 
         StudentTablePrintAdapter(
                 String title, String subtitle, List<String> columns, List<List<String>> rows,
-                float fontSize, boolean repeatHeader, boolean pageNumber) {
+                float fontSize, boolean repeatHeader, boolean pageNumber,
+                int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm) {
             this.title = title;
             this.subtitle = subtitle;
             this.columns = columns;
@@ -259,6 +265,10 @@ public class MainActivity extends FlutterActivity {
             this.fontSize = Math.max(7f, Math.min(16f, fontSize));
             this.repeatHeader = repeatHeader;
             this.pageNumber = pageNumber;
+            this.marginTop = mmToPoints(marginTopMm);
+            this.marginRight = mmToPoints(marginRightMm);
+            this.marginBottom = mmToPoints(marginBottomMm);
+            this.marginLeft = mmToPoints(marginLeftMm);
         }
 
         @Override
@@ -282,7 +292,7 @@ public class MainActivity extends FlutterActivity {
         }
 
         private int rowPages() {
-            float usable = pageHeight - headerHeight - 30f;
+            float usable = pageHeight - marginTop - marginBottom - headerHeight - 30f;
             int perPage = Math.max(1, (int) (usable / rowHeight));
             return Math.max(1, (int) Math.ceil(rows.size() / (double) perPage));
         }
@@ -335,15 +345,15 @@ public class MainActivity extends FlutterActivity {
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
             p.setTextSize(fontSize);
 
-            float left = 18f;
-            float y = 18f;
+            float left = marginLeft;
+            float y = marginTop;
             c.drawText(title, left, y, p);
             y += fontSize * 1.45f;
             p.setTypeface(Typeface.DEFAULT);
             c.drawText(subtitle, left, y, p);
             y += fontSize * 1.45f;
 
-            int perPage = Math.max(1, (int) ((pageHeight - y - 25f) / rowHeight));
+            int perPage = Math.max(1, (int) ((pageHeight - marginBottom - y - 25f) / rowHeight));
             int start = rowPage * perPage;
             int end = Math.min(rows.size(), start + perPage);
 
@@ -353,7 +363,7 @@ public class MainActivity extends FlutterActivity {
             if (pageNumber) {
                 p.setTextSize(Math.max(7f, fontSize - 1f));
                 c.drawText("Page " + displayPage + " of " + totalPages,
-                        left, pageHeight - 10f, p);
+                        left, pageHeight - marginBottom - 10f, p);
             }
         }
 
@@ -417,8 +427,8 @@ public class MainActivity extends FlutterActivity {
             p.setTextSize(fontSize);
             p.setStrokeWidth(1f);
 
-            float left = 18f;
-            float width = pageWidth - 36f;
+            float left = marginLeft;
+            float width = Math.max(10f, pageWidth - marginLeft - marginRight);
             int n = Math.max(1, indexes.size());
             float[] colWidths = calculateColumnWidths(indexes, p, width);
 
@@ -512,6 +522,10 @@ public class MainActivity extends FlutterActivity {
 
     private static int clampMargin(int value) {
         return Math.max(0, Math.min(50, value));
+    }
+
+    private static float mmToPoints(int mm) {
+        return mm * 72f / 25.4f;
     }
 
     private static int asInt(Object v, int fallback) {
