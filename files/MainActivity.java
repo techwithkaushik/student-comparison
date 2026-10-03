@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -56,10 +58,79 @@ public class MainActivity extends FlutterActivity {
                         case "getPrintSettings":
                             result.success(readSettings());
                             break;
+                        case "savePrintColumnPreferences":
+                            saveColumnPreferences((Map<String, Object>) call.arguments);
+                            result.success(true);
+                            break;
+                        case "getPrintColumnPreferences":
+                            result.success(readColumnPreferences((Map<String, Object>) call.arguments));
+                            break;
                         default:
                             result.notImplemented();
                     }
                 });
+    }
+
+    private void saveColumnPreferences(Map<String, Object> values) {
+        String source = strOr(values.get("source"), "PSP").toUpperCase();
+        List<String> fields = stringList(values.get("fields"));
+        Map<String, Object> headers = map(values.get("headers"));
+
+        JSONArray fieldArray = new JSONArray();
+        for (String field : fields) {
+            fieldArray.put(field);
+        }
+
+        JSONObject headerObject = new JSONObject();
+        for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            try {
+                headerObject.put(entry.getKey(), str(entry.getValue()));
+            } catch (Exception ignored) {
+                // Ignore an individual malformed header rather than losing the preset.
+            }
+        }
+
+        getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString("columns_" + source, fieldArray.toString())
+                .putString("headers_" + source, headerObject.toString())
+                .apply();
+    }
+
+    private Map<String, Object> readColumnPreferences(Map<String, Object> values) {
+        String source = strOr(values.get("source"), "PSP").toUpperCase();
+        android.content.SharedPreferences p =
+                getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+
+        List<String> fields = new ArrayList<>();
+        Map<String, Object> headers = new HashMap<>();
+
+        try {
+            JSONArray fieldArray = new JSONArray(
+                    p.getString("columns_" + source, "[]"));
+            for (int i = 0; i < fieldArray.length(); i++) {
+                fields.add(fieldArray.optString(i, ""));
+            }
+        } catch (Exception ignored) {
+            // Return an empty preset if the stored value is invalid.
+        }
+
+        try {
+            JSONObject headerObject = new JSONObject(
+                    p.getString("headers_" + source, "{}"));
+            java.util.Iterator<String> keys = headerObject.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                headers.put(key, headerObject.optString(key, ""));
+            }
+        } catch (Exception ignored) {
+            // Return headers that could be recovered.
+        }
+
+        Map<String, Object> out = new HashMap<>();
+        out.put("fields", fields);
+        out.put("headers", headers);
+        return out;
     }
 
     private void saveSettings(Map<String, Object> values) {
