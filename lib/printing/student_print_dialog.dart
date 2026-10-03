@@ -54,6 +54,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   var scope='ALL';
   String selectedClass='';
   List<String> fields=[];
+  Map<String,String> customHeaders={};
 
   List<ComparisonRow> sourceRows() =>
       rows.where((r)=>source=='PSP'?r.psp!=null:r.udise!=null).toList();
@@ -75,31 +76,50 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       seen.add(n);
       out.add(MapEntry(key,text));
     }
+
+    // Preferred labels/order only. Cell values always come from raw DB JSON.
     final preferred=<MapEntry<String,String>>[
-      const MapEntry('Student NIC ID','NIC ID / PEN'), const MapEntry('studentCodeNat','National Student Code'),
-      const MapEntry('studentId','Student ID'), const MapEntry('SR No.','S.No / SR'),
-      const MapEntry('Student Name','Name'), const MapEntry('studentName','Name'),
-      const MapEntry('Father Name','Father Name'), const MapEntry('fatherName','Father Name'),
-      const MapEntry('Mother Name','Mother Name'), const MapEntry('motherName','Mother Name'),
-      const MapEntry('DOB','DOB'), const MapEntry('dob','DOB'),
-      const MapEntry('Admission Date','Admission Date'), const MapEntry('admissionDate','Admission Date'),
+      const MapEntry('Student NIC ID','NIC ID / PEN'),
+      const MapEntry('studentCodeNat','National Student Code'),
+      const MapEntry('studentId','Student ID'),
+      const MapEntry('SR No.','S.No / SR'),
+      const MapEntry('Student Name','Name'),
+      const MapEntry('studentName','Name'),
+      const MapEntry('Father Name','Father Name'),
+      const MapEntry('fatherName','Father Name'),
+      const MapEntry('Mother Name','Mother Name'),
+      const MapEntry('motherName','Mother Name'),
+      const MapEntry('DOB','DOB'),
+      const MapEntry('dob','DOB'),
+      const MapEntry('Admission Date','Admission Date'),
+      const MapEntry('admissionDate','Admission Date'),
       const MapEntry('dateOfAdmission','Admission Date'),
-      const MapEntry('Gender','Gender'), const MapEntry('gender','Gender'),
-      const MapEntry('Studying in Class','Class'), const MapEntry('classDesc','Class'), const MapEntry('classId','Class ID'),
-      const MapEntry('Mobile Number','Mobile'), const MapEntry('primaryMobile','Mobile'),
-      const MapEntry('Aadhar Number','Aadhaar'), const MapEntry('uuid','UUID / Aadhaar'),
-      const MapEntry('uuidStatus','Aadhaar Verification Status'), const MapEntry('nameAsUuid','Name as Aadhaar'),
-      const MapEntry('Social Category','Social Category'), const MapEntry('socialCategoryDesc','Social Category'),
-      const MapEntry('socCatId','Social Category ID'), const MapEntry('Religion','Religion'),
-      const MapEntry('minorityDesc','Religion / Minority'), const MapEntry('minorityId','Religion / Minority ID'),
+      const MapEntry('Gender','Gender'),
+      const MapEntry('gender','Gender'),
+      const MapEntry('Studying in Class','Class'),
+      const MapEntry('classDesc','Class'),
+      const MapEntry('classId','Class ID'),
+      const MapEntry('Mobile Number','Mobile'),
+      const MapEntry('primaryMobile','Mobile'),
+      const MapEntry('Aadhar Number','Aadhaar'),
+      const MapEntry('uuid','UUID / Aadhaar'),
+      const MapEntry('uuidStatus','Aadhaar Verification Status'),
+      const MapEntry('nameAsUuid','Name as Aadhaar'),
+      const MapEntry('Social Category','Social Category'),
+      const MapEntry('socialCategoryDesc','Social Category'),
+      const MapEntry('socCatId','Social Category ID'),
+      const MapEntry('Religion','Religion'),
+      const MapEntry('minorityDesc','Religion / Minority'),
+      const MapEntry('minorityId','Religion / Minority ID'),
     ];
+
     final data=sourceRows();
     for(final e in preferred) {
       if(data.any((r){
         final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
         return raw.keys.any((k)=>normKey(k)==normKey(e.key));
       })) {
-        add(e.key, e.value);
+        add(e.key,e.value);
       }
     }
     for(final r in data) {
@@ -126,6 +146,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
 
   var entries=buildAvailableFields();
   fields=entries.map((e)=>e.key).toList();
+  customHeaders={for(final e in entries)e.key:e.value};
   var classes=buildClasses();
 
   final ok=await showDialog<bool>(
@@ -134,12 +155,15 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       return AlertDialog(
         title:const Text('Print Report'),
         content:SizedBox(
-          width:560,
-          height:560,
+          width:600,
+          height:620,
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Row(children:[
               Expanded(child:SegmentedButton<String>(
-                segments:const[ButtonSegment(value:'PSP',label:Text('PSP')),ButtonSegment(value:'UDISE',label:Text('UDISE'))],
+                segments:const[
+                  ButtonSegment(value:'PSP',label:Text('PSP')),
+                  ButtonSegment(value:'UDISE',label:Text('UDISE')),
+                ],
                 selected:{source},
                 onSelectionChanged:(v)=>set((){
                   source=v.first;
@@ -147,12 +171,16 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                   entries=buildAvailableFields();
                   classes=buildClasses();
                   fields=entries.map((e)=>e.key).toList();
+                  customHeaders={for(final e in entries)e.key:e.value};
                 }),
               )),
             ]),
             const SizedBox(height:10),
             SegmentedButton<String>(
-              segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],
+              segments:const[
+                ButtonSegment(value:'ALL',label:Text('All Students')),
+                ButtonSegment(value:'CLASS',label:Text('Selected Class')),
+              ],
               selected:{scope},
               onSelectionChanged:(v)=>set(()=>scope=v.first),
             ),
@@ -162,18 +190,82 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                 initialValue:selectedClass.isEmpty?null:selectedClass,
                 isExpanded:true,
                 decoration:const InputDecoration(labelText:'Class'),
-                items:classes.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c',overflow:TextOverflow.ellipsis))).toList(),
+                items:classes.map((c)=>DropdownMenuItem(
+                  value:c,
+                  child:Text('Class $c',overflow:TextOverflow.ellipsis),
+                )).toList(),
                 onChanged:(v)=>set(()=>selectedClass=v??''),
               ),
             ),
-            const SizedBox(height:10),
+            const SizedBox(height:8),
             Row(children:[
-              Expanded(child:Text('Select fields (${entries.length})',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800))),
-              TextButton(onPressed:()=>set(()=>fields=entries.map((e)=>e.key).toList()),child:const Text('All')),
-              TextButton(onPressed:()=>set(()=>fields=entries.isEmpty?[]:[entries.first.key]),child:const Text('Clear')),
+              Expanded(child:Text(
+                'Selected columns (${fields.length})',
+                style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800),
+              )),
+              TextButton(
+                onPressed:()=>set(()=>fields=entries.map((e)=>e.key).toList()),
+                child:const Text('All'),
+              ),
+              TextButton(
+                onPressed:()=>set(()=>fields=[]),
+                child:const Text('Clear'),
+              ),
+            ]),
+            Container(
+              height:150,
+              decoration:BoxDecoration(
+                border:Border.all(color:Theme.of(context).dividerColor),
+                borderRadius:BorderRadius.circular(8),
+              ),
+              child:fields.isEmpty
+                  ?const Center(child:Text('No columns selected'))
+                  :ReorderableListView.builder(
+                      padding:const EdgeInsets.symmetric(vertical:2),
+                      itemCount:fields.length,
+                      onReorder:(oldIndex,newIndex)=>set((){
+                        if(newIndex>oldIndex)newIndex--;
+                        final item=fields.removeAt(oldIndex);
+                        fields.insert(newIndex,item);
+                      }),
+                      itemBuilder:(context,index){
+                        final key=fields[index];
+                        final defaultHeader=customHeaders[key]??label(key);
+                        return ListTile(
+                          key:ValueKey('selected-column-${key}'),
+                          dense:true,
+                          visualDensity:const VisualDensity(vertical:-3),
+                          contentPadding:const EdgeInsets.only(left:4,right:2),
+                          leading:const Icon(Icons.drag_handle,size:20),
+                          title:TextFormField(
+                            key:ValueKey('header-${key}-${defaultHeader}'),
+                            initialValue:defaultHeader,
+                            isDense:true,
+                            decoration:const InputDecoration(
+                              labelText:'Column heading',
+                              border:OutlineInputBorder(),
+                            ),
+                            onChanged:(v)=>customHeaders[key]=v,
+                          ),
+                          trailing:IconButton(
+                            tooltip:'Remove column',
+                            visualDensity:VisualDensity.compact,
+                            icon:const Icon(Icons.close,size:19),
+                            onPressed:()=>set(()=>fields=fields.where((x)=>x!=key).toList()),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height:8),
+            Row(children:[
+              Expanded(child:Text(
+                'Available DB fields (${entries.length})',
+                style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800),
+              )),
             ]),
             const Divider(height:1),
-            const SizedBox(height:4),
+            const SizedBox(height:2),
             Expanded(
               child:ListView.builder(
                 cacheExtent:200,
@@ -185,13 +277,16 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                     dense:true,
                     visualDensity:const VisualDensity(vertical:-2),
                     contentPadding:EdgeInsets.zero,
-                    title:Text(e.value,overflow:TextOverflow.ellipsis),
+                    title:Text(
+                      customHeaders[e.key]??e.value,
+                      overflow:TextOverflow.ellipsis,
+                    ),
                     subtitle:Text(e.key,overflow:TextOverflow.ellipsis),
                     value:checked,
                     onChanged:(v)=>set((){
                       if (v == true && !fields.contains(e.key)) {
                         fields=[...fields,e.key];
-                      } else if (v == false && fields.length > 1) {
+                      } else if (v == false) {
                         fields=fields.where((x)=>x!=e.key).toList();
                       }
                     }),
@@ -203,7 +298,11 @@ Future<void> showStudentPrintDialog(BuildContext context,{
         ),
         actions:[
           TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
-          FilledButton.icon(onPressed:()=>Navigator.pop(context,true),icon:const Icon(Icons.print),label:const Text('Print')),
+          FilledButton.icon(
+            onPressed:()=>Navigator.pop(context,true),
+            icon:const Icon(Icons.print),
+            label:const Text('Print'),
+          ),
         ],
       );
     }),
@@ -231,6 +330,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     }).toList();
   }
 
+  // Printable values are read only from the raw DB JSON.
   String valueFor(ComparisonRow r,String requested){
     final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
     final target=normKey(requested);
@@ -248,26 +348,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
         if (n.contains('admission') && (n.contains('date') || n.contains('dt'))) {
           final v=e.value?.toString().trim()??'';
           if (v.isNotEmpty) {
-          return v;
+            return v;
+          }
         }
-        }
-      }
-    }
-    final p=r.psp; final u=r.udise;
-    if (source == 'PSP' && p != null) {
-      switch(target){
-        case 'studentnicid':return p.nicId; case 'srno':return p.srNo; case 'studentname':return p.studentName;
-        case 'fathername':return p.fatherName; case 'mothername':return p.motherName; case 'dob':return p.dob;
-        case 'gender':return p.gender; case 'studyinginclass':return p.studyingClass; case 'mobilenumber':return p.mobile;
-        case 'socialcategory':return p.socialCategory; case 'religion':return p.religion; case 'aadharnumber':return p.aadhaarLast4;
-      }
-    }
-    if (source == 'UDISE' && u != null) {
-      switch(target){
-        case 'studentid':return u.studentId; case 'studentcodenat':return u.studentCodeNat; case 'studentname':return u.studentName;
-        case 'fathername':return u.fatherName; case 'mothername':return u.motherName; case 'dob':return u.dob;
-        case 'gender':return u.gender; case 'classid':return u.classId; case 'classdesc':return u.classDesc;
-        case 'primarymobile':return u.mobile; case 'socialcategory':return u.socialCategory; case 'religion':return u.religion;
       }
     }
     return '';
@@ -276,7 +359,8 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   final selected=fields.map((k){
     for (final e in entries) {
       if (e.key == k) {
-        return e;
+        final header=(customHeaders[k]??e.value).trim();
+        return MapEntry(k,header.isEmpty?e.value:header);
       }
     }
     return null;
@@ -286,9 +370,10 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   for(var i=0;i<data.length;i++){
     table.add(['${i+1}',...selected.map((e)=>valueFor(data[i],e.key))]);
   }
+
   await NativePrintService.printTable(
-    title:'($pspCode) ($udiseCode) $schoolName',
-    subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : ${table.length}',
+    title:'(${pspCode}) (${udiseCode}) ${schoolName}',
+    subtitle:'${scope=='ALL'?'All':'Class : ${selectedClass}'}    ${source} REPORT    Student Count : ${table.length}',
     columns:['S.No',...selected.map((e)=>e.value)],
     rows:table,
     settings:settings,
