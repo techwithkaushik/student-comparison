@@ -185,6 +185,7 @@ public class MainActivity extends FlutterActivity {
         int marginBottomMm = clampMargin(asInt(settings.get("marginBottom"), legacyMarginMm));
         int marginLeftMm = clampMargin(asInt(settings.get("marginLeft"), legacyMarginMm));
         float fontSize = asFloat(settings.get("fontSize"), 10f);
+        boolean autoFit = asBool(settings.get("autoFit"), true);
         boolean repeatHeader = asBool(settings.get("repeatHeader"), true);
         boolean pageNumber = asBool(settings.get("pageNumber"), true);
 
@@ -230,7 +231,7 @@ public class MainActivity extends FlutterActivity {
         pm.print(
                 "Student Comparison - Report",
                 new StudentTablePrintAdapter(
-                        title, columns, rows, fontSize, repeatHeader, pageNumber,
+                        title, columns, rows, fontSize, autoFit, repeatHeader, pageNumber,
                         marginTopMm, marginRightMm, marginBottomMm, marginLeftMm),
                 attrs
         );
@@ -241,6 +242,7 @@ public class MainActivity extends FlutterActivity {
         private final List<String> columns;
         private final List<List<String>> rows;
         private final float fontSize;
+        private final boolean autoFit;
         private final boolean repeatHeader;
         private final boolean pageNumber;
         private int pageHeight;
@@ -254,12 +256,13 @@ public class MainActivity extends FlutterActivity {
 
         StudentTablePrintAdapter(
                 String title, List<String> columns, List<List<String>> rows,
-                float fontSize, boolean repeatHeader, boolean pageNumber,
+                float fontSize, boolean autoFit, boolean repeatHeader, boolean pageNumber,
                 int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm) {
             this.title = title;
             this.columns = columns;
             this.rows = rows;
             this.fontSize = Math.max(7f, Math.min(16f, fontSize));
+            this.autoFit = autoFit;
             this.repeatHeader = repeatHeader;
             this.pageNumber = pageNumber;
             this.marginTop = mmToPoints(marginTopMm);
@@ -289,8 +292,17 @@ public class MainActivity extends FlutterActivity {
         }
 
         private int rowsPerPage() {
-            float tableTop = marginTop + fontSize * 1.45f;
-            float usable = pageHeight - marginBottom - tableTop - 25f;
+            // Reserve space for the report header AND the table header row.
+            // The old calculation reserved only the report header, so the
+            // final body row could be drawn below the printable area.
+            float reportHeaderHeight = fontSize * 1.45f;
+            float tableHeaderHeight = rowHeight;
+            float usable = pageHeight
+                    - marginTop
+                    - marginBottom
+                    - reportHeaderHeight
+                    - tableHeaderHeight
+                    - 25f;
             return Math.max(1, (int) (usable / rowHeight));
         }
 
@@ -312,25 +324,57 @@ public class MainActivity extends FlutterActivity {
             try {
                 int total = pageCount();
                 int rowPageCount = rowPages();
+                int outputPage = 0;
+
                 for (int page = 0; page < total; page++) {
                     if (cancellationSignal.isCanceled()) {
                         callback.onWriteCancelled();
                         return;
                     }
+                    if (!isPageRequested(pages, page)) {
+                        continue;
+                    }
+
                     int rowPage = page % rowPageCount;
                     PdfDocument.PageInfo info =
-                            new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, page + 1).create();
+                            new PdfDocument.PageInfo.Builder(
+                                    pageWidth, pageHeight, outputPage + 1).create();
                     PdfDocument.Page pdfPage = pdf.startPage(info);
-                    drawPage(pdfPage.getCanvas(), rowPage, rowPageCount, total, page + 1);
+                    drawPage(
+                            pdfPage.getCanvas(),
+                            rowPage,
+                            rowPageCount,
+                            total,
+                            page + 1);
                     pdf.finishPage(pdfPage);
+                    outputPage++;
                 }
+
                 pdf.writeTo(new FileOutputStream(destination.getFileDescriptor()));
-                callback.onWriteFinished(new PageRange[]{PageRange.ALL_PAGES});
+                if (outputPage == 0) {
+                    callback.onWriteFinished(new PageRange[0]);
+                } else {
+                    callback.onWriteFinished(
+                            new PageRange[]{new PageRange(0, outputPage - 1)});
+                }
             } catch (Exception e) {
                 callback.onWriteFailed(e.getMessage());
             } finally {
                 pdf.close();
             }
+        }
+
+        private boolean isPageRequested(PageRange[] pages, int page) {
+            if (pages == null || pages.length == 0) {
+                return true;
+            }
+            for (PageRange range : pages) {
+                if (range == null) continue;
+                if (page >= range.getStart() && page <= range.getEnd()) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private List<Integer> allColumnIndexes() {
@@ -391,6 +435,16 @@ public class MainActivity extends FlutterActivity {
 
         private float[] calculateColumnWidths(List<Integer> indexes, Paint p, float totalWidth) {
             final float horizontalPadding = 6f; // 3pt on each side; compact cells.
+
+            // When Auto-fit is disabled, deliberately use equal-width columns.
+            // When enabled, size columns from headings and representative data.
+            if (!autoFit && !indexes.isEmpty()) {
+                float equalWidth = totalWidth / indexes.size();
+                float[] equal = new float[indexes.size()];
+                java.util.Arrays.fill(equal, equalWidth);
+                return equal;
+            }
+
             final float minWidth = 30f;
             final float maxWidth = Math.max(60f, totalWidth * 0.28f);
             float[] widths = new float[indexes.size()];
