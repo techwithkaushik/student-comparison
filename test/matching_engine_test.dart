@@ -504,7 +504,7 @@ void main() {
         contains('AADHAAR_NOT_FOUND'),
       );
     });
-    test('DOB can recover a match when name initials differ', () {
+    test('DOB can recover a candidate when name initials differ', () {
       final rows = runMatchingEngine(
         [
           psp(
@@ -525,7 +525,10 @@ void main() {
       );
 
       expect(rows, hasLength(1));
-      expect(rows.single.type, MatchType.matched);
+      expect(rows.single.udise, isNotNull);
+      expect(rows.single.type, MatchType.mismatch);
+      expect(rows.single.diffs, contains('NAME_MISMATCH'));
+      expect(rows.single.diffs, isNot(contains('DOB_MISMATCH')));
     });
 
     test('missing religion stays missing instead of becoming Hindu', () {
@@ -544,7 +547,7 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single.type, MatchType.matched);
       expect(rows.single.diffs, isNot(contains('RELIGION_MISMATCH')));
-      expect(rows.single.score, 90);
+      expect(rows.single.score, 95);
     });
 
   });
