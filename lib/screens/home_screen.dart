@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
 import '../bloc/home_bloc.dart';
+import '../data/repositories/app_repository.dart';
 import '../bloc/comparison_bloc.dart';
 import '../data/repositories/comparison_repository.dart';
 import '../data/repositories/school_repository.dart';
@@ -20,6 +23,80 @@ class _HomeScreenState extends State<HomeScreen> {
   String? get _error => context.read<HomeBloc>().state.error;
 
   Future<void> _loadProfiles() => context.read<HomeBloc>().load();
+
+  Future<void> _importDatabase() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['db', 'sqlite', 'sqlite3'],
+        withData: true,
+      );
+      if (result == null) return;
+
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Restore database?'),
+          content: const Text(
+            'This will replace all current school profiles, PSP/UDISE data and remarks with the selected backup. Continue?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Restore'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+
+      final bytes = result.files.single.bytes;
+      if (bytes == null || bytes.isEmpty) {
+        throw StateError('Unable to read the selected database backup.');
+      }
+
+      await context.read<AppRepository>().restoreDatabase(bytes);
+      if (!mounted) return;
+      await context.read<HomeBloc>().load();
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Database restored successfully. School profiles and data are ready.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Database restore failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _exportDatabase() async {
+    try {
+      final bytes = await context.read<AppRepository>().exportDatabase();
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Backup Student Comparison database',
+        fileName: 'student_comparison_backup.db',
+        bytes: Uint8List.fromList(bytes),
+      );
+      if (path != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Database backup exported successfully.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Database export failed: $e')),
+      );
+    }
+  }
 
   Future<void> _openProfile(Map<String, dynamic> profile) async {
     try {
@@ -215,6 +292,36 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Database backup',
+            onSelected: (value) {
+              if (value == 'import_database') {
+                _importDatabase();
+              } else if (value == 'export_database') {
+                _exportDatabase();
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'import_database',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.restore_rounded),
+                  title: Text('Import database'),
+                  subtitle: Text('Restore schools and all data'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'export_database',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.backup_rounded),
+                  title: Text('Export database'),
+                  subtitle: Text('Backup all schools and data'),
+                ),
+              ),
+            ],
+          ),
           IconButton(
             tooltip: 'Add school',
             onPressed: () => _showProfileForm(),
