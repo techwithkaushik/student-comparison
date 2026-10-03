@@ -230,7 +230,8 @@ class PrintReportCubit extends Cubit<PrintReportState> {
     final reportLabel = '${state.source} Report';
     final countLabel = 'count: ${state.printableRows.length}';
     await NativePrintService.printTable(
-      subtitle: '$scopeLabel    $reportLabel    $countLabel',
+      title: '$scopeLabel    $reportLabel    $countLabel',
+      subtitle: '',
       columns: columns.map((e) => e.value).toList(growable: false),
       rows: buildTable(),
       settings: settings,
