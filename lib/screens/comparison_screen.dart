@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/comparison_cubit.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../database/database.dart';
 import '../matching/matching_engine.dart';
@@ -34,61 +36,36 @@ class ComparisonDashboardScreen extends StatefulWidget {
 
 class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {
-  List<ComparisonRow> _rows = <ComparisonRow>[];
-  bool _loadingData = true;
-  String? _dataError;
-
-  String _filter = 'ALL';
-  String _classFilter = '';
-  String _search = '';
+  late final ComparisonCubit _cubit;
   bool _searchActive = false;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
-  final Set<String> _remarkKeys = <String>{};
-  final Map<String, Map<String, dynamic>> _remarks = <String, Map<String, dynamic>>{};
+
+  List<ComparisonRow> get _rows => _cubit.state.rows;
+  bool get _loadingData => _cubit.state.status == ComparisonStatus.loading || _cubit.state.status == ComparisonStatus.initial;
+  String? get _dataError => _cubit.state.error;
+  String get _filter => _cubit.state.filter;
+  String get _classFilter => _cubit.state.classFilter;
+  String get _search => _cubit.state.search;
+  Map<String, Map<String, dynamic>> get _remarks => _cubit.state.remarks;
+  Set<String> get _remarkKeys => _cubit.state.remarkKeys;
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _cubit.close();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialRows.isNotEmpty) {
-      _rows = List<ComparisonRow>.from(widget.initialRows);
-      _loadingData = false;
-    }
-    _loadData();
-    _loadRemarkKeys();
+    _cubit = ComparisonCubit();
+    _cubit.load(initialRows: widget.initialRows);
   }
 
-  Future<void> _loadData() async {
-    try {
-      final db = AppDatabase.instance;
-      final pspRows = await db.loadPspRows();
-      final udiseRows = await db.loadUdiseRows();
-      final psp = pspRows.map(PspStudent.fromJson).toList();
-      final udise = udiseRows.map(UdiseStudent.fromJson).toList();
-      // Keep one-sided imports visible too: records from either source
-      // should appear as unmatched until the other source is imported.
-      final rows = runMatchingEngine(psp, udise);
-      if (!mounted) return;
-      setState(() {
-        _rows = rows;
-        _loadingData = false;
-        _dataError = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loadingData = false;
-        _dataError = 'Unable to load saved data: $e';
-      });
-    }
-  }
+  Future<void> _loadData() => _cubit.load();
 
   Future<List<Map<String, dynamic>>> _decodeJsonRows(Uint8List bytes, String label) async {
     final decoded = jsonDecode(utf8.decode(bytes));
@@ -176,7 +153,7 @@ class _ComparisonDashboardScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _dataError = 'JSON import failed: $e');
+      _cubit.setError('JSON import failed: $e');
     }
   }
 
@@ -202,7 +179,7 @@ class _ComparisonDashboardScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _dataError = 'SQLite import failed: $e');
+      _cubit.setError('SQLite import failed: $e');
     }
   }
 
@@ -231,7 +208,7 @@ class _ComparisonDashboardScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _dataError = 'Old remarks import failed: $e');
+      _cubit.setError('Old remarks import failed: $e');
     }
   }
 
@@ -241,7 +218,7 @@ class _ComparisonDashboardScreenState
       final path = await FilePicker.platform.saveFile(dialogTitle: 'Export SQLite database', fileName: 'student_comparison.db', bytes: bytes);
       if (path != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SQLite database exported successfully.')));
     } catch (e) {
-      if (mounted) setState(() => _dataError = 'Database export failed: $e');
+      if (mounted) _cubit.setError('Database export failed: $e');
     }
   }
   Future<void> _exportCsv() async {
@@ -266,7 +243,7 @@ class _ComparisonDashboardScreenState
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV exported successfully.')));
       }
     } catch (e) {
-      if (mounted) setState(() => _dataError = 'CSV export failed: $e');
+      if (mounted) _cubit.setError('CSV export failed: $e');
     }
   }
 
@@ -294,7 +271,7 @@ class _ComparisonDashboardScreenState
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSON exported successfully.')));
       }
     } catch (e) {
-      if (mounted) setState(() => _dataError = 'JSON export failed: $e');
+      if (mounted) _cubit.setError('JSON export failed: $e');
     }
   }
 
@@ -306,36 +283,10 @@ class _ComparisonDashboardScreenState
     return '${_key(p)}|${_key(u)}';
   }
 
-  Future<void> _loadRemarkKeys() async {
-    try {
-      final rows = await AppDatabase.instance.getAllRemarks();
-      final keys = <String>{};
-      final remarks = <String, Map<String, dynamic>>{};
-      for (final r in rows) {
-        final p = r['psp_nic']?.toString() ?? '';
-        final u = r['udise_pen']?.toString() ?? '';
-        if (p.isNotEmpty || u.isNotEmpty) {
-          final key = '${_key(p)}|${_key(u)}';
-          keys.add(key);
-          remarks[key] = Map<String, dynamic>.from(r);
-        }
-      }
-      if (!mounted) return;
-      setState(() {
-        _remarkKeys
-          ..clear()
-          ..addAll(keys);
-        _remarks
-          ..clear()
-          ..addAll(remarks);
-      });
-    } catch (_) {
-      // Keep the comparison list usable even if the remark table cannot be read.
-    }
-  }
+  Future<void> _loadRemarkKeys() => _cubit.loadRemarks();
 
   Map<String, dynamic>? _remarkFor(ComparisonRow row) =>
-      _remarks[_remarkKeyFor(row)];
+      _cubit.state.remarks[_remarkKeyFor(row)];
 
   String _pspRte(ComparisonRow row) {
     final raw = row.psp?.raw ?? const <String, dynamic>{};
@@ -370,12 +321,12 @@ class _ComparisonDashboardScreenState
       if (text.isEmpty) {
         await AppDatabase.instance.deleteRemark(pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
         if (!mounted) return;
-        setState(() { _remarks.remove(key); _remarkKeys.remove(key); });
+        await _cubit.deleteRemark(row);
       } else {
         await AppDatabase.instance.saveRemark(remark: text, pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
         final updated = await AppDatabase.instance.getRemark(pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
         if (!mounted) return;
-        if (updated != null) setState(() { _remarks[key] = updated; _remarkKeys.add(key); });
+        await _cubit.loadRemarks();
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remark update failed: $e')));
@@ -428,111 +379,13 @@ class _ComparisonDashboardScreenState
   }
 
 
-  List<ComparisonRow> get _filteredRows {
-    final q = _search.trim().toLowerCase();
+  List<ComparisonRow> get _filteredRows => _cubit.state.filteredRows;
 
-    return _rows.where((row) {
-      // Remark filter
-      if (_filter == 'REMARKED' && !_hasRemark(row)) {
-        return false;
-      }
+  int _countType(MatchType type) => _cubit.state.countType(type);
 
-      if (_filter == 'RTE' && _pspRte(row) != 'RTE') {
-        return false;
-      }
+  int _countDiff(String diff) => _cubit.state.countDiff(diff);
 
-      // Status / difference filter
-      if (_filter == 'MATCHED' &&
-          row.type != MatchType.matched) {
-        return false;
-      }
-
-      if (_filter == 'MISMATCH' &&
-          row.type != MatchType.mismatch) {
-        return false;
-      }
-
-      if (_filter == 'PSP_ONLY' &&
-          row.type != MatchType.notInUdise) {
-        return false;
-      }
-
-      if (_filter == 'UDISE_ONLY' &&
-          row.type != MatchType.notInPsp) {
-        return false;
-      }
-
-      if (_filter.startsWith('DIFF:')) {
-        final diff = _filter.substring(5);
-        if (!row.diffs.contains(diff)) {
-          return false;
-        }
-      }
-
-      // PSP is the authoritative source for class filtering.
-      // UDISE class must not make a row pass this filter on its own.
-      if (_classFilter.isNotEmpty) {
-        final pClass = row.psp?.classCanonValue ?? '';
-        if (pClass != _classFilter) {
-          return false;
-        }
-      }
-
-      // Search
-      if (q.isNotEmpty) {
-        final values = [
-          row.psp?.studentName,
-          row.psp?.srNo,
-          row.psp?.nicId,
-          row.psp?.fatherName,
-          row.psp?.motherName,
-          row.psp?.mobile,
-          row.udise?.studentName,
-          row.udise?.studentCodeNat,
-          row.udise?.studentId,
-          row.udise?.fatherName,
-          row.udise?.motherName,
-          row.udise?.mobile,
-        ];
-
-        final found = values.any(
-          (value) =>
-              (value ?? '').toLowerCase().contains(q),
-        );
-
-        if (!found) return false;
-      }
-
-      return true;
-    }).toList();
-  }
-
-  int _countType(MatchType type) {
-    return _rows
-        .where((row) => row.type == type)
-        .length;
-  }
-
-  int _countDiff(String diff) {
-    return _rows
-        .where((row) => row.diffs.contains(diff))
-        .length;
-  }
-
-  Set<String> get _classes {
-    // The class dropdown is based only on PSP, the authoritative class source.
-    // UDISE-only classes must not appear as selectable filter values.
-    final result = <String>{};
-
-    for (final row in _rows) {
-      final pClass = row.psp?.classCanonValue ?? '';
-      if (pClass.isNotEmpty) {
-        result.add(pClass);
-      }
-    }
-
-    return result;
-  }
+  Set<String> get _classes => _cubit.state.classes;
 
   String _statusText(ComparisonRow row) {
     switch (row.type) {
@@ -577,23 +430,10 @@ class _ComparisonDashboardScreenState
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredRows;
-    final pspBaseCount = _rows.where((row) => row.psp != null).length;
-    final matchedBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.matched).length;
-    final mismatchBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.mismatch).length;
-
-    final classes = _classes.toList()
-      ..sort((a, b) {
-        final ai = int.tryParse(a) ?? 99;
-        final bi = int.tryParse(b) ?? 99;
-
-        if (ai != bi) {
-          return ai.compareTo(bi);
-        }
-
-        return a.compareTo(b);
-      });
-
+    return BlocProvider.value(
+      value: _cubit,
+      child: BlocBuilder<ComparisonCubit, ComparisonState>(
+        builder: (context, state) {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 52,
@@ -606,7 +446,7 @@ class _ComparisonDashboardScreenState
                   // Avoid rebuilding the full dashboard for every keystroke.
                   _searchDebounce?.cancel();
                   _searchDebounce = Timer(const Duration(milliseconds: 180), () {
-                    if (mounted) setState(() => _search = value);
+                    if (mounted) _cubit.setSearch(value);
                   });
                 },
                 decoration: const InputDecoration(
@@ -650,7 +490,7 @@ class _ComparisonDashboardScreenState
                 _searchActive = !_searchActive;
                 if (!_searchActive) {
                   _searchController.clear();
-                  _search = '';
+                  _cubit.setSearch('');
                 }
               });
             },
@@ -728,21 +568,15 @@ class _ComparisonDashboardScreenState
             mobile: _countDiff('MOBILE_MISMATCH'),
             selected: _filter,
             onSelected: (value) {
-              setState(() {
-                _filter = value;
-              });
+              _cubit.setFilter(value);
             },
             onDiffSelected: (diff) {
-              setState(() {
-                _filter = _filter == 'DIFF:$diff'
-                    ? 'ALL'
-                    : 'DIFF:$diff';
-              });
+              _cubit.toggleDiffFilter(diff);
             },
             classes: classes,
             classFilter: _classFilter,
             onClassChanged: (value) {
-              setState(() => _classFilter = value);
+              _cubit.setClassFilter(value);
             },
             onPrint: _printReport,
           ),
@@ -784,6 +618,11 @@ class _ComparisonDashboardScreenState
       ),
     );
   }
+        },
+      ),
+    );
+  }
+
 }
 
 class _SummarySection extends StatelessWidget {
