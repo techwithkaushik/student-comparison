@@ -452,6 +452,8 @@ public class MainActivity extends FlutterActivity {
                                   float width, Paint p, boolean bold) {
             // Only column headers are bold; every student-data cell is always normal.
             p.setTypeface(Typeface.create(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL));
+            // Never allow synthetic bold to leak into student-data cells.
+            p.setFakeBoldText(bold);
             p.setColor(android.graphics.Color.BLACK);
             p.setTextSize(fontSize);
             String value = text == null ? "" : text.trim();
