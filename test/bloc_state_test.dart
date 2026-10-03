@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_comparison/bloc/comparison_bloc.dart';
+import 'package:student_comparison/data/repositories/comparison_repository.dart';
+import 'package:student_comparison/data/repositories/school_repository.dart';
 import 'package:student_comparison/matching/models.dart';
 
 void main() {
@@ -32,15 +34,20 @@ void main() {
       expect(state.countDiff('NAME_MISMATCH'), 1);
     });
 
-    test('diff filter toggles through Cubit state', () {
-      final cubit = ComparisonBloc();
-      addTearDown(cubit.close);
+    test('diff filter toggles through Bloc events', () async {
+      final bloc = ComparisonBloc(
+        repository: ComparisonRepository(),
+        schoolRepository: SchoolRepository(),
+      );
+      addTearDown(bloc.close);
 
-      cubit.toggleDiffFilter('NAME_MISMATCH');
-      expect(cubit.state.filter, 'DIFF:NAME_MISMATCH');
+      bloc.add(const ComparisonDiffFilterToggled('NAME_MISMATCH'));
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.filter, 'DIFF:NAME_MISMATCH');
 
-      cubit.toggleDiffFilter('NAME_MISMATCH');
-      expect(cubit.state.filter, 'ALL');
+      bloc.add(const ComparisonDiffFilterToggled('NAME_MISMATCH'));
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.filter, 'ALL');
     });
   });
 }
