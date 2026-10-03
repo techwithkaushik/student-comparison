@@ -224,7 +224,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                       padding:const EdgeInsets.symmetric(vertical:2),
                       itemCount:fields.length,
                       onReorder:(oldIndex,newIndex)=>set((){
-                        if(newIndex>oldIndex)newIndex--;
+                        if(newIndex>oldIndex){newIndex--;}
                         final item=fields.removeAt(oldIndex);
                         fields.insert(newIndex,item);
                       }),
