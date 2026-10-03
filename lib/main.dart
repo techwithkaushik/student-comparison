@@ -5,12 +5,7 @@ import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    BlocProvider(
-      create: (_) => AppCubit()..initialize(),
-      child: const StudentComparisonApp(),
-    ),
-  );
+  runApp(const StudentComparisonApp());
 }
 
 class StudentComparisonApp extends StatelessWidget {
@@ -18,25 +13,28 @@ class StudentComparisonApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PSP vs UDISE',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        visualDensity: VisualDensity.compact,
-      ),
-      home: BlocBuilder<AppCubit, AppState>(
-        builder: (context, state) {
-          switch (state.status) {
-            case AppStatus.ready:
-              return const HomeScreen();
-            case AppStatus.failure:
-              return _StartupFailure(error: state.error);
-            case AppStatus.initializing:
-              return const _StartupLoading();
-          }
-        },
+    return BlocProvider(
+      create: (_) => AppCubit()..initialize(),
+      child: MaterialApp(
+        title: 'PSP vs UDISE',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+          visualDensity: VisualDensity.compact,
+        ),
+        home: BlocBuilder<AppCubit, AppState>(
+          builder: (context, state) {
+            switch (state.status) {
+              case AppStatus.ready:
+                return const HomeScreen();
+              case AppStatus.failure:
+                return _StartupFailure(error: state.error);
+              case AppStatus.initializing:
+                return const _StartupLoading();
+            }
+          },
+        ),
       ),
     );
   }
