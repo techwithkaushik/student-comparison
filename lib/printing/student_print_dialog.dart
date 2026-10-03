@@ -113,7 +113,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       final c=source=='PSP'
           ?(r.psp?.classCanonValue??'')
           :(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
-      if(c.isNotEmpty) classes.add(c);
+      if(c.isNotEmpty) {\n        classes.add(c);\n      }
     }
     return classes.toList()..sort();
   }
