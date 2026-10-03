@@ -13,8 +13,7 @@ class PrintSettingsCubit extends Cubit<PrintSettings> {
   void setPageNumber(bool v) => emit(state.copyWith(pageNumber: v));
   Future<void> persist() => NativePrintService.saveSettings(state);
 
-}}
-
+}
 
 class PrintReportState {
   final List<ComparisonRow> rows;
