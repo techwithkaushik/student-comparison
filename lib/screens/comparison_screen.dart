@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/comparison_cubit.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../database/database.dart';
 import '../matching/matching_engine.dart';
 import '../matching/models.dart';
 import '../printing/native_print_service.dart';
@@ -101,7 +100,7 @@ class _ComparisonDashboardScreenState
 
       final file = result.files.single;
       final fileName = file.name.trim();
-      final profile = await AppDatabase.instance.getActiveSchoolProfile();
+      final profile = await _cubit.getActiveSchoolProfile();
       if (profile == null) {
         throw StateError(
           'Please create and select a school profile before importing JSON.',
@@ -136,9 +135,9 @@ class _ComparisonDashboardScreenState
         pspImport ? 'PSP' : 'UDISE',
       );
       if (pspImport) {
-        await AppDatabase.instance.replacePspRows(rows);
+        await _cubit.importJsonRows(psp: true, rows: rows);
       } else {
-        await AppDatabase.instance.replaceUdiseRows(rows);
+        await _cubit.importJsonRows(psp: false, rows: rows);
       }
       await _loadData();
       await _loadRemarkKeys();
@@ -167,7 +166,7 @@ class _ComparisonDashboardScreenState
       if (result == null) return;
       final bytes = result.files.single.bytes;
       if (bytes == null) throw Exception('Unable to read selected SQLite file.');
-      final imported = await AppDatabase.instance.importSqliteBytes(bytes);
+      final imported = await _cubit.importSqlite(bytes);
       await _loadData();
       await _loadRemarkKeys();
       if (!mounted) return;
@@ -194,7 +193,7 @@ class _ComparisonDashboardScreenState
       final bytes = result.files.single.bytes;
       if (bytes == null) throw Exception('Unable to read selected SQLite file.');
 
-      final imported = await AppDatabase.instance.importLegacyRemarksBytes(bytes);
+      final imported = await _cubit.importLegacyRemarks(bytes);
       await _loadRemarkKeys();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -214,7 +213,7 @@ class _ComparisonDashboardScreenState
 
   Future<void> _exportDatabase() async {
     try {
-      final bytes = await AppDatabase.instance.exportDatabaseBytes();
+      final bytes = await _cubit.exportDatabase();
       final path = await FilePicker.platform.saveFile(dialogTitle: 'Export SQLite database', fileName: 'student_comparison.db', bytes: bytes);
       if (path != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SQLite database exported successfully.')));
     } catch (e) {
@@ -249,9 +248,7 @@ class _ComparisonDashboardScreenState
 
   Future<void> _exportSourceJson(bool pspExport) async {
     try {
-      final rows = pspExport
-          ? await AppDatabase.instance.loadPspRows()
-          : await AppDatabase.instance.loadUdiseRows();
+      final rows = await _cubit.loadSourceRows(psp: pspExport);
       final bytes = Uint8List.fromList(utf8.encode(
         const JsonEncoder.withIndent('  ').convert(rows),
       ));
@@ -319,14 +316,11 @@ class _ComparisonDashboardScreenState
       if (saved != true) return;
       final text = controller.text.trim();
       if (text.isEmpty) {
-        await AppDatabase.instance.deleteRemark(pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
         if (!mounted) return;
         await _cubit.deleteRemark(row);
       } else {
-        await AppDatabase.instance.saveRemark(remark: text, pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
-        final updated = await AppDatabase.instance.getRemark(pspNic: row.psp?.nicId, udisePen: row.udise?.studentCodeNat);
         if (!mounted) return;
-        await _cubit.loadRemarks();
+        await _cubit.saveRemark(row: row, remark: text);
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remark update failed: $e')));
