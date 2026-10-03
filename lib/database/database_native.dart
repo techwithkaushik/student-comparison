@@ -801,6 +801,76 @@ class AppDatabase {
     }
   }
 
+  /// Replaces the complete application database. This is intentionally
+  /// app-level: a backup contains school profiles plus all school data, so
+  /// importing it must not depend on whichever school happens to be active.
+  Future<void> replaceDatabaseBytes(List<int> bytes) async {
+    if (bytes.isEmpty) {
+      throw ArgumentError('Database file is empty.');
+    }
+
+    final tempPath = p.join(
+      await getDatabasesPath(),
+      'student_comparison_restore_1791040287780.db',
+    );
+    final tempFile = File(tempPath);
+    await tempFile.writeAsBytes(bytes, flush: true);
+
+    Database? candidate;
+    try {
+      candidate = await openDatabase(tempPath, readOnly: true);
+      final tables = (await candidate.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      ))
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toSet();
+
+      const required = {
+        'school_profiles',
+        'psp_students',
+        'udise_students',
+        'student_remarks',
+      };
+      final missing = required.where((table) => !tables.contains(table)).toList();
+      if (missing.isNotEmpty) {
+        throw FormatException(
+          'Invalid Student Comparison backup. Missing tables: ${missing.join(', ')}',
+        );
+      }
+
+      final versionRows = await candidate.rawQuery('PRAGMA user_version');
+      final sourceVersion = versionRows.isEmpty
+          ? 0
+          : int.tryParse(versionRows.first.values.first.toString()) ?? 0;
+      if (sourceVersion > _dbVersion) {
+        throw FormatException(
+          'This backup was created by a newer app database (v$sourceVersion). '
+          'Please update the app before importing it.',
+        );
+      }
+    } finally {
+      await candidate?.close();
+    }
+
+    final dbPath = await _persistentDatabasePath();
+    final current = _db;
+    _db = null;
+    _activeProfileId = null;
+    await current?.close();
+
+    try {
+      final currentFile = File(dbPath);
+      if (await currentFile.exists()) {
+        await currentFile.delete();
+      }
+      await tempFile.rename(dbPath);
+    } catch (_) {
+      _db = null;
+      rethrow;
+    }
+  }
+
   Future<SqliteImportResult> importSqliteBytes(List<int> bytes) async {
     final target = await _requireActiveProfile();
     final tempPath = p.join(
