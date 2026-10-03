@@ -38,7 +38,7 @@ class ComparisonState extends Equatable {
   bool hasRemark(ComparisonRow row) {
     final p = (row.psp?.nicId ?? '').trim().toUpperCase();
     final u = (row.udise?.studentCodeNat ?? '').trim().toUpperCase();
-    return remarks.containsKey('\$p|\$u');
+    return remarks.containsKey('$p|$u');
   }
 
   List<ComparisonRow> get filteredRows {
@@ -50,8 +50,7 @@ class ComparisonState extends Equatable {
       if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
       if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
       if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
-      if (filter.startsWith('DIFF:') &&
-          !row.diffs.contains(filter.substring(5))) {
+      if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) {
         return false;
       }
       if (classFilter.isNotEmpty &&
@@ -261,18 +260,18 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       for (final row in source) {
         final p = row['psp_nic']?.toString().trim().toUpperCase() ?? '';
         final u = row['udise_pen']?.toString().trim().toUpperCase() ?? '';
-        if (p.isNotEmpty || u.isNotEmpty) remarks['\$p|\$u'] = Map<String, dynamic>.unmodifiable(Map<String, dynamic>.from(row));
+        if (p.isNotEmpty || u.isNotEmpty) remarks['$p|$u'] = Map<String, dynamic>.unmodifiable(Map<String, dynamic>.from(row));
       }
       emit(state.copyWith(status: ComparisonStatus.ready, rows: List<ComparisonRow>.unmodifiable(rows), remarks: Map<String, Map<String, dynamic>>.unmodifiable(remarks)));
       event.completer?.complete();
     } catch (e, st) {
       if (event.completer != null && !event.completer!.isCompleted) event.completer!.completeError(e, st);
-      if (generation == _loadGeneration && !emit.isDone) emit(state.copyWith(status: ComparisonStatus.failure, error: 'Unable to load saved data: \$e'));
+      if (generation == _loadGeneration && !emit.isDone) emit(state.copyWith(status: ComparisonStatus.failure, error: 'Unable to load saved data: $e'));
     }
   }
 
   void _onDiffFilter(ComparisonDiffFilterToggled event, Emitter<ComparisonState> emit) {
-    emit(state.copyWith(filter: state.filter == 'DIFF:\${event.diff}' ? 'ALL' : 'DIFF:\${event.diff}'));
+    emit(state.copyWith(filter: state.filter == 'DIFF:${event.diff}' ? 'ALL' : 'DIFF:${event.diff}'));
   }
 
   Future<void> _onJsonImport(ComparisonJsonImportRequested event, Emitter<ComparisonState> emit) async {
@@ -282,7 +281,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       add(const ComparisonLoadRequested());
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(status: ComparisonStatus.failure, error: 'JSON import failed: \$e'));
+      emit(state.copyWith(status: ComparisonStatus.failure, error: 'JSON import failed: $e'));
     }
   }
 
@@ -293,7 +292,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       add(const ComparisonLoadRequested());
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(status: ComparisonStatus.failure, error: 'SQLite import failed: \$e'));
+      emit(state.copyWith(status: ComparisonStatus.failure, error: 'SQLite import failed: $e'));
     }
   }
 
@@ -304,7 +303,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       add(const ComparisonLoadRequested());
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(status: ComparisonStatus.failure, error: 'Legacy remarks import failed: \$e'));
+      emit(state.copyWith(status: ComparisonStatus.failure, error: 'Legacy remarks import failed: $e'));
     }
   }
 
@@ -336,7 +335,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       if (!event.completer.isCompleted) event.completer.complete();
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(error: 'Remark update failed: \$e'));
+      emit(state.copyWith(error: 'Remark update failed: $e'));
     }
   }
 
@@ -347,7 +346,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       if (!event.completer.isCompleted) event.completer.complete();
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(error: 'Remark deletion failed: \$e'));
+      emit(state.copyWith(error: 'Remark deletion failed: $e'));
     }
   }
 
@@ -357,7 +356,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     for (final row in source) {
       final p = row['psp_nic']?.toString().trim().toUpperCase() ?? '';
       final u = row['udise_pen']?.toString().trim().toUpperCase() ?? '';
-      if (p.isNotEmpty || u.isNotEmpty) remarks['\$p|\$u'] = Map<String, dynamic>.unmodifiable(Map<String, dynamic>.from(row));
+      if (p.isNotEmpty || u.isNotEmpty) remarks['$p|$u'] = Map<String, dynamic>.unmodifiable(Map<String, dynamic>.from(row));
     }
     emit(state.copyWith(remarks: Map<String, Map<String, dynamic>>.unmodifiable(remarks)));
   }
