@@ -12,7 +12,26 @@ class PrintSettingsCubit extends Cubit<PrintSettings> {
   void setRepeatHeader(bool v) => emit(state.copyWith(repeatHeader: v));
   void setPageNumber(bool v) => emit(state.copyWith(pageNumber: v));
   Future<void> persist() => NativePrintService.saveSettings(state);
+
+  Future<void> printReport({
+    required String schoolName,
+    required String pspCode,
+    required String udiseCode,
+    required PrintSettings settings,
+  }) async {
+    if (!state.valid) throw StateError('Please select a class and at least one field.');
+    final columns = selectedColumns();
+    await NativePrintService.printTable(
+      title: '${pspCode} ${udiseCode} $schoolName',
+      subtitle: '${state.scope == 'ALL' ? 'All' : 'Class : ${state.selectedClass}'}    ${state.source} REPORT    Student Count : ${state.printableRows.length}',
+      columns: columns.map((e) => e.value).toList(growable: false),
+      rows: buildTable(),
+      settings: settings,
+    );
+    await saveColumnPreferences();
+  }
 }
+
 
 class PrintReportState {
   final List<ComparisonRow> rows;
