@@ -347,8 +347,10 @@ public class MainActivity extends FlutterActivity {
 
             float left = marginLeft;
             float y = marginTop;
-            c.drawText(title, left, y, p);
-            y += fontSize * 1.45f;
+            if (!title.isEmpty()) {
+                c.drawText(title, left, y, p);
+                y += fontSize * 1.45f;
+            }
             p.setTypeface(Typeface.DEFAULT);
             c.drawText(subtitle, left, y, p);
             y += fontSize * 1.45f;
