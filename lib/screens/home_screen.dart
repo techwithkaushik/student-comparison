@@ -189,8 +189,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
     context.read<HomeBloc>().add(const HomeLoadRequested());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
     final scheme = Theme.of(context).colorScheme;
