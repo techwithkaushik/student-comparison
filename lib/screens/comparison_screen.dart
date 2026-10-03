@@ -539,6 +539,24 @@ class _ComparisonDashboardScreenState
                 ),
               ),
             ),
+          if (_loadingData && _rows.isEmpty)
+            const Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 34,
+                      height: 34,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    ),
+                    SizedBox(height: 14),
+                    Text('Loading comparison data...'),
+                  ],
+                ),
+              ),
+            )
+          else ...[
           _SummarySection(
             all: pspBaseCount,
             matchedCount: matchedBaseCount,
@@ -575,6 +593,7 @@ class _ComparisonDashboardScreenState
             onPrint: _printReport,
           ),
 
+
           Expanded(
             child: filtered.isEmpty
                 ? const Center(
@@ -607,7 +626,8 @@ class _ComparisonDashboardScreenState
                       );
                     },
                   ),
-          ),
+          )
+          ],,
         ],
       ),
     );
