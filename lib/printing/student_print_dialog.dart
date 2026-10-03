@@ -110,11 +110,23 @@ Future<PrintSettings?> showPrintPageSetup(
             actions: [
               TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
               FilledButton(
-                onPressed: () async {
-                  await context.read<PrintSettingsBloc>().persist();
-                  if (context.mounted) Navigator.pop(context, s);
-                },
-                child: const Text('Save'),
+                onPressed: s.saving
+                    ? null
+                    : () async {
+                        final bloc = context.read<PrintSettingsBloc>();
+                        try {
+                          await bloc.persist();
+                          if (context.mounted) {
+                            // Read state after the persist event has completed.
+                            // The builder snapshot may be older than the saved state.
+                            Navigator.pop(context, bloc.state.settings);
+                          }
+                        } catch (_) {
+                          // Keep the dialog open; the Bloc exposes the error and
+                          // the user can retry.
+                        }
+                      },
+                child: Text(s.saving ? 'Saving…' : 'Save'),
               ),
             ],
           ),
