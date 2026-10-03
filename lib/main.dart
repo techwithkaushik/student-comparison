@@ -46,6 +46,7 @@ class StudentComparisonApp extends StatelessWidget {
             }
           },
         ),
+        ),
       ),
     );
   }
