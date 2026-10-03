@@ -142,7 +142,11 @@ public class MainActivity extends FlutterActivity {
                 getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit();
         e.putString("paper", String.valueOf(values.getOrDefault("paper", "A4")));
         e.putString("orientation", String.valueOf(values.getOrDefault("orientation", "auto")));
-        e.putInt("margin", asInt(values.get("margin"), 5));
+        int legacyMargin = asInt(values.get("margin"), 5);
+        e.putInt("marginTop", asInt(values.get("marginTop"), legacyMargin));
+        e.putInt("marginRight", asInt(values.get("marginRight"), legacyMargin));
+        e.putInt("marginBottom", asInt(values.get("marginBottom"), legacyMargin));
+        e.putInt("marginLeft", asInt(values.get("marginLeft"), legacyMargin));
         e.putFloat("fontSize", asFloat(values.get("fontSize"), 10f));
         e.putBoolean("autoFit", asBool(values.get("autoFit"), true));
         e.putBoolean("repeatHeader", asBool(values.get("repeatHeader"), true));
@@ -155,7 +159,11 @@ public class MainActivity extends FlutterActivity {
         Map<String, Object> out = new HashMap<>();
         out.put("paper", p.getString("paper", "A4"));
         out.put("orientation", p.getString("orientation", "auto"));
-        out.put("margin", p.getInt("margin", 5));
+        int legacyMargin = p.getInt("margin", 5);
+        out.put("marginTop", p.getInt("marginTop", legacyMargin));
+        out.put("marginRight", p.getInt("marginRight", legacyMargin));
+        out.put("marginBottom", p.getInt("marginBottom", legacyMargin));
+        out.put("marginLeft", p.getInt("marginLeft", legacyMargin));
         out.put("fontSize", p.getFloat("fontSize", 10f));
         out.put("autoFit", p.getBoolean("autoFit", true));
         out.put("repeatHeader", p.getBoolean("repeatHeader", true));
@@ -172,7 +180,11 @@ public class MainActivity extends FlutterActivity {
 
         String paper = strOr(settings.get("paper"), "A4");
         String orientation = strOr(settings.get("orientation"), "auto");
-        int marginMm = asInt(settings.get("margin"), 5);
+        int legacyMarginMm = asInt(settings.get("margin"), 5);
+        int marginTopMm = clampMargin(asInt(settings.get("marginTop"), legacyMarginMm));
+        int marginRightMm = clampMargin(asInt(settings.get("marginRight"), legacyMarginMm));
+        int marginBottomMm = clampMargin(asInt(settings.get("marginBottom"), legacyMarginMm));
+        int marginLeftMm = clampMargin(asInt(settings.get("marginLeft"), legacyMarginMm));
         float fontSize = asFloat(settings.get("fontSize"), 10f);
         boolean repeatHeader = asBool(settings.get("repeatHeader"), true);
         boolean pageNumber = asBool(settings.get("pageNumber"), true);
@@ -200,11 +212,14 @@ public class MainActivity extends FlutterActivity {
                     : PrintAttributes.MediaSize.ISO_A4;
         }
 
-        int marginMils = Math.max(0, marginMm) * 39;
+        int topMils = marginTopMm * 39;
+        int rightMils = marginRightMm * 39;
+        int bottomMils = marginBottomMm * 39;
+        int leftMils = marginLeftMm * 39;
         PrintAttributes attrs = new PrintAttributes.Builder()
                 .setMediaSize(media)
                 .setMinMargins(new PrintAttributes.Margins(
-                        marginMils, marginMils, marginMils, marginMils))
+                        leftMils, topMils, rightMils, bottomMils))
                 .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
                 .setResolution(new PrintAttributes.Resolution(
                         "student_comparison", "Student Comparison", 300, 300))
@@ -493,6 +508,10 @@ public class MainActivity extends FlutterActivity {
                 c.drawText(second, x + 3, base1 + lineHeight, p);
             }
         }
+    }
+
+    private static int clampMargin(int value) {
+        return Math.max(0, Math.min(50, value));
     }
 
     private static int asInt(Object v, int fallback) {
