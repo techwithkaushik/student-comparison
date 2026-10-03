@@ -859,13 +859,32 @@ class AppDatabase {
     _activeProfileId = null;
     await current?.close();
 
+    final currentFile = File(dbPath);
+    final backupPath = '$dbPath.restore_backup';
+    final backupFile = File(backupPath);
+
     try {
-      final currentFile = File(dbPath);
+      if (await backupFile.exists()) {
+        await backupFile.delete();
+      }
       if (await currentFile.exists()) {
-        await currentFile.delete();
+        await currentFile.rename(backupPath);
       }
       await tempFile.rename(dbPath);
+      if (await backupFile.exists()) {
+        await backupFile.delete();
+      }
     } catch (_) {
+      // If replacement fails, put the previous database back before
+      // rethrowing so a failed restore cannot destroy the user's data.
+      try {
+        if (await currentFile.exists()) {
+          await currentFile.delete();
+        }
+        if (await backupFile.exists()) {
+          await backupFile.rename(dbPath);
+        }
+      } catch (_) {}
       _db = null;
       rethrow;
     }
