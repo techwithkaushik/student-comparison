@@ -81,7 +81,23 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
       - name: Analyze
-        run: flutter analyze
+        id: analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze 2>&1 | tee /tmp/flutter-analyze.log
+          exit ${PIPESTATUS[0]}
+      - name: Capture analyzer diagnostics
+        if: steps.analyze.outcome == 'failure'
+        shell: bash
+        run: |
+          mkdir -p ci-diagnostics
+          cp /tmp/flutter-analyze.log ci-diagnostics/latest-analyze.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci-diagnostics/latest-analyze.log
+          git commit -m "ci: capture analyzer diagnostics [skip ci]"
+          git push
       - name: Test
         run: flutter test
       - name: Build ARM32 signed APK
