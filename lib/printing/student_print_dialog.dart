@@ -60,55 +60,43 @@ Future<void> showStudentPrintDialog(BuildContext context,{
 
   String normKey(String key) => key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'),'');
   String label(String key) {
-    final s=key.replaceAll(RegExp(r'[_-]+'),' ').replaceAll(RegExp(r'\\s+'),' ').trim();
+    final s=key.replaceAll(RegExp(r'[_-]+'),' ').replaceAll(RegExp(r'\s+'),' ').trim();
     return s.isEmpty?key:s.split(' ').map((w)=>w.isEmpty?w:'${w[0].toUpperCase()}${w.substring(1)}').join(' ');
   }
 
-  List<MapEntry<String,String>> availableFields() {
+  List<MapEntry<String,String>> buildAvailableFields() {
     final out=<MapEntry<String,String>>[];
     final seen=<String>{};
     void add(String key,String text) {
       final n=normKey(key);
       if(n.isEmpty||seen.contains(n))return;
-      seen.add(n); out.add(MapEntry(key,text));
+      seen.add(n);
+      out.add(MapEntry(key,text));
     }
     final preferred=<MapEntry<String,String>>[
-      const MapEntry('Student NIC ID','NIC ID / PEN'),
-      const MapEntry('studentCodeNat','National Student Code'),
-      const MapEntry('studentId','Student ID'),
-      const MapEntry('SR No.','S.No / SR'),
-      const MapEntry('Student Name','Name'),
-      const MapEntry('studentName','Name'),
-      const MapEntry('Father Name','Father Name'),
-      const MapEntry('fatherName','Father Name'),
-      const MapEntry('Mother Name','Mother Name'),
-      const MapEntry('motherName','Mother Name'),
-      const MapEntry('DOB','DOB'),
-      const MapEntry('dob','DOB'),
-      const MapEntry('Admission Date','Admission Date'),
-      const MapEntry('admissionDate','Admission Date'),
+      const MapEntry('Student NIC ID','NIC ID / PEN'), const MapEntry('studentCodeNat','National Student Code'),
+      const MapEntry('studentId','Student ID'), const MapEntry('SR No.','S.No / SR'),
+      const MapEntry('Student Name','Name'), const MapEntry('studentName','Name'),
+      const MapEntry('Father Name','Father Name'), const MapEntry('fatherName','Father Name'),
+      const MapEntry('Mother Name','Mother Name'), const MapEntry('motherName','Mother Name'),
+      const MapEntry('DOB','DOB'), const MapEntry('dob','DOB'),
+      const MapEntry('Admission Date','Admission Date'), const MapEntry('admissionDate','Admission Date'),
       const MapEntry('dateOfAdmission','Admission Date'),
-      const MapEntry('Gender','Gender'),
-      const MapEntry('gender','Gender'),
-      const MapEntry('Studying in Class','Class'),
-      const MapEntry('classDesc','Class'),
-      const MapEntry('classId','Class ID'),
-      const MapEntry('Mobile Number','Mobile'),
-      const MapEntry('primaryMobile','Mobile'),
-      const MapEntry('Aadhar Number','Aadhaar'),
-      const MapEntry('uuid','UUID / Aadhaar'),
-      const MapEntry('uuidStatus','Aadhaar Verification Status'),
-      const MapEntry('nameAsUuid','Name as Aadhaar'),
-      const MapEntry('Social Category','Social Category'),
-      const MapEntry('socialCategoryDesc','Social Category'),
-      const MapEntry('socCatId','Social Category ID'),
-      const MapEntry('Religion','Religion'),
-      const MapEntry('minorityDesc','Religion / Minority'),
-      const MapEntry('minorityId','Religion / Minority ID'),
+      const MapEntry('Gender','Gender'), const MapEntry('gender','Gender'),
+      const MapEntry('Studying in Class','Class'), const MapEntry('classDesc','Class'), const MapEntry('classId','Class ID'),
+      const MapEntry('Mobile Number','Mobile'), const MapEntry('primaryMobile','Mobile'),
+      const MapEntry('Aadhar Number','Aadhaar'), const MapEntry('uuid','UUID / Aadhaar'),
+      const MapEntry('uuidStatus','Aadhaar Verification Status'), const MapEntry('nameAsUuid','Name as Aadhaar'),
+      const MapEntry('Social Category','Social Category'), const MapEntry('socialCategoryDesc','Social Category'),
+      const MapEntry('socCatId','Social Category ID'), const MapEntry('Religion','Religion'),
+      const MapEntry('minorityDesc','Religion / Minority'), const MapEntry('minorityId','Religion / Minority ID'),
     ];
     final data=sourceRows();
     for(final e in preferred) {
-      if(data.any((r){final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;return raw.keys.any((k)=>normKey(k)==normKey(e.key));})) add(e.key,e.value);
+      if(data.any((r){
+        final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
+        return raw.keys.any((k)=>normKey(k)==normKey(e.key));
+      })) add(e.key,e.value);
     }
     for(final r in data) {
       final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
@@ -119,32 +107,102 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     return out;
   }
 
-  final ok=await showDialog<bool>(context:context,builder:(_)=>StatefulBuilder(builder:(context,set){
-    final entries=availableFields();
-    if(fields.isEmpty) fields=entries.take(10).map((e)=>e.key).toList();
+  List<String> buildClasses() {
     final classes=<String>{};
     for(final r in sourceRows()){
-      final c=source=='PSP'?(r.psp?.classCanonValue??''):(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
+      final c=source=='PSP'
+          ?(r.psp?.classCanonValue??'')
+          :(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
       if(c.isNotEmpty) classes.add(c);
     }
-    final cs=classes.toList()..sort();
-    return AlertDialog(
-      title:const Text('Print Report'),
-      content:SizedBox(width:520,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        SegmentedButton<String>(segments:const[ButtonSegment(value:'PSP',label:Text('PSP')),ButtonSegment(value:'UDISE',label:Text('UDISE'))],selected:{source},onSelectionChanged:(v)=>set((){source=v.first;selectedClass='';fields=[];})),
-        const SizedBox(height:10),
-        SegmentedButton<String>(segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],selected:{scope},onSelectionChanged:(v)=>set(()=>scope=v.first)),
-        if(scope=='CLASS')DropdownButtonFormField<String>(initialValue:selectedClass.isEmpty?null:selectedClass,decoration:const InputDecoration(labelText:'Class'),items:cs.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c'))).toList(),onChanged:(v)=>set(()=>selectedClass=v??'')),
-        const SizedBox(height:10),
-        Text('Select fields (${entries.length})',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800)),
-        ...entries.map((e)=>CheckboxListTile(dense:true,contentPadding:EdgeInsets.zero,title:Text(e.value),subtitle:Text(e.key),value:fields.contains(e.key),onChanged:(v)=>set((){
-          if(v==true&&!fields.contains(e.key)){fields=[...fields,e.key];}
-          if(v==false&&fields.length>1){fields=fields.where((x)=>x!=e.key).toList();}
-        }))),
-      ]))),
-      actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton.icon(onPressed:()=>Navigator.pop(context,true),icon:const Icon(Icons.print),label:const Text('Print'))],
-    );
-  }));
+    return classes.toList()..sort();
+  }
+
+  var entries=buildAvailableFields();
+  fields=entries.map((e)=>e.key).toList();
+  var classes=buildClasses();
+
+  final ok=await showDialog<bool>(
+    context:context,
+    builder:(_)=>StatefulBuilder(builder:(context,set){
+      return AlertDialog(
+        title:const Text('Print Report'),
+        content:SizedBox(
+          width:560,
+          height:560,
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Row(children:[
+              Expanded(child:SegmentedButton<String>(
+                segments:const[ButtonSegment(value:'PSP',label:Text('PSP')),ButtonSegment(value:'UDISE',label:Text('UDISE'))],
+                selected:{source},
+                onSelectionChanged:(v)=>set((){
+                  source=v.first;
+                  selectedClass='';
+                  entries=buildAvailableFields();
+                  classes=buildClasses();
+                  fields=entries.map((e)=>e.key).toList();
+                }),
+              )),
+            ]),
+            const SizedBox(height:10),
+            SegmentedButton<String>(
+              segments:const[ButtonSegment(value:'ALL',label:Text('All Students')),ButtonSegment(value:'CLASS',label:Text('Selected Class'))],
+              selected:{scope},
+              onSelectionChanged:(v)=>set(()=>scope=v.first),
+            ),
+            if(scope=='CLASS') Padding(
+              padding:const EdgeInsets.only(top:8),
+              child:DropdownButtonFormField<String>(
+                initialValue:selectedClass.isEmpty?null:selectedClass,
+                isExpanded:true,
+                decoration:const InputDecoration(labelText:'Class'),
+                items:classes.map((c)=>DropdownMenuItem(value:c,child:Text('Class $c',overflow:TextOverflow.ellipsis))).toList(),
+                onChanged:(v)=>set(()=>selectedClass=v??''),
+              ),
+            ),
+            const SizedBox(height:10),
+            Row(children:[
+              Expanded(child:Text('Select fields (${entries.length})',style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800))),
+              TextButton(onPressed:()=>set(()=>fields=entries.map((e)=>e.key).toList()),child:const Text('All')),
+              TextButton(onPressed:()=>set(()=>fields=entries.isEmpty?[]:[entries.first.key]),child:const Text('Clear')),
+            ]),
+            const Divider(height:1),
+            const SizedBox(height:4),
+            Expanded(
+              child:ListView.builder(
+                cacheExtent:200,
+                itemCount:entries.length,
+                itemBuilder:(context,index){
+                  final e=entries[index];
+                  final checked=fields.contains(e.key);
+                  return CheckboxListTile(
+                    dense:true,
+                    visualDensity:const VisualDensity(vertical:-2),
+                    contentPadding:EdgeInsets.zero,
+                    title:Text(e.value,overflow:TextOverflow.ellipsis),
+                    subtitle:Text(e.key,overflow:TextOverflow.ellipsis),
+                    value:checked,
+                    onChanged:(v)=>set((){
+                      if(v==true&&!fields.contains(e.key)) {
+                        fields=[...fields,e.key];
+                      } else if(v==false&&fields.length>1) {
+                        fields=fields.where((x)=>x!=e.key).toList();
+                      }
+                    }),
+                  );
+                },
+              ),
+            ),
+          ]),
+        ),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
+          FilledButton.icon(onPressed:()=>Navigator.pop(context,true),icon:const Icon(Icons.print),label:const Text('Print')),
+        ],
+      );
+    }),
+  );
+
   if(ok!=true||!context.mounted)return;
   if(scope=='CLASS'&&selectedClass.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select a class.')));return;}
   if(fields.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select at least one field.')));return;}
@@ -152,12 +210,13 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   var data=sourceRows();
   if(scope=='CLASS'){
     data=data.where((r){
-      final c=source=='PSP'?(r.psp?.classCanonValue??''):(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
+      final c=source=='PSP'
+          ?(r.psp?.classCanonValue??'')
+          :(r.udise?.classDescCanon.isNotEmpty==true?r.udise!.classDescCanon:r.udise?.classIdCanon??'');
       return c==selectedClass;
     }).toList();
   }
 
-  final entries=availableFields();
   String valueFor(ComparisonRow r,String requested){
     final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
     final target=normKey(requested);
@@ -179,41 +238,37 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     final p=r.psp; final u=r.udise;
     if(source=='PSP'&&p!=null){
       switch(target){
-        case 'studentnicid':return p.nicId;
-        case 'srno':return p.srNo;
-        case 'studentname':return p.studentName;
-        case 'fathername':return p.fatherName;
-        case 'mothername':return p.motherName;
-        case 'dob':return p.dob;
-        case 'gender':return p.gender;
-        case 'studyinginclass':return p.studyingClass;
-        case 'mobilenumber':return p.mobile;
-        case 'socialcategory':return p.socialCategory;
-        case 'religion':return p.religion;
-        case 'aadharnumber':return p.aadhaarLast4;
+        case 'studentnicid':return p.nicId; case 'srno':return p.srNo; case 'studentname':return p.studentName;
+        case 'fathername':return p.fatherName; case 'mothername':return p.motherName; case 'dob':return p.dob;
+        case 'gender':return p.gender; case 'studyinginclass':return p.studyingClass; case 'mobilenumber':return p.mobile;
+        case 'socialcategory':return p.socialCategory; case 'religion':return p.religion; case 'aadharnumber':return p.aadhaarLast4;
       }
     }
     if(source=='UDISE'&&u!=null){
       switch(target){
-        case 'studentid':return u.studentId;
-        case 'studentcodenat':return u.studentCodeNat;
-        case 'studentname':return u.studentName;
-        case 'fathername':return u.fatherName;
-        case 'mothername':return u.motherName;
-        case 'dob':return u.dob;
-        case 'gender':return u.gender;
-        case 'classid':return u.classId;
-        case 'classdesc':return u.classDesc;
-        case 'primarymobile':return u.mobile;
-        case 'socialcategory':return u.socialCategory;
-        case 'religion':return u.religion;
+        case 'studentid':return u.studentId; case 'studentcodenat':return u.studentCodeNat; case 'studentname':return u.studentName;
+        case 'fathername':return u.fatherName; case 'mothername':return u.motherName; case 'dob':return u.dob;
+        case 'gender':return u.gender; case 'classid':return u.classId; case 'classdesc':return u.classDesc;
+        case 'primarymobile':return u.mobile; case 'socialcategory':return u.socialCategory; case 'religion':return u.religion;
       }
     }
     return '';
   }
 
-  final selected=fields.map((k)=>entries.where((e)=>e.key==k).firstOrNull).whereType<MapEntry<String,String>>().toList();
+  final selected=fields.map((k){
+    for(final e in entries){if(e.key==k)return e;}
+    return null;
+  }).whereType<MapEntry<String,String>>().toList();
+
   final table=<List<String>>[];
-  for(var i=0;i<data.length;i++){table.add(['${i+1}',...selected.map((e)=>valueFor(data[i],e.key))]);}
-  await NativePrintService.printTable(title:'($pspCode) ($udiseCode) $schoolName',subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : ${table.length}',columns:['S.No',...selected.map((e)=>e.value)],rows:table,settings:settings);
+  for(var i=0;i<data.length;i++){
+    table.add(['${i+1}',...selected.map((e)=>valueFor(data[i],e.key))]);
+  }
+  await NativePrintService.printTable(
+    title:'($pspCode) ($udiseCode) $schoolName',
+    subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : ${table.length}',
+    columns:['S.No',...selected.map((e)=>e.value)],
+    rows:table,
+    settings:settings,
+  );
 }
