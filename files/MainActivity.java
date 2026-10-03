@@ -172,7 +172,7 @@ public class MainActivity extends FlutterActivity {
     }
 
     private void printTable(Map<String, Object> data) {
-        String subtitle = str(data.get("subtitle"));
+        String title = str(data.get("title"));
         List<String> columns = stringList(data.get("columns"));
         List<List<String>> rows = stringRows(data.get("rows"));
         Map<String, Object> settings = map(data.get("settings"));
@@ -230,14 +230,14 @@ public class MainActivity extends FlutterActivity {
         pm.print(
                 "Student Comparison - Report",
                 new StudentTablePrintAdapter(
-                        subtitle, columns, rows, fontSize, repeatHeader, pageNumber,
+                        title, columns, rows, fontSize, repeatHeader, pageNumber,
                         marginTopMm, marginRightMm, marginBottomMm, marginLeftMm),
                 attrs
         );
     }
 
     private static class StudentTablePrintAdapter extends PrintDocumentAdapter {
-        private final String subtitle;
+        private final String title;
         private final List<String> columns;
         private final List<List<String>> rows;
         private final float fontSize;
@@ -253,7 +253,7 @@ public class MainActivity extends FlutterActivity {
         private final float marginLeft;
 
         StudentTablePrintAdapter(
-                String subtitle, List<String> columns, List<List<String>> rows,
+                String title, List<String> columns, List<List<String>> rows,
                 float fontSize, boolean repeatHeader, boolean pageNumber,
                 int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm) {
             this.title = title;
@@ -346,7 +346,7 @@ public class MainActivity extends FlutterActivity {
 
             float left = marginLeft;
             float y = marginTop;
-            c.drawText(subtitle, left, y, p);
+            c.drawText(title, left, y, p);
             y += fontSize * 1.45f;
 
             int perPage = Math.max(1, (int) ((pageHeight - marginBottom - y - 25f) / rowHeight));
