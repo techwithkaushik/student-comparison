@@ -276,7 +276,11 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
 
   Future<void> _onJsonImport(ComparisonJsonImportRequested event, Emitter<ComparisonState> emit) async {
     try {
-      if (event.psp) await _repository.replacePspRows(event.rows); else await _repository.replaceUdiseRows(event.rows);
+      if (event.psp) {
+        await _repository.replacePspRows(event.rows);
+      } else {
+        await _repository.replaceUdiseRows(event.rows);
+      }
       if (!event.completer.isCompleted) event.completer.complete();
       add(const ComparisonLoadRequested());
     } catch (e, st) {
