@@ -288,10 +288,16 @@ public class MainActivity extends FlutterActivity {
             callback.onLayoutFinished(info, true);
         }
 
+        private int rowsPerPage() {
+            float tableTop = marginTop + fontSize * 1.45f;
+            float usable = pageHeight - marginBottom - tableTop - 25f;
+            return Math.max(1, (int) (usable / rowHeight));
+        }
+
         private int rowPages() {
-            float usable = pageHeight - marginTop - marginBottom - headerHeight - 30f;
-            int perPage = Math.max(1, (int) (usable / rowHeight));
-            return Math.max(1, (int) Math.ceil(rows.size() / (double) perPage));
+            int perPage = rowsPerPage();
+            if (rows.isEmpty()) return 1;
+            return (int) Math.ceil(rows.size() / (double) perPage);
         }
 
         private int pageCount() {
@@ -344,24 +350,45 @@ public class MainActivity extends FlutterActivity {
             p.setTextSize(fontSize);
 
             float left = marginLeft;
+            float right = pageWidth - marginRight;
             float y = marginTop;
-            c.drawText(title, left, y, p);
+
+            String[] headerParts = title.split("\\|", -1);
+            String leftHeader = headerParts.length > 0 ? headerParts[0].trim() : title;
+            String centerHeader = headerParts.length > 1 ? headerParts[1].trim() : "";
+            String rightHeader = headerParts.length > 2 ? headerParts[2].trim() : "";
+
+            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            p.setTextSize(fontSize);
+
+            c.drawText(leftHeader, left, y, p);
+
+            if (!centerHeader.isEmpty()) {
+                float centerWidth = p.measureText(centerHeader);
+                float centerX = (pageWidth - centerWidth) / 2f;
+                c.drawText(centerHeader, centerX, y, p);
+            }
+
+            if (!rightHeader.isEmpty()) {
+                float rightWidth = p.measureText(rightHeader);
+                c.drawText(rightHeader, right - rightWidth, y, p);
+            }
+
             y += fontSize * 1.45f;
 
-            int perPage = Math.max(1, (int) ((pageHeight - marginBottom - y - 25f) / rowHeight));
+            int perPage = rowsPerPage();
             int start = rowPage * perPage;
             int end = Math.min(rows.size(), start + perPage);
 
             drawTable(c, y, start, end, allColumnIndexes(),
                     rowPage == 0 || repeatHeader);
 
-            if (pageNumber) {
-                p.setTextSize(Math.max(7f, fontSize - 1f));
-                String pageLabel = "Page " + displayPage + " of " + totalPages;
+            // Page number is part of the single right-aligned header block.
+            // The right header already contains the count; append the page number.
+            if (pageNumber && !rightHeader.isEmpty()) {
+                String pageLabel = rightHeader + "    Page " + displayPage + " of " + totalPages;
                 float pageLabelWidth = p.measureText(pageLabel);
-                float pageRight = pageWidth - marginRight;
-                c.drawText(pageLabel,
-                        pageRight - pageLabelWidth, marginTop + fontSize, p);
+                c.drawText(pageLabel, right - pageLabelWidth, marginTop + fontSize, p);
             }
         }
 
