@@ -425,7 +425,9 @@ public class MainActivity extends FlutterActivity {
                 y += rowHeight;
             }
 
+            // Hard reset after the header: student data must never inherit bold state.
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+            p.setFakeBoldText(false);
             for (int r = start; r < end; r++) {
                 List<String> row = rows.get(r);
                 p.setColor(android.graphics.Color.BLACK);
