@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../database/database.dart';
 
 class AppRepository {
@@ -9,4 +11,9 @@ class AppRepository {
   Future<void> initialize() async {
     await _database.database;
   }
+
+  Future<void> restoreDatabase(List<int> bytes) =>
+      _database.replaceDatabaseBytes(bytes);
+
+  Future<Uint8List> exportDatabase() => _database.exportDatabaseBytes();
 }
