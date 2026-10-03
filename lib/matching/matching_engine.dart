@@ -64,11 +64,15 @@ List<String> compareStudents(PspStudent p, UdiseStudent u) {
     diffs.add('MOBILE_MISMATCH');
   }
 
-  if (p.categoryNorm != u.categoryNorm) {
+  if (p.categoryNorm.isNotEmpty &&
+      u.categoryNorm.isNotEmpty &&
+      p.categoryNorm != u.categoryNorm) {
     diffs.add('CATEGORY_MISMATCH');
   }
 
-  if (p.religionNormValue != u.religionNormValue) {
+  if (p.religionNormValue.isNotEmpty &&
+      u.religionNormValue.isNotEmpty &&
+      p.religionNormValue != u.religionNormValue) {
     diffs.add('RELIGION_MISMATCH');
   }
 
@@ -130,11 +134,15 @@ int exactScore(PspStudent p, UdiseStudent u) {
     score += 5;
   }
 
-  if (p.categoryNorm == u.categoryNorm) {
+  if (p.categoryNorm.isNotEmpty &&
+      u.categoryNorm.isNotEmpty &&
+      p.categoryNorm == u.categoryNorm) {
     score += 5;
   }
 
-  if (p.religionNormValue == u.religionNormValue) {
+  if (p.religionNormValue.isNotEmpty &&
+      u.religionNormValue.isNotEmpty &&
+      p.religionNormValue == u.religionNormValue) {
     score += 5;
   }
 
@@ -205,9 +213,13 @@ MatchEvidence? evaluateEvidence(
       p.motherNorm == u.motherNorm;
 
   final categorySame =
+      p.categoryNorm.isNotEmpty &&
+      u.categoryNorm.isNotEmpty &&
       p.categoryNorm == u.categoryNorm;
 
   final religionSame =
+      p.religionNormValue.isNotEmpty &&
+      u.religionNormValue.isNotEmpty &&
       p.religionNormValue == u.religionNormValue;
 
   return MatchEvidence(
