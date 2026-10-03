@@ -212,7 +212,13 @@ class PrintReportCubit extends Cubit<PrintReportState> {
 
   List<List<String>> buildTable() {
     final columns = selectedColumns();
-    return state.printableRows.map((row) => columns.map((c) => _valueFor(row, c.key)).toList()).toList(growable: false);
+    return state.printableRows.asMap().entries.map((entry) {
+      final row = entry.value;
+      return <String>[
+        '\${entry.key + 1}',
+        ...columns.map((c) => _valueFor(row, c.key)),
+      ];
+    }).toList(growable: false);
   }
 
   Future<void> saveColumnPreferences() => NativePrintService.saveColumnPreferences(
@@ -231,7 +237,7 @@ class PrintReportCubit extends Cubit<PrintReportState> {
     final countLabel = 'count: ${state.printableRows.length}';
     await NativePrintService.printTable(
       title: '$scopeLabel | $reportLabel | $countLabel',
-      columns: columns.map((e) => e.value).toList(growable: false),
+      columns: <String>['S.No.', ...columns.map((e) => e.value)],
       rows: buildTable(),
       settings: settings,
     );
