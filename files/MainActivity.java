@@ -383,12 +383,13 @@ public class MainActivity extends FlutterActivity {
             drawTable(c, y, start, end, allColumnIndexes(),
                     rowPage == 0 || repeatHeader);
 
-            // Page number is part of the single right-aligned header block.
-            // The right header already contains the count; append the page number.
-            if (pageNumber && !rightHeader.isEmpty()) {
-                String pageLabel = rightHeader + "    Page " + displayPage + " of " + totalPages;
-                float pageLabelWidth = p.measureText(pageLabel);
-                c.drawText(pageLabel, right - pageLabelWidth, marginTop + fontSize, p);
+            // Count and page number share the same right-aligned header block.
+            if (!rightHeader.isEmpty()) {
+                String rightLabel = pageNumber
+                        ? rightHeader + "    Page " + displayPage + " of " + totalPages
+                        : rightHeader;
+                float rightLabelWidth = p.measureText(rightLabel);
+                c.drawText(rightLabel, right - rightLabelWidth, y - fontSize * 0.45f, p);
             }
         }
 
