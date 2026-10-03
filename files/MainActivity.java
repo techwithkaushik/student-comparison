@@ -448,6 +448,7 @@ public class MainActivity extends FlutterActivity {
 
         private void drawCellText(Canvas c, String text, float x, float top,
                                   float width, Paint p, boolean bold) {
+            // Only column headers are bold; every student-data cell is always normal.
             p.setTypeface(Typeface.create(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL));
             p.setColor(android.graphics.Color.BLACK);
             p.setTextSize(fontSize);
