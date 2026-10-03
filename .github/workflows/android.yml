@@ -88,7 +88,7 @@ jobs:
           flutter analyze 2>&1 | tee /tmp/flutter-analyze.log
           exit ${PIPESTATUS[0]}
       - name: Capture analyzer diagnostics
-        if: steps.analyze.outcome == 'failure'
+        if: failure() && steps.analyze.outcome == 'failure'
         shell: bash
         run: |
           mkdir -p ci-diagnostics
