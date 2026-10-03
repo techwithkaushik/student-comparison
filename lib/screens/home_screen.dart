@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home_bloc.dart';
-import '../data/repositories/school_repository.dart';
-
 import 'comparison_screen.dart';
 
 /// Main landing page: one independent comparison workspace per school.
@@ -192,10 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => HomeBloc(repository: context.read<SchoolRepository>())..add(const HomeLoadRequested()),
-      child: BlocBuilder<HomeBloc, HomeState>(
-        builder: (context, state) {
+    context.read<HomeBloc>().add(const HomeLoadRequested());
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (context, state) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
@@ -308,7 +305,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   Widget _profileCard(Map<String, dynamic> profile, ColorScheme scheme) {
     return Card(
