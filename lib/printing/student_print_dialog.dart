@@ -219,7 +219,7 @@ Future<void> showStudentPrintDialog(
                                         contentPadding: const EdgeInsets.only(left: 4, right: 2),
                                         leading: const Icon(Icons.drag_handle, size: 20),
                                         title: TextFormField(
-                                          key: ValueKey('header-$key-$header'),
+                                          key: ValueKey('header-$key'),
                                           initialValue: header,
                                           decoration: const InputDecoration(
                                             isDense: true,
