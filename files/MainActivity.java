@@ -147,7 +147,6 @@ public class MainActivity extends FlutterActivity {
     }
 
     private static class StudentTablePrintAdapter extends PrintDocumentAdapter {
-        private static final int MAX_COLUMNS_PER_PAGE = 6; // includes S.No
         private final String title;
         private final String subtitle;
         private final List<String> columns;
@@ -192,11 +191,6 @@ public class MainActivity extends FlutterActivity {
             callback.onLayoutFinished(info, true);
         }
 
-        private int columnGroupCount() {
-            int fields = Math.max(0, columns.size() - 1);
-            return Math.max(1, (int) Math.ceil(fields / (double) (MAX_COLUMNS_PER_PAGE - 1)));
-        }
-
         private int rowPages() {
             float usable = pageHeight - headerHeight - 30f;
             int perPage = Math.max(1, (int) (usable / rowHeight));
@@ -204,7 +198,8 @@ public class MainActivity extends FlutterActivity {
         }
 
         private int pageCount() {
-            return columnGroupCount() * rowPages();
+            // All selected columns stay together on every page.
+            return rowPages();
         }
 
         @Override
@@ -219,12 +214,11 @@ public class MainActivity extends FlutterActivity {
                         callback.onWriteCancelled();
                         return;
                     }
-                    int group = page / rowPageCount;
                     int rowPage = page % rowPageCount;
                     PdfDocument.PageInfo info =
                             new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, page + 1).create();
                     PdfDocument.Page pdfPage = pdf.startPage(info);
-                    drawPage(pdfPage.getCanvas(), group, rowPage, rowPageCount, total, page + 1);
+                    drawPage(pdfPage.getCanvas(), rowPage, rowPageCount, total, page + 1);
                     pdf.finishPage(pdfPage);
                 }
                 pdf.writeTo(new FileOutputStream(destination.getFileDescriptor()));
@@ -236,16 +230,15 @@ public class MainActivity extends FlutterActivity {
             }
         }
 
-        private List<Integer> groupColumnIndexes(int group) {
+        private List<Integer> allColumnIndexes() {
             List<Integer> indexes = new ArrayList<>();
-            indexes.add(0); // S.No is always repeated.
-            int start = 1 + group * (MAX_COLUMNS_PER_PAGE - 1);
-            int end = Math.min(columns.size(), start + MAX_COLUMNS_PER_PAGE - 1);
-            for (int i = start; i < end; i++) indexes.add(i);
+            for (int i = 0; i < columns.size(); i++) {
+                indexes.add(i);
+            }
             return indexes;
         }
 
-        private void drawPage(Canvas c, int group, int rowPage, int rowPageCount,
+        private void drawPage(Canvas c, int rowPage, int rowPageCount,
                               int totalPages, int displayPage) {
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
             p.setColor(android.graphics.Color.BLACK);
@@ -264,7 +257,7 @@ public class MainActivity extends FlutterActivity {
             int start = rowPage * perPage;
             int end = Math.min(rows.size(), start + perPage);
 
-            drawTable(c, y, start, end, groupColumnIndexes(group),
+            drawTable(c, y, start, end, allColumnIndexes(),
                     rowPage == 0 || repeatHeader);
 
             if (pageNumber) {
@@ -272,6 +265,59 @@ public class MainActivity extends FlutterActivity {
                 c.drawText("Page " + displayPage + " of " + totalPages,
                         left, pageHeight - 10f, p);
             }
+        }
+
+        private float[] calculateColumnWidths(List<Integer> indexes, Paint p, float totalWidth) {
+            final float horizontalPadding = 6f; // 3pt on each side; compact cells.
+            final float minWidth = 30f;
+            final float maxWidth = Math.max(60f, totalWidth * 0.28f);
+            float[] widths = new float[indexes.size()];
+            float desiredTotal = 0f;
+
+            for (int i = 0; i < indexes.size(); i++) {
+                int col = indexes.get(i);
+                float desired = p.measureText(columns.get(col)) + horizontalPadding;
+
+                // Use the DB/raw value widths as the basis for the column size.
+                int samples = Math.min(rows.size(), 80);
+                for (int r = 0; r < samples; r++) {
+                    List<String> row = rows.get(r);
+                    String value = col < row.size() && row.get(col) != null ? row.get(col).trim() : "";
+                    if (!value.isEmpty()) {
+                        float measured = p.measureText(value) + horizontalPadding;
+                        desired = Math.max(desired, measured);
+                    }
+                }
+
+                desired = Math.max(minWidth, Math.min(maxWidth, desired));
+                if (col == 0) {
+                    desired = Math.max(34f, Math.min(50f, desired));
+                }
+                widths[i] = desired;
+                desiredTotal += desired;
+            }
+
+            if (desiredTotal <= 0f) {
+                return widths;
+            }
+
+            // Keep every selected column on the same page. When there is spare
+            // space, expand proportionally; when crowded, shrink proportionally.
+            float scale = totalWidth / desiredTotal;
+            for (int i = 0; i < widths.length; i++) {
+                widths[i] *= scale;
+            }
+
+            // Never let rounding leave the table wider than the printable area.
+            float actual = 0f;
+            for (float w : widths) actual += w;
+            if (actual > totalWidth && actual > 0f) {
+                float correction = totalWidth / actual;
+                for (int i = 0; i < widths.length; i++) {
+                    widths[i] *= correction;
+                }
+            }
+            return widths;
         }
 
         private void drawTable(Canvas c, float y, int start, int end,
@@ -284,7 +330,7 @@ public class MainActivity extends FlutterActivity {
             float left = 18f;
             float width = pageWidth - 36f;
             int n = Math.max(1, indexes.size());
-            float colW = width / n;
+            float[] colWidths = calculateColumnWidths(indexes, p, width);
 
             if (drawHeader) {
                 p.setStyle(Paint.Style.FILL);
@@ -292,9 +338,11 @@ public class MainActivity extends FlutterActivity {
                 c.drawRect(left, y, left + width, y + rowHeight, p);
                 p.setColor(android.graphics.Color.BLACK);
                 p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                float x = left;
                 for (int i = 0; i < n; i++) {
                     int col = indexes.get(i);
-                    drawCellText(c, columns.get(col), left + i * colW, y, colW, p, true);
+                    drawCellText(c, columns.get(col), x, y, colWidths[i], p, true);
+                    x += colWidths[i];
                 }
                 p.setStyle(Paint.Style.STROKE);
                 c.drawRect(left, y, left + width, y + rowHeight, p);
@@ -308,12 +356,14 @@ public class MainActivity extends FlutterActivity {
                 p.setColor(android.graphics.Color.BLACK);
                 p.setStyle(Paint.Style.STROKE);
                 c.drawRect(left, y, left + width, y + rowHeight, p);
+
+                float x = left;
                 for (int i = 0; i < n; i++) {
-                    float x = left + i * colW;
                     c.drawLine(x, y, x, y + rowHeight, p);
                     int col = indexes.get(i);
                     drawCellText(c, col < row.size() ? row.get(col) : "",
-                            x, y, colW, p, false);
+                            x, y, colWidths[i], p, false);
+                    x += colWidths[i];
                 }
                 c.drawLine(left + width, y, left + width, y + rowHeight, p);
                 p.setStyle(Paint.Style.FILL);
@@ -327,7 +377,7 @@ public class MainActivity extends FlutterActivity {
             p.setColor(android.graphics.Color.BLACK);
             p.setTextSize(fontSize);
             String value = text == null ? "" : text.trim();
-            float maxWidth = Math.max(10f, width - 8f);
+            float maxWidth = Math.max(10f, width - 6f);
 
             if (value.isEmpty()) {
                 return;
@@ -352,9 +402,9 @@ public class MainActivity extends FlutterActivity {
             Paint.FontMetrics fm = p.getFontMetrics();
             float base1 = top + (rowHeight - lineHeight * (second.isEmpty() ? 1 : 2)) / 2f
                     - fm.ascent;
-            c.drawText(first, x + 4, base1, p);
+            c.drawText(first, x + 3, base1, p);
             if (!second.isEmpty()) {
-                c.drawText(second, x + 4, base1 + lineHeight, p);
+                c.drawText(second, x + 3, base1 + lineHeight, p);
             }
         }
     }
