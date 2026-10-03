@@ -112,7 +112,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     }
     for(final r in data) {
       final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
-      for(final k in raw.keys) add(k,label(k));
+      for(final k in raw.keys) {\n        add(k,label(k));\n      }
     }
     return out;
   }
