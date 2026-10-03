@@ -34,7 +34,7 @@ void main() {
 
       final restored = PrintSettings.fromMap(original.toMap());
 
-      expect(restored, original);
+      expect(restored.toMap(), original.toMap());
     });
   });
 
