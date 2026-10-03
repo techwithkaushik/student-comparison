@@ -257,7 +257,6 @@ public class MainActivity extends FlutterActivity {
                 float fontSize, boolean repeatHeader, boolean pageNumber,
                 int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm) {
             this.title = title;
-            this.subtitle = subtitle;
             this.columns = columns;
             this.rows = rows;
             this.fontSize = Math.max(7f, Math.min(16f, fontSize));
