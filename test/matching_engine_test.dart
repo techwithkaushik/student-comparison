@@ -504,5 +504,36 @@ void main() {
         contains('AADHAAR_NOT_FOUND'),
       );
     });
+    test('DOB can recover a match when name initials differ', () {
+      final rows = runMatchingEngine(
+        [
+          psp(
+            name: 'Ravi Kumar',
+            aadhaar: '',
+            mobile: '',
+            dob: '02/02/2015',
+          ),
+        ],
+        [
+          udise(
+            name: 'रवि कुमार',
+            aadhaar: '',
+            mobile: '',
+            dob: '02/02/2015',
+          ),
+        ],
+      );
+
+      expect(rows, hasLength(1));
+      expect(rows.single.type, MatchType.matched);
+    });
+
+    test('missing religion stays missing instead of becoming Hindu', () {
+      final p = psp(religion: '');
+      final u = udise(religion: '');
+      expect(p.religionNormValue, '');
+      expect(u.religionNormValue, '');
+    });
+
   });
 }
