@@ -31,40 +31,6 @@ class HomeState extends Equatable {
 
   @override
   List<Object?> get props => [status, profiles, error];
-  Future<void> load() {
-    add(const HomeLoadRequested());
-    return Future.value();
-  }
-
-  Future<void> saveProfile({
-    String? id,
-    required String schoolName,
-    required String pspCode,
-    required String udiseCode,
-  }) {
-    final completer = Completer<void>();
-    add(HomeProfileSaved(
-      id: id,
-      schoolName: schoolName,
-      pspCode: pspCode,
-      udiseCode: udiseCode,
-      completer: completer,
-    ));
-    return completer.future;
-  }
-
-  Future<void> deleteProfile(String profileId) {
-    final completer = Completer<void>();
-    add(HomeProfileDeleted(profileId, completer: completer));
-    return completer.future;
-  }
-
-  Future<void> selectProfile(String profileId) {
-    final completer = Completer<void>();
-    add(HomeProfileSelected(profileId, completer: completer));
-    return completer.future;
-  }
-
 }
 
 sealed class HomeEvent extends Equatable {
@@ -198,3 +164,31 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 }
+  Future<void> load() {
+    add(const HomeLoadRequested());
+    return Future.value();
+  }
+
+  Future<void> saveProfile({
+    String? id,
+    required String schoolName,
+    required String pspCode,
+    required String udiseCode,
+  }) {
+    final completer = Completer<void>();
+    add(HomeProfileSaved(id: id, schoolName: schoolName, pspCode: pspCode, udiseCode: udiseCode, completer: completer));
+    return completer.future;
+  }
+
+  Future<void> deleteProfile(String profileId) {
+    final completer = Completer<void>();
+    add(HomeProfileDeleted(profileId, completer: completer));
+    return completer.future;
+  }
+
+  Future<void> selectProfile(String profileId) {
+    final completer = Completer<void>();
+    add(HomeProfileSelected(profileId, completer: completer));
+    return completer.future;
+  }
+
