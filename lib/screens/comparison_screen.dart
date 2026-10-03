@@ -150,30 +150,6 @@ class _ComparisonDashboardScreenState
     }
   }
 
-  Future<void> _importSqlite() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['db', 'sqlite', 'sqlite3'],
-        withData: true,
-      );
-      if (result == null) return;
-      final bytes = result.files.single.bytes;
-      if (bytes == null) throw Exception('Unable to read selected SQLite file.');
-      final imported = await _bloc.importSqlite(bytes);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(
-          'SQLite imported: ${imported.pspCount} PSP, ${imported.udiseCount} UDISE'
-          '${imported.remarkCount > 0 ? ', ${imported.remarkCount} remarks' : ''}.',
-        )),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      _bloc.setError('SQLite import failed: $e');
-    }
-  }
-
   Future<void> _importLegacyRemarks() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -202,15 +178,6 @@ class _ComparisonDashboardScreenState
     }
   }
 
-  Future<void> _exportDatabase() async {
-    try {
-      final bytes = await _bloc.exportDatabase();
-      final path = await FilePicker.platform.saveFile(dialogTitle: 'Export SQLite database', fileName: 'student_comparison.db', bytes: bytes);
-      if (path != null && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SQLite database exported successfully.')));
-    } catch (e) {
-      if (mounted) _bloc.setError('Database export failed: $e');
-    }
-  }
   Future<void> _exportCsv() async {
     try {
       final rows = _filteredRows;
@@ -495,12 +462,10 @@ class _ComparisonDashboardScreenState
               switch (value) {
                 case 'import_psp': _importJson(true); break;
                 case 'import_udise': _importJson(false); break;
-                case 'import_sqlite': _importSqlite(); break;
                 case 'import_legacy_remarks': _importLegacyRemarks(); break;
                 case 'export_csv': _exportCsv(); break;
                 case 'export_psp': _exportSourceJson(true); break;
                 case 'export_udise': _exportSourceJson(false); break;
-                case 'export_database': _exportDatabase(); break;
                 case 'print_setup': _printPageSetup(); break;
               }
             },
@@ -508,15 +473,11 @@ class _ComparisonDashboardScreenState
               const PopupMenuItem(value: 'import_psp', child: Text('Import PSP JSON')),
               const PopupMenuItem(value: 'import_udise', child: Text('Import UDISE JSON')),
               if (!kIsWeb)
-                const PopupMenuItem(value: 'import_sqlite', child: Text('Import SQLite database')),
-              if (!kIsWeb)
                 const PopupMenuItem(value: 'import_legacy_remarks', child: Text('Import remarks from old database')),
               const PopupMenuDivider(),
               const PopupMenuItem(value: 'export_csv', child: Text('Export comparison CSV')),
               const PopupMenuItem(value: 'export_psp', child: Text('Export PSP JSON')),
               const PopupMenuItem(value: 'export_udise', child: Text('Export UDISE JSON')),
-              if (!kIsWeb)
-                const PopupMenuItem(value: 'export_database', child: Text('Export SQLite database')),
               if (!kIsWeb)
                 const PopupMenuItem(value: 'print_setup', child: Text('Print Page Setup')),
 
