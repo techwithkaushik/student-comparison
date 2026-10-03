@@ -216,7 +216,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                       });
                       await restoreColumnPreset();
                       if (context.mounted) {
-                        set(());
+                        set((){});
                       }
                     },
                   )),
