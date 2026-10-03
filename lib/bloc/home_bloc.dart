@@ -165,9 +165,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         error: 'Could not select school profile: $e',
       ));
     }
-  }
-}
-  Future<void> load() {
+    Future<void> load() {
     final completer = Completer<void>();
     add(HomeLoadRequested(completer: completer));
     return completer.future;
@@ -180,7 +178,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     required String udiseCode,
   }) {
     final completer = Completer<void>();
-    add(HomeProfileSaved(id: id, schoolName: schoolName, pspCode: pspCode, udiseCode: udiseCode, completer: completer));
+    add(HomeProfileSaved(
+      id: id,
+      schoolName: schoolName,
+      pspCode: pspCode,
+      udiseCode: udiseCode,
+      completer: completer,
+    ));
     return completer.future;
   }
 
@@ -195,4 +199,4 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     add(HomeProfileSelected(profileId, completer: completer));
     return completer.future;
   }
-
+}
