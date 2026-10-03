@@ -438,8 +438,14 @@ public class MainActivity extends FlutterActivity {
                 for (int i = 0; i < n; i++) {
                     c.drawLine(x, y, x, y + rowHeight, p);
                     int col = indexes.get(i);
+
+                    // Borders use STROKE, but student text must be rendered as
+                    // filled normal glyphs. Drawing text with STROKE makes
+                    // Roboto glyphs look artificially bold/thick.
+                    p.setStyle(Paint.Style.FILL);
                     drawCellText(c, col < row.size() ? row.get(col) : "",
                             x, y, colWidths[i], p, false);
+                    p.setStyle(Paint.Style.STROKE);
                     x += colWidths[i];
                 }
                 c.drawLine(left + width, y, left + width, y + rowHeight, p);
