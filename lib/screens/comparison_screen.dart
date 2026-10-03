@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/comparison_cubit.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../matching/matching_engine.dart';
 import '../matching/models.dart';
 import '../printing/native_print_service.dart';
 import '../printing/student_print_dialog.dart';
@@ -44,9 +43,7 @@ class _ComparisonDashboardScreenState
   String? get _dataError => _cubit.state.error;
   String get _filter => _cubit.state.filter;
   String get _classFilter => _cubit.state.classFilter;
-  String get _search => _cubit.state.search;
   bool get _searchActive => _cubit.state.searchActive;
-  Map<String, Map<String, dynamic>> get _remarks => _cubit.state.remarks;
   Set<String> get _remarkKeys => _cubit.state.remarkKeys;
 
   @override
@@ -64,7 +61,6 @@ class _ComparisonDashboardScreenState
     _cubit.load(initialRows: widget.initialRows);
   }
 
-  Future<void> _loadData() => _cubit.load();
 
   Future<List<Map<String, dynamic>>> _decodeJsonRows(Uint8List bytes, String label) async {
     final decoded = jsonDecode(utf8.decode(bytes));
@@ -275,7 +271,6 @@ class _ComparisonDashboardScreenState
     return '${_key(p)}|${_key(u)}';
   }
 
-  Future<void> _loadRemarkKeys() => _cubit.loadRemarks();
 
   Map<String, dynamic>? _remarkFor(ComparisonRow row) =>
       _cubit.state.remarks[_remarkKeyFor(row)];
@@ -290,7 +285,6 @@ class _ComparisonDashboardScreenState
   }
 
   Future<void> _editRemark(ComparisonRow row) async {
-    final key = _remarkKeyFor(row);
     final existing = _remarkFor(row);
     final controller = TextEditingController(text: existing?['remark']?.toString() ?? '');
     try {
@@ -617,7 +611,6 @@ class _ComparisonDashboardScreenState
         ],
       ),
     );
-  }
         },
       ),
     );
