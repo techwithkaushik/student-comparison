@@ -102,6 +102,10 @@ public class MainActivity extends FlutterActivity {
         android.content.SharedPreferences p =
                 getSharedPreferences(PREFS, Context.MODE_PRIVATE);
 
+        if (!p.contains("columns_" + source)) {
+            return null;
+        }
+
         List<String> fields = new ArrayList<>();
         Map<String, Object> headers = new HashMap<>();
 
