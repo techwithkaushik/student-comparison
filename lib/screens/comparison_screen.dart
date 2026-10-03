@@ -487,8 +487,9 @@ class _ComparisonDashboardScreenState
             ),
             onPressed: () {
               _searchDebounce?.cancel();
-              _cubit.setSearchActive(!_searchActive);
-              if (_searchActive) {
+              final wasActive = _searchActive;
+              _cubit.setSearchActive(!wasActive);
+              if (wasActive) {
                 _searchController.clear();
                 _cubit.setSearch('');
               }
