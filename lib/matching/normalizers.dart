@@ -188,9 +188,10 @@ String religionNorm(dynamic value) {
     case 'HINDU':
     case 'NON MINORITY':
     case '7':
+      return 'HINDU';
     case 'NA':
     case '':
-      return 'HINDU';
+      return '';
 
     default:
       return s;
