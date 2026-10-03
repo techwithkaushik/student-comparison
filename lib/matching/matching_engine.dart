@@ -334,25 +334,51 @@ List<ComparisonRow> runMatchingEngine(
 ) {
   final udiseByAadhaar = <String, List<int>>{};
   final udiseByInitial = <String, List<int>>{};
+  final udiseByDob = <String, List<int>>{};
+  final udiseByMobile = <String, List<int>>{};
+  final udiseByFather = <String, List<int>>{};
+  final udiseByMother = <String, List<int>>{};
+
+  void addIndex(Map<String, List<int>> index, String key, int rowIndex) {
+    if (key.isEmpty) return;
+    index.putIfAbsent(key, () => []).add(rowIndex);
+  }
 
   for (var ui = 0; ui < udise.length; ui++) {
     final u = udise[ui];
 
-    if (u.uuidLast4.isNotEmpty) {
-      udiseByAadhaar
-          .putIfAbsent(u.uuidLast4, () => [])
-          .add(ui);
-    }
+    addIndex(udiseByAadhaar, u.uuidLast4, ui);
 
     final name = u.nameNorm;
-
     if (name.isNotEmpty) {
-      final initial = name.substring(0, 1);
-
-      udiseByInitial
-          .putIfAbsent(initial, () => [])
-          .add(ui);
+      addIndex(udiseByInitial, name.substring(0, 1), ui);
     }
+
+    addIndex(udiseByDob, u.dobNorm, ui);
+    if (u.mobileDigits.length >= 10) {
+      addIndex(udiseByMobile, u.mobileDigits, ui);
+    }
+    addIndex(udiseByFather, u.fatherNorm, ui);
+    addIndex(udiseByMother, u.motherNorm, ui);
+  }
+
+  void addCandidateIndexes(PspStudent p, Set<int> candidates) {
+    void addCandidate(Map<String, List<int>> index, String key) {
+      if (key.isNotEmpty) {
+        candidates.addAll(index[key] ?? const []);
+      }
+    }
+
+    addCandidate(udiseByAadhaar, p.aadhaarLast4);
+    if (p.nameNorm.isNotEmpty) {
+      addCandidate(udiseByInitial, p.nameNorm.substring(0, 1));
+    }
+    addCandidate(udiseByDob, p.dobNorm);
+    if (p.mobileDigits.length >= 10) {
+      addCandidate(udiseByMobile, p.mobileDigits);
+    }
+    addCandidate(udiseByFather, p.fatherNorm);
+    addCandidate(udiseByMother, p.motherNorm);
   }
 
   final edges = <MatchEdge>[];
@@ -361,19 +387,7 @@ List<ComparisonRow> runMatchingEngine(
     final p = psp[pi];
     final candidates = <int>{};
 
-    if (p.aadhaarLast4.isNotEmpty) {
-      candidates.addAll(
-        udiseByAadhaar[p.aadhaarLast4] ?? const [],
-      );
-    }
-
-    if (p.nameNorm.isNotEmpty) {
-      final initial = p.nameNorm.substring(0, 1);
-
-      candidates.addAll(
-        udiseByInitial[initial] ?? const [],
-      );
-    }
+    addCandidateIndexes(p, candidates);
 
     for (final ui in candidates) {
       final edge = evaluateMatch(
@@ -454,20 +468,7 @@ List<ComparisonRow> runMatchingEngine(
     final candidates = <MatchEdge>[];
 
     final candidateIndices = <int>{};
-
-    if (p.aadhaarLast4.isNotEmpty) {
-      candidateIndices.addAll(
-        udiseByAadhaar[p.aadhaarLast4] ?? const [],
-      );
-    }
-
-    if (p.nameNorm.isNotEmpty) {
-      final initial = p.nameNorm.substring(0, 1);
-
-      candidateIndices.addAll(
-        udiseByInitial[initial] ?? const [],
-      );
-    }
+    addCandidateIndexes(p, candidateIndices);
 
     for (final ui in candidateIndices) {
       if (globallyMatchedUdise.contains(ui)) continue;
