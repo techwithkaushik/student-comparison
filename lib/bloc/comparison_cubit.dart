@@ -175,6 +175,7 @@ class ComparisonCubit extends Cubit<ComparisonState> {
   }
   void setClassFilter(String value) => emit(state.copyWith(classFilter: value));
   void setSearch(String value) => emit(state.copyWith(search: value));
+  void setError(String message) => emit(state.copyWith(status: ComparisonStatus.failure, error: message));
 
   Future<void> saveRemark({
     required ComparisonRow row,
