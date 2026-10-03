@@ -45,7 +45,9 @@ class ComparisonState {
       if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
       if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
       if (filter.startsWith('DIFF:') &&
-          !row.diffs.contains(filter.substring(5))) return false;
+          !row.diffs.contains(filter.substring(5))) {
+        return false;
+      }
 
       if (classFilter.isNotEmpty &&
           (row.psp?.classCanonValue ?? '') != classFilter) {
