@@ -627,7 +627,7 @@ class _ComparisonDashboardScreenState
                     },
                   ),
           )
-          ],,
+          ],
         ],
       ),
     );
