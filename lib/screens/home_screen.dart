@@ -1,217 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/home_cubit.dart';
 
-import '../database/database.dart';
 import 'comparison_screen.dart';
 
 /// Main landing page: one independent comparison workspace per school.
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> _profiles = <Map<String, dynamic>>[];
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfiles();
-  }
-
-  Future<void> _loadProfiles() async {
-    try {
-      final profiles = await AppDatabase.instance.getSchoolProfiles();
-      if (!mounted) return;
-      setState(() {
-        _profiles = profiles;
-        _loading = false;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = 'School profiles could not be loaded: $e';
-      });
-    }
-  }
-
-  Future<void> _openProfile(Map<String, dynamic> profile) async {
-    try {
-      await AppDatabase.instance.setActiveSchoolProfile(profile['id'].toString());
-      if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ComparisonDashboardScreen(
-            schoolName: profile['schoolName']?.toString() ?? 'School Comparison',
-          ),
-        ),
-      );
-      if (mounted) _loadProfiles();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to open school profile: $e')),
-      );
-    }
-  }
-
-  Future<void> _deleteProfile(Map<String, dynamic> profile) async {
-    final name = profile['schoolName']?.toString() ?? 'this school';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete school profile?'),
-        content: Text(
-          'Delete "$name" and all PSP/UDISE data, mappings and remarks stored for this school?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await AppDatabase.instance.deleteSchoolProfile(profile['id'].toString());
-      await _loadProfiles();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('School profile deleted successfully.')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not delete profile: $e')),
-      );
-    }
-  }
-
-  Future<void> _showProfileForm({Map<String, dynamic>? profile}) async {
-    final formKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(
-      text: profile?['schoolName']?.toString() ?? '',
-    );
-    final pspController = TextEditingController(
-      text: profile?['pspCode']?.toString() ?? '',
-    );
-    final udiseController = TextEditingController(
-      text: profile?['udiseCode']?.toString() ?? '',
-    );
-    try {
-      final values = await showDialog<Map<String, String>>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(profile == null ? 'Add School Profile' : 'Edit School Profile'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'School name',
-                      hintText: 'Enter full school name',
-                      prefixIcon: Icon(Icons.school_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'School name is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: pspController,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'PSP code',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'PSP code is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: udiseController,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'UDISE code',
-                      prefixIcon: Icon(Icons.confirmation_number_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'UDISE code is required'
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                if (formKey.currentState?.validate() != true) return;
-                Navigator.pop(dialogContext, {
-                  'schoolName': nameController.text.trim(),
-                  'pspCode': pspController.text.trim(),
-                  'udiseCode': udiseController.text.trim(),
-                });
-              },
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Save profile'),
-            ),
-          ],
-        ),
-      );
-      if (values == null) return;
-      await AppDatabase.instance.saveSchoolProfile(
-        id: profile?['id']?.toString(),
-        schoolName: values['schoolName']!,
-        pspCode: values['pspCode']!,
-        udiseCode: values['udiseCode']!,
-      );
-      await _loadProfiles();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(profile == null
-              ? 'School profile created successfully.'
-              : 'School profile updated successfully.'),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save profile: $e')),
-      );
-    } finally {
-      nameController.dispose();
-      pspController.dispose();
-      udiseController.dispose();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (context, state) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
@@ -321,6 +121,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
     );
   }
+
+      },
+    );
+  }
+
 
   Widget _profileCard(Map<String, dynamic> profile, ColorScheme scheme) {
     return Card(
