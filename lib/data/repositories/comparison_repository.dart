@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import '../../database/database.dart';
 
 class ComparisonRepository {
@@ -20,21 +18,8 @@ class ComparisonRepository {
   Future<void> replaceUdiseRows(List<Map<String, dynamic>> rows) =>
       _database.replaceUdiseRows(rows);
 
-  Future<({int pspCount, int udiseCount, int remarkCount})> importSqlite(
-    List<int> bytes,
-  ) async {
-    final result = await _database.importSqliteBytes(bytes);
-    return (
-      pspCount: result.pspCount,
-      udiseCount: result.udiseCount,
-      remarkCount: result.remarkCount,
-    );
-  }
-
   Future<int> importLegacyRemarks(List<int> bytes) =>
       _database.importLegacyRemarksBytes(bytes);
-
-  Future<Uint8List> exportDatabase() => _database.exportDatabaseBytes();
 
   Future<List<Map<String, dynamic>>> getAllRemarks() =>
       _database.getAllRemarks();
