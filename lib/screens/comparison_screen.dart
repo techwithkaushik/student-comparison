@@ -36,7 +36,6 @@ class ComparisonDashboardScreen extends StatefulWidget {
 class _ComparisonDashboardScreenState
     extends State<ComparisonDashboardScreen> {
   late final ComparisonCubit _cubit;
-  bool _searchActive = false;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -46,6 +45,7 @@ class _ComparisonDashboardScreenState
   String get _filter => _cubit.state.filter;
   String get _classFilter => _cubit.state.classFilter;
   String get _search => _cubit.state.search;
+  bool get _searchActive => _cubit.state.searchActive;
   Map<String, Map<String, dynamic>> get _remarks => _cubit.state.remarks;
   Set<String> get _remarkKeys => _cubit.state.remarkKeys;
 
@@ -487,13 +487,11 @@ class _ComparisonDashboardScreenState
             ),
             onPressed: () {
               _searchDebounce?.cancel();
-              setState(() {
-                _searchActive = !_searchActive;
-                if (!_searchActive) {
-                  _searchController.clear();
-                  _cubit.setSearch('');
-                }
-              });
+              _cubit.setSearchActive(!_searchActive);
+              if (_searchActive) {
+                _searchController.clear();
+                _cubit.setSearch('');
+              }
             },
           ),
           PopupMenuButton<String>(
