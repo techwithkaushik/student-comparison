@@ -135,7 +135,6 @@ class NativePrintService {
 
   static Future<void> printTable({
     required String title,
-    required String subtitle,
     required List<String> columns,
     required List<List<String>> rows,
     required PrintSettings settings,
@@ -145,7 +144,6 @@ class NativePrintService {
     }
     await _channel.invokeMethod('printTable', {
       'title': title,
-      'subtitle': subtitle,
       'columns': columns,
       'rows': rows,
       'settings': settings.toMap(),
