@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/print_cubit.dart';
+import '../bloc/print_bloc.dart';
+import '../data/repositories/print_repository.dart';
 import '../matching/models.dart';
 import 'native_print_service.dart';
 
@@ -8,7 +9,7 @@ Future<PrintSettings?> showPrintPageSetup(
   BuildContext context, {
   required PrintSettings initial,
 }) async {
-  final cubit = PrintSettingsCubit(initial);
+  final cubit = PrintSettingsBloc(repository: context.read<PrintRepository>(), initial: initial);
   final topController = TextEditingController(text: initial.marginTop.toString());
   final rightController = TextEditingController(text: initial.marginRight.toString());
   final bottomController = TextEditingController(text: initial.marginBottom.toString());
@@ -18,7 +19,7 @@ Future<PrintSettings?> showPrintPageSetup(
       context: context,
       builder: (_) => BlocProvider.value(
         value: cubit,
-        child: BlocBuilder<PrintSettingsCubit, PrintSettings>(
+        child: BlocBuilder<PrintSettingsBloc, PrintSettingsState>(
           builder: (context, s) => AlertDialog(
             title: const Text('Print Page Setup'),
             content: SingleChildScrollView(
@@ -162,9 +163,9 @@ Future<void> showStudentPrintDialog(
   required String udiseCode,
   required PrintSettings settings,
 }) async {
-  final cubit = PrintReportCubit(rows);
+  final cubit = PrintReportBloc(repository: context.read<PrintRepository>(), rows: rows);
   try {
-    await cubit.initialize();
+    cubit.initialize();
     if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
@@ -174,7 +175,7 @@ Future<void> showStudentPrintDialog(
       backgroundColor: Colors.transparent,
       builder: (_) => BlocProvider.value(
         value: cubit,
-        child: BlocBuilder<PrintReportCubit, PrintReportState>(
+        child: BlocBuilder<PrintReportBloc, PrintReportState>(
           builder: (context, s) {
             final scheme = Theme.of(context).colorScheme;
             final bloc = context.read<PrintReportCubit>();
