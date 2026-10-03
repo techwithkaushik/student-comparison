@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Backup Student Comparison database',
         fileName: 'student_comparison_backup.db',
-        bytes: Uint8List.fromList(bytes),
+        bytes: bytes,
       );
       if (path != null && mounted) {
         messenger.showSnackBar(
