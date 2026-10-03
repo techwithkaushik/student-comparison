@@ -375,7 +375,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   }
 
   await NativePrintService.printTable(
-    title:'(${pspCode}) (${udiseCode}) ${schoolName}',
+    title:'($pspCode) ($udiseCode) $schoolName',
     subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : $table.length',
     columns:['S.No',...selected.map((e)=>e.value)],
     rows:table,
