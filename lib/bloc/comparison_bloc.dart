@@ -14,6 +14,15 @@ enum ComparisonStatus { initial, loading, ready, failure }
 class ComparisonState extends Equatable {
   final ComparisonStatus status;
   final List<ComparisonRow> rows;
+  final List<ComparisonRow> filteredRows;
+  final Set<String> classes;
+  final Map<MatchType, int> typeCounts;
+  final Map<String, int> diffCounts;
+  final int pspCount;
+  final int matchedPspCount;
+  final int mismatchPspCount;
+  final int rteCount;
+  final int remarkCount;
   final String filter;
   final String classFilter;
   final String search;
@@ -24,6 +33,15 @@ class ComparisonState extends Equatable {
   const ComparisonState({
     this.status = ComparisonStatus.initial,
     this.rows = const [],
+    this.filteredRows = const [],
+    this.classes = const {},
+    this.typeCounts = const {},
+    this.diffCounts = const {},
+    this.pspCount = 0,
+    this.matchedPspCount = 0,
+    this.mismatchPspCount = 0,
+    this.rteCount = 0,
+    this.remarkCount = 0,
     this.filter = 'ALL',
     this.classFilter = '',
     this.search = '',
@@ -32,74 +50,116 @@ class ComparisonState extends Equatable {
     this.error,
   });
 
-  Set<String> get remarkKeys => remarks.keys.toSet();
-
   bool hasRemark(ComparisonRow row) {
     final p = (row.psp?.nicId ?? '').trim().toUpperCase();
     final u = (row.udise?.studentCodeNat ?? '').trim().toUpperCase();
     return remarks.containsKey('$p|$u');
   }
 
-  List<ComparisonRow> get filteredRows {
-    final q = search.trim().toLowerCase();
-    return rows.where((row) {
-      if (filter == 'REMARKED' && !hasRemark(row)) return false;
-      if (filter == 'RTE' && !_isRte(row)) return false;
-      if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
-      if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
-      if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
-      if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
-      if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) {
-        return false;
-      }
-      if (classFilter.isNotEmpty &&
-          (row.psp?.classCanonValue ?? '') != classFilter) {
-        return false;
-      }
-      if (q.isNotEmpty) {
-        final values = [
-          row.psp?.studentName,
-          row.psp?.srNo,
-          row.psp?.nicId,
-          row.psp?.fatherName,
-          row.psp?.motherName,
-          row.psp?.mobile,
-          row.udise?.studentName,
-          row.udise?.studentCodeNat,
-          row.udise?.studentId,
-          row.udise?.fatherName,
-          row.udise?.motherName,
-          row.udise?.mobile,
-        ];
-        if (!values.any((v) => (v ?? '').toLowerCase().contains(q))) {
-          return false;
-        }
-      }
-      return true;
-    }).toList(growable: false);
-  }
-
-  Set<String> get classes => rows
-      .map((row) => row.psp?.classCanonValue ?? '')
-      .where((value) => value.isNotEmpty)
-      .toSet();
-
-  int countType(MatchType type) => rows.where((row) => row.type == type).length;
-  int countDiff(String diff) => rows.where((row) => row.diffs.contains(diff)).length;
-  int get pspCount => rows.where((row) => row.psp != null).length;
-  int get matchedPspCount => rows.where((row) => row.psp != null && row.type == MatchType.matched).length;
-  int get mismatchPspCount => rows.where((row) => row.psp != null && row.type == MatchType.mismatch).length;
-  int get rteCount => rows.where(_isRte).length;
-  int get remarkCount => rows.where(hasRemark).length;
-
   static bool _isRte(ComparisonRow row) {
     final value = row.psp?.raw['Getting Free Education']?.toString().trim().toLowerCase() ?? '';
     return value == 'yes' || value == 'y' || value == 'true' || value == '1';
   }
 
+  static ComparisonState derive({
+    required List<ComparisonRow> rows,
+    required String filter,
+    required String classFilter,
+    required String search,
+    required bool searchActive,
+    required Map<String, Map<String, dynamic>> remarks,
+    ComparisonStatus status = ComparisonStatus.ready,
+    String? error,
+  }) {
+    final immutableRows = List<ComparisonRow>.unmodifiable(rows);
+    final immutableRemarks = Map<String, Map<String, dynamic>>.unmodifiable(remarks);
+    final q = search.trim().toLowerCase();
+
+    bool matches(ComparisonRow row) {
+      if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) return false;
+      if (filter == 'RTE' && !_isRte(row)) return false;
+      if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
+      if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
+      if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
+      if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
+      if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) return false;
+      if (classFilter.isNotEmpty && (row.psp?.classCanonValue ?? '') != classFilter) return false;
+      if (q.isEmpty) return true;
+
+      final values = <String?>[
+        row.psp?.studentName, row.psp?.srNo, row.psp?.nicId,
+        row.psp?.fatherName, row.psp?.motherName, row.psp?.mobile,
+        row.udise?.studentName, row.udise?.studentCodeNat, row.udise?.studentId,
+        row.udise?.fatherName, row.udise?.motherName, row.udise?.mobile,
+      ];
+      return values.any((value) => (value ?? '').toLowerCase().contains(q));
+    }
+
+    final visible = immutableRows.where(matches).toList(growable: false);
+    final classSet = <String>{};
+    final typeMap = <MatchType, int>{};
+    final diffMap = <String, int>{};
+    var psp = 0;
+    var matched = 0;
+    var mismatch = 0;
+    var rte = 0;
+    var remarked = 0;
+
+    for (final row in immutableRows) {
+      final cls = row.psp?.classCanonValue ?? '';
+      if (cls.isNotEmpty) classSet.add(cls);
+      typeMap[row.type] = (typeMap[row.type] ?? 0) + 1;
+      for (final diff in row.diffs) {
+        diffMap[diff] = (diffMap[diff] ?? 0) + 1;
+      }
+      if (row.psp != null) {
+        psp++;
+        if (row.type == MatchType.matched) matched++;
+        if (row.type == MatchType.mismatch) mismatch++;
+      }
+      if (_isRte(row)) rte++;
+      if (immutableRemarks.containsKey(_remarkKey(row))) remarked++;
+    }
+
+    return ComparisonState(
+      status: status,
+      rows: immutableRows,
+      filteredRows: List<ComparisonRow>.unmodifiable(visible),
+      classes: Set<String>.unmodifiable(classSet),
+      typeCounts: Map<MatchType, int>.unmodifiable(typeMap),
+      diffCounts: Map<String, int>.unmodifiable(diffMap),
+      pspCount: psp,
+      matchedPspCount: matched,
+      mismatchPspCount: mismatch,
+      rteCount: rte,
+      remarkCount: remarked,
+      filter: filter,
+      classFilter: classFilter,
+      search: search,
+      searchActive: searchActive,
+      remarks: immutableRemarks,
+      error: error,
+    );
+  }
+
+  static String _remarkKey(ComparisonRow row) {
+    final p = (row.psp?.nicId ?? '').trim().toUpperCase();
+    final u = (row.udise?.studentCodeNat ?? '').trim().toUpperCase();
+    return '$p|$u';
+  }
+
   ComparisonState copyWith({
     ComparisonStatus? status,
     List<ComparisonRow>? rows,
+    List<ComparisonRow>? filteredRows,
+    Set<String>? classes,
+    Map<MatchType, int>? typeCounts,
+    Map<String, int>? diffCounts,
+    int? pspCount,
+    int? matchedPspCount,
+    int? mismatchPspCount,
+    int? rteCount,
+    int? remarkCount,
     String? filter,
     String? classFilter,
     String? search,
@@ -110,6 +170,15 @@ class ComparisonState extends Equatable {
   }) => ComparisonState(
     status: status ?? this.status,
     rows: rows ?? this.rows,
+    filteredRows: filteredRows ?? this.filteredRows,
+    classes: classes ?? this.classes,
+    typeCounts: typeCounts ?? this.typeCounts,
+    diffCounts: diffCounts ?? this.diffCounts,
+    pspCount: pspCount ?? this.pspCount,
+    matchedPspCount: matchedPspCount ?? this.matchedPspCount,
+    mismatchPspCount: mismatchPspCount ?? this.mismatchPspCount,
+    rteCount: rteCount ?? this.rteCount,
+    remarkCount: remarkCount ?? this.remarkCount,
     filter: filter ?? this.filter,
     classFilter: classFilter ?? this.classFilter,
     search: search ?? this.search,
@@ -119,8 +188,14 @@ class ComparisonState extends Equatable {
   );
 
   @override
-  List<Object?> get props => [status, rows, filter, classFilter, search, searchActive, remarks, error];
+  List<Object?> get props => [
+    status, rows, filteredRows, classes, typeCounts, diffCounts,
+    pspCount, matchedPspCount, mismatchPspCount, rteCount, remarkCount,
+    filter, classFilter, search, searchActive, remarks, error,
+  ];
 }
+
+
 
 List<ComparisonRow> _buildComparisonRowsInBackground(
   Map<String, List<Map<String, dynamic>>> input,
