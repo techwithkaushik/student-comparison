@@ -68,19 +68,6 @@ jobs:
               'android:name=".MainActivity"',
               'android:name="org.techwithkaushik.student_comparison.MainActivity"',
           )
-          if "android.permission.WRITE_EXTERNAL_STORAGE" not in text:
-              text = text.replace(
-                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
-                  '''<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'''
-              )
-          if 'android:requestLegacyExternalStorage="true"' not in text:
-              text = text.replace(
-                  '<application',
-                  '<application android:requestLegacyExternalStorage="true"',
-                  1,
-              )
           manifest.write_text(text)
           PY
       - name: Decode Keystore
