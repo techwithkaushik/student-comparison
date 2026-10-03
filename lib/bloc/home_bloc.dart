@@ -40,7 +40,8 @@ sealed class HomeEvent extends Equatable {
 }
 
 final class HomeLoadRequested extends HomeEvent {
-  const HomeLoadRequested();
+  final Completer<void>? completer;
+  const HomeLoadRequested({this.completer});
 }
 
 final class HomeProfileSaved extends HomeEvent {
@@ -101,7 +102,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             .map((row) => Map<String, dynamic>.unmodifiable(row))
             .toList(growable: false),
       ));
-    } catch (e) {
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.complete();
+    } catch (e, st) {
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.completeError(e, st);
       emit(state.copyWith(
         status: HomeStatus.failure,
         error: 'School profiles could not be loaded: $e',
@@ -165,8 +168,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 }
   Future<void> load() {
-    add(const HomeLoadRequested());
-    return Future.value();
+    final completer = Completer<void>();
+    add(HomeLoadRequested(completer: completer));
+    return completer.future;
   }
 
   Future<void> saveProfile({
