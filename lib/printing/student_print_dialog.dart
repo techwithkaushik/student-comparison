@@ -69,7 +69,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     final seen=<String>{};
     void add(String key,String text) {
       final n=normKey(key);
-      if(n.isEmpty||seen.contains(n))return;
+      if (n.isEmpty || seen.contains(n)) {
+        return;
+      }
       seen.add(n);
       out.add(MapEntry(key,text));
     }
@@ -96,7 +98,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       if(data.any((r){
         final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
         return raw.keys.any((k)=>normKey(k)==normKey(e.key));
-      })) add(e.key,e.value);
+      })) {\n        add(e.key, e.value);\n      }
     }
     for(final r in data) {
       final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
@@ -185,9 +187,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                     subtitle:Text(e.key,overflow:TextOverflow.ellipsis),
                     value:checked,
                     onChanged:(v)=>set((){
-                      if(v==true&&!fields.contains(e.key)) {
+                      if (v == true && !fields.contains(e.key)) {
                         fields=[...fields,e.key];
-                      } else if(v==false&&fields.length>1) {
+                      } else if (v == false && fields.length > 1) {
                         fields=fields.where((x)=>x!=e.key).toList();
                       }
                     }),
@@ -205,12 +207,12 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     }),
   );
 
-  if(ok!=true||!context.mounted)return;
-  if(scope=='CLASS'&&selectedClass.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select a class.')));return;}
-  if(fields.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Please select at least one field.')));return;}
+  if (ok != true || !context.mounted) {\n    return;\n  }
+  if (scope == 'CLASS' && selectedClass.isEmpty) {\n    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a class.')));\n    return;\n  }
+  if (fields.isEmpty) {\n    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one field.')));\n    return;\n  }
 
   var data=sourceRows();
-  if(scope=='CLASS'){
+  if (scope == 'CLASS') {
     data=data.where((r){
       final c=source=='PSP'
           ?(r.psp?.classCanonValue??'')
@@ -222,23 +224,23 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   String valueFor(ComparisonRow r,String requested){
     final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
     final target=normKey(requested);
-    for(final e in raw.entries){
-      if(normKey(e.key)==target){
+    for (final e in raw.entries) {
+      if (normKey(e.key) == target) {
         final v=e.value?.toString().trim()??'';
-        if(v.isNotEmpty)return v;
+        if (v.isNotEmpty) {\n          return v;\n        }
       }
     }
-    if(target=='admissiondate'||target=='dateofadmission'||target=='admissiondt'){
-      for(final e in raw.entries){
+    if (target == 'admissiondate' || target == 'dateofadmission' || target == 'admissiondt') {
+      for (final e in raw.entries) {
         final n=normKey(e.key);
-        if(n.contains('admission')&&(n.contains('date')||n.contains('dt'))){
+        if (n.contains('admission') && (n.contains('date') || n.contains('dt'))) {
           final v=e.value?.toString().trim()??'';
-          if(v.isNotEmpty)return v;
+          if (v.isNotEmpty) {\n          return v;\n        }
         }
       }
     }
     final p=r.psp; final u=r.udise;
-    if(source=='PSP'&&p!=null){
+    if (source == 'PSP' && p != null) {
       switch(target){
         case 'studentnicid':return p.nicId; case 'srno':return p.srNo; case 'studentname':return p.studentName;
         case 'fathername':return p.fatherName; case 'mothername':return p.motherName; case 'dob':return p.dob;
@@ -246,7 +248,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
         case 'socialcategory':return p.socialCategory; case 'religion':return p.religion; case 'aadharnumber':return p.aadhaarLast4;
       }
     }
-    if(source=='UDISE'&&u!=null){
+    if (source == 'UDISE' && u != null) {
       switch(target){
         case 'studentid':return u.studentId; case 'studentcodenat':return u.studentCodeNat; case 'studentname':return u.studentName;
         case 'fathername':return u.fatherName; case 'mothername':return u.motherName; case 'dob':return u.dob;
@@ -258,7 +260,10 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   }
 
   final selected=fields.map((k){
-    for(final e in entries){if(e.key==k)return e;}
+    for (final e in entries) {\n      if (e.key == k) {
+        return e;
+      }
+    }
     return null;
   }).whereType<MapEntry<String,String>>().toList();
 
