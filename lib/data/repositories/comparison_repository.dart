@@ -20,8 +20,16 @@ class ComparisonRepository {
   Future<void> replaceUdiseRows(List<Map<String, dynamic>> rows) =>
       _database.replaceUdiseRows(rows);
 
-  Future<SqliteImportResult> importSqlite(List<int> bytes) =>
-      _database.importSqliteBytes(bytes);
+  Future<({int pspCount, int udiseCount, int remarkCount})> importSqlite(
+    List<int> bytes,
+  ) async {
+    final result = await _database.importSqliteBytes(bytes);
+    return (
+      pspCount: result.pspCount,
+      udiseCount: result.udiseCount,
+      remarkCount: result.remarkCount,
+    );
+  }
 
   Future<int> importLegacyRemarks(List<int> bytes) =>
       _database.importLegacyRemarksBytes(bytes);
