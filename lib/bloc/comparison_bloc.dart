@@ -183,21 +183,11 @@ final class ComparisonJsonImportRequested extends ComparisonEvent {
   const ComparisonJsonImportRequested({required this.psp, required this.rows, required this.completer});
   @override List<Object?> get props => [psp, rows];
 }
-final class ComparisonSqliteImportRequested extends ComparisonEvent {
-  final List<int> bytes;
-  final Completer<({int pspCount, int udiseCount, int remarkCount})> completer;
-  const ComparisonSqliteImportRequested({required this.bytes, required this.completer});
-  @override List<Object?> get props => [bytes];
-}
 final class ComparisonLegacyRemarksImportRequested extends ComparisonEvent {
   final List<int> bytes;
   final Completer<int> completer;
   const ComparisonLegacyRemarksImportRequested({required this.bytes, required this.completer});
   @override List<Object?> get props => [bytes];
-}
-final class ComparisonDatabaseExportRequested extends ComparisonEvent {
-  final Completer<Uint8List> completer;
-  const ComparisonDatabaseExportRequested(this.completer);
 }
 final class ComparisonSourceRowsRequested extends ComparisonEvent {
   final bool psp;
@@ -234,9 +224,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     on<ComparisonSearchActivityChanged>((e, emit) => emit(state.copyWith(searchActive: e.value)));
     on<ComparisonErrorChanged>((e, emit) => emit(state.copyWith(status: ComparisonStatus.failure, error: e.message)));
     on<ComparisonJsonImportRequested>(_onJsonImport);
-    on<ComparisonSqliteImportRequested>(_onSqliteImport);
     on<ComparisonLegacyRemarksImportRequested>(_onLegacyRemarksImport);
-    on<ComparisonDatabaseExportRequested>(_onDatabaseExport);
     on<ComparisonSourceRowsRequested>(_onSourceRows);
     on<ComparisonRemarkSaved>(_onRemarkSaved);
     on<ComparisonRemarkDeleted>(_onRemarkDeleted);
@@ -296,17 +284,6 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     }
   }
 
-  Future<void> _onSqliteImport(ComparisonSqliteImportRequested event, Emitter<ComparisonState> emit) async {
-    try {
-      final result = await _repository.importSqlite(event.bytes);
-      if (!event.completer.isCompleted) event.completer.complete(result);
-      add(const ComparisonLoadRequested());
-    } catch (e, st) {
-      if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(status: ComparisonStatus.failure, error: 'SQLite import failed: $e'));
-    }
-  }
-
   Future<void> _onLegacyRemarksImport(ComparisonLegacyRemarksImportRequested event, Emitter<ComparisonState> emit) async {
     try {
       final result = await _repository.importLegacyRemarks(event.bytes);
@@ -315,14 +292,6 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
       emit(state.copyWith(status: ComparisonStatus.failure, error: 'Legacy remarks import failed: $e'));
-    }
-  }
-
-  Future<void> _onDatabaseExport(ComparisonDatabaseExportRequested event, Emitter<ComparisonState> emit) async {
-    try {
-      if (!event.completer.isCompleted) event.completer.complete(await _repository.exportDatabase());
-    } catch (e, st) {
-      if (!event.completer.isCompleted) event.completer.completeError(e, st);
     }
   }
 
@@ -386,14 +355,8 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   Future<void> importJsonRows({required bool psp, required List<Map<String, dynamic>> rows}) {
     final c = Completer<void>(); add(ComparisonJsonImportRequested(psp: psp, rows: rows, completer: c)); return c.future;
   }
-  Future<({int pspCount, int udiseCount, int remarkCount})> importSqlite(List<int> bytes) {
-    final c = Completer<({int pspCount, int udiseCount, int remarkCount})>(); add(ComparisonSqliteImportRequested(bytes: bytes, completer: c)); return c.future;
-  }
   Future<int> importLegacyRemarks(List<int> bytes) {
     final c = Completer<int>(); add(ComparisonLegacyRemarksImportRequested(bytes: bytes, completer: c)); return c.future;
-  }
-  Future<Uint8List> exportDatabase() {
-    final c = Completer<Uint8List>(); add(ComparisonDatabaseExportRequested(c)); return c.future;
   }
   Future<List<Map<String, dynamic>>> loadSourceRows({required bool psp}) {
     final c = Completer<List<Map<String, dynamic>>>(); add(ComparisonSourceRowsRequested(psp: psp, completer: c)); return c.future;
