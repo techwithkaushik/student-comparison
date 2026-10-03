@@ -11,7 +11,7 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase._();
 
   static const _dbName = 'student_comparison.db';
-  static const _dbVersion = 4;
+  static const _dbVersion = 5;
   static const _publicFolder = '/storage/emulated/0/StudentComparison';
 
   Database? _db;
@@ -27,6 +27,7 @@ class AppDatabase {
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 3) await _upgradeToV3(db);
         if (oldVersion < 4) await _upgradeToV4(db);
+        if (oldVersion < 5) await _upgradeToV5(db);
       },
     );
 
@@ -114,6 +115,13 @@ class AppDatabase {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         UNIQUE(school_psp_id, school_udise_code, psp_nic, udise_pen)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE app_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       )
     ''');
 
@@ -254,6 +262,15 @@ class AppDatabase {
     await _createIndexes(db);
   }
 
+  static Future<void> _upgradeToV5(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+  }
+
   static Future<void> _upgradeToV4(Database db) async {
     if (await _tableExists(db, 'psp_students')) {
       final columns = await _columnNames(db, 'psp_students');
@@ -348,12 +365,41 @@ class AppDatabase {
 
   Future<Map<String, dynamic>?> getActiveSchoolProfile() async {
     final profiles = await getSchoolProfiles();
+    if (profiles.isEmpty) {
+      _activeProfileId = null;
+      return null;
+    }
+
+    if (_activeProfileId == null) {
+      final metadata = await _db!.query(
+        'app_metadata',
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: ['active_school_profile_id'],
+        limit: 1,
+      );
+      if (metadata.isNotEmpty) {
+        _activeProfileId = metadata.first['value']?.toString();
+      }
+    }
+
     if (_activeProfileId != null) {
       for (final profile in profiles) {
         if (profile['id']?.toString() == _activeProfileId) return profile;
       }
     }
-    return profiles.isEmpty ? null : profiles.first;
+
+    final fallback = profiles.first;
+    _activeProfileId = fallback['id']?.toString();
+    await _db!.insert(
+      'app_metadata',
+      {
+        'key': 'active_school_profile_id',
+        'value': _activeProfileId!,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return fallback;
   }
 
   Future<void> setActiveSchoolProfile(String profileId) async {
@@ -362,6 +408,14 @@ class AppDatabase {
       throw ArgumentError('School profile not found.');
     }
     _activeProfileId = profileId;
+    await _db!.insert(
+      'app_metadata',
+      {
+        'key': 'active_school_profile_id',
+        'value': profileId,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<Map<String, dynamic>> saveSchoolProfile({
@@ -498,7 +552,14 @@ class AppDatabase {
         whereArgs: [profileId],
       );
     });
-    if (_activeProfileId == profileId) _activeProfileId = null;
+    if (_activeProfileId == profileId) {
+      _activeProfileId = null;
+      await _db!.delete(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['active_school_profile_id'],
+      );
+    }
   }
 
   Future<Map<String, dynamic>> _requireActiveProfile() async {
