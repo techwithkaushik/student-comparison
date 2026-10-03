@@ -535,5 +535,17 @@ void main() {
       expect(u.religionNormValue, '');
     });
 
+    test('missing religion does not create false mismatch or score evidence', () {
+      final rows = runMatchingEngine(
+        [psp(religion: '')],
+        [udise(religion: '7')],
+      );
+
+      expect(rows, hasLength(1));
+      expect(rows.single.type, MatchType.matched);
+      expect(rows.single.diffs, isNot(contains('RELIGION_MISMATCH')));
+      expect(rows.single.score, 95);
+    });
+
   });
 }
