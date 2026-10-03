@@ -235,16 +235,16 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                         final key=fields[index];
                         final defaultHeader=customHeaders[key]??label(key);
                         return ListTile(
-                          key:ValueKey('selected-column-${key}'),
+                          key:ValueKey('selected-column-$key'),
                           dense:true,
                           visualDensity:const VisualDensity(vertical:-3),
                           contentPadding:const EdgeInsets.only(left:4,right:2),
                           leading:const Icon(Icons.drag_handle,size:20),
                           title:TextFormField(
-                            key:ValueKey('header-${key}-${defaultHeader}'),
+                            key:ValueKey('header-$key-$defaultHeader'),
                             initialValue:defaultHeader,
-                            isDense:true,
                             decoration:const InputDecoration(
+                              isDense:true,
                               labelText:'Column heading',
                               border:OutlineInputBorder(),
                             ),
@@ -376,7 +376,7 @@ Future<void> showStudentPrintDialog(BuildContext context,{
 
   await NativePrintService.printTable(
     title:'(${pspCode}) (${udiseCode}) ${schoolName}',
-    subtitle:'${scope=='ALL'?'All':'Class : ${selectedClass}'}    ${source} REPORT    Student Count : ${table.length}',
+    subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : $table.length',
     columns:['S.No',...selected.map((e)=>e.value)],
     rows:table,
     settings:settings,
