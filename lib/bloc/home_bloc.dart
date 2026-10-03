@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/repositories/school_repository.dart';
@@ -29,6 +31,40 @@ class HomeState extends Equatable {
 
   @override
   List<Object?> get props => [status, profiles, error];
+  Future<void> load() {
+    add(const HomeLoadRequested());
+    return Future.value();
+  }
+
+  Future<void> saveProfile({
+    String? id,
+    required String schoolName,
+    required String pspCode,
+    required String udiseCode,
+  }) {
+    final completer = Completer<void>();
+    add(HomeProfileSaved(
+      id: id,
+      schoolName: schoolName,
+      pspCode: pspCode,
+      udiseCode: udiseCode,
+      completer: completer,
+    ));
+    return completer.future;
+  }
+
+  Future<void> deleteProfile(String profileId) {
+    final completer = Completer<void>();
+    add(HomeProfileDeleted(profileId, completer: completer));
+    return completer.future;
+  }
+
+  Future<void> selectProfile(String profileId) {
+    final completer = Completer<void>();
+    add(HomeProfileSelected(profileId, completer: completer));
+    return completer.future;
+  }
+
 }
 
 sealed class HomeEvent extends Equatable {
@@ -46,11 +82,13 @@ final class HomeProfileSaved extends HomeEvent {
   final String schoolName;
   final String pspCode;
   final String udiseCode;
+  final Completer<void>? completer;
   const HomeProfileSaved({
     this.id,
     required this.schoolName,
     required this.pspCode,
     required this.udiseCode,
+    this.completer,
   });
   @override
   List<Object?> get props => [id, schoolName, pspCode, udiseCode];
@@ -58,14 +96,16 @@ final class HomeProfileSaved extends HomeEvent {
 
 final class HomeProfileDeleted extends HomeEvent {
   final String profileId;
-  const HomeProfileDeleted(this.profileId);
+  final Completer<void>? completer;
+  const HomeProfileDeleted(this.profileId, {this.completer});
   @override
   List<Object?> get props => [profileId];
 }
 
 final class HomeProfileSelected extends HomeEvent {
   final String profileId;
-  const HomeProfileSelected(this.profileId);
+  final Completer<void>? completer;
+  const HomeProfileSelected(this.profileId, {this.completer});
   @override
   List<Object?> get props => [profileId];
 }
@@ -114,8 +154,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         pspCode: event.pspCode,
         udiseCode: event.udiseCode,
       );
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.complete();
       add(const HomeLoadRequested());
-    } catch (e) {
+    } catch (e, st) {
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.completeError(e, st);
       emit(state.copyWith(
         status: HomeStatus.failure,
         error: 'Could not save profile: $e',
@@ -129,8 +171,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   ) async {
     try {
       await _repository.deleteProfile(event.profileId);
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.complete();
       add(const HomeLoadRequested());
-    } catch (e) {
+    } catch (e, st) {
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.completeError(e, st);
       emit(state.copyWith(
         status: HomeStatus.failure,
         error: 'Could not delete profile: $e',
@@ -144,7 +188,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   ) async {
     try {
       await _repository.setActiveProfile(event.profileId);
-    } catch (e) {
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.complete();
+    } catch (e, st) {
+      if (event.completer != null && !event.completer!.isCompleted) event.completer!.completeError(e, st);
       emit(state.copyWith(
         status: HomeStatus.failure,
         error: 'Could not select school profile: $e',
