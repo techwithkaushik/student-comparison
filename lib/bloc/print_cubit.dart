@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../matching/models.dart';
-import 'native_print_service.dart';
+import '../printing/native_print_service.dart';
 
 class PrintSettingsCubit extends Cubit<PrintSettings> {
   PrintSettingsCubit(PrintSettings initial) : super(initial);
