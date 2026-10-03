@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/home_cubit.dart';
+import '../bloc/home_bloc.dart';
+import '../data/repositories/school_repository.dart';
 
 import 'comparison_screen.dart';
 
@@ -13,31 +14,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final HomeCubit _cubit;
+  List<Map<String, dynamic>> get _profiles => context.read<HomeBloc>().state.profiles;
+  bool get _loading => context.read<HomeBloc>().state.status == HomeStatus.loading || context.read<HomeBloc>().state.status == HomeStatus.initial;
+  String? get _error => context.read<HomeBloc>().state.error;
 
-  List<Map<String, dynamic>> get _profiles => _cubit.state.profiles;
-  bool get _loading =>
-      _cubit.state.status == HomeStatus.loading ||
-      _cubit.state.status == HomeStatus.initial;
-  String? get _error => _cubit.state.error;
-
-  @override
-  void dispose() {
-    _cubit.close();
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _cubit = HomeCubit()..load();
-  }
-
-  Future<void> _loadProfiles() => _cubit.load();
+  Future<void> _loadProfiles() async => context.read<HomeBloc>().add(const HomeLoadRequested());
 
   Future<void> _openProfile(Map<String, dynamic> profile) async {
     try {
-      await _cubit.selectProfile(profile['id'].toString());
+      await context.read<HomeBloc>().selectProfile(profile['id'].toString());
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -78,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _cubit.deleteProfile(profile['id'].toString());
+      await context.read<HomeBloc>().deleteProfile(profile['id'].toString());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('School profile deleted successfully.')),
@@ -177,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
       if (values == null) return;
-      await _cubit.saveProfile(
+      await context.read<HomeBloc>().saveProfile(
         id: profile?['id']?.toString(),
         schoolName: values['schoolName']!,
         pspCode: values['pspCode']!,
@@ -205,9 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _cubit,
-      child: BlocBuilder<HomeCubit, HomeState>(
+    return BlocProvider(
+      create: (context) => HomeBloc(repository: context.read<SchoolRepository>())..add(const HomeLoadRequested()),
+      child: BlocBuilder<HomeBloc, HomeState>(
         builder: (context, state) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
