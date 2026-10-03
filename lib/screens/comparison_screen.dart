@@ -139,8 +139,6 @@ class _ComparisonDashboardScreenState
       } else {
         await _cubit.importJsonRows(psp: false, rows: rows);
       }
-      await _loadData();
-      await _loadRemarkKeys();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,8 +165,6 @@ class _ComparisonDashboardScreenState
       final bytes = result.files.single.bytes;
       if (bytes == null) throw Exception('Unable to read selected SQLite file.');
       final imported = await _cubit.importSqlite(bytes);
-      await _loadData();
-      await _loadRemarkKeys();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(
@@ -194,7 +190,6 @@ class _ComparisonDashboardScreenState
       if (bytes == null) throw Exception('Unable to read selected SQLite file.');
 
       final imported = await _cubit.importLegacyRemarks(bytes);
-      await _loadRemarkKeys();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
