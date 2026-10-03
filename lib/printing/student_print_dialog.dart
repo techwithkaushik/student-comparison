@@ -152,161 +152,219 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   customHeaders={for(final e in entries)e.key:e.value};
   var classes=buildClasses();
 
-  final ok=await showDialog<bool>(
+  final ok=await showModalBottomSheet<bool>(
     context:context,
+    isScrollControlled:true,
+    useSafeArea:true,
+    backgroundColor:Colors.transparent,
     builder:(_)=>StatefulBuilder(builder:(context,set){
-      return AlertDialog(
-        title:const Text('Print Report'),
-        content:SizedBox(
-          width:600,
-          height:620,
-          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Row(children:[
-              Expanded(child:SegmentedButton<String>(
-                segments:const[
-                  ButtonSegment(value:'PSP',label:Text('PSP')),
-                  ButtonSegment(value:'UDISE',label:Text('UDISE')),
-                ],
-                selected:{source},
-                onSelectionChanged:(v)=>set((){
-                  source=v.first;
-                  selectedClass='';
-                  entries=buildAvailableFields();
-                  classes=buildClasses();
-                  fields=entries.map((e)=>e.key).toList();
-                  customHeaders={for(final e in entries)e.key:e.value};
-                }),
-              )),
-            ]),
-            const SizedBox(height:10),
-            SegmentedButton<String>(
-              segments:const[
-                ButtonSegment(value:'ALL',label:Text('All Students')),
-                ButtonSegment(value:'CLASS',label:Text('Selected Class')),
-              ],
-              selected:{scope},
-              onSelectionChanged:(v)=>set(()=>scope=v.first),
-            ),
-            if(scope=='CLASS') Padding(
-              padding:const EdgeInsets.only(top:8),
-              child:DropdownButtonFormField<String>(
-                initialValue:selectedClass.isEmpty?null:selectedClass,
-                isExpanded:true,
-                decoration:const InputDecoration(labelText:'Class'),
-                items:classes.map((c)=>DropdownMenuItem(
-                  value:c,
-                  child:Text('Class $c',overflow:TextOverflow.ellipsis),
-                )).toList(),
-                onChanged:(v)=>set(()=>selectedClass=v??''),
-              ),
-            ),
-            const SizedBox(height:8),
-            Row(children:[
-              Expanded(child:Text(
-                'Selected columns (${fields.length})',
-                style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800),
-              )),
-              TextButton(
-                onPressed:()=>set(()=>fields=entries.map((e)=>e.key).toList()),
-                child:const Text('All'),
-              ),
-              TextButton(
-                onPressed:()=>set(()=>fields=[]),
-                child:const Text('Clear'),
-              ),
-            ]),
-            Container(
-              height:150,
-              decoration:BoxDecoration(
-                border:Border.all(color:Theme.of(context).dividerColor),
-                borderRadius:BorderRadius.circular(8),
-              ),
-              child:fields.isEmpty
-                  ?const Center(child:Text('No columns selected'))
-                  :ReorderableListView.builder(
-                      padding:const EdgeInsets.symmetric(vertical:2),
-                      itemCount:fields.length,
-                      onReorder:(oldIndex,newIndex)=>set((){
-                        if(newIndex>oldIndex){newIndex--;}
-                        final item=fields.removeAt(oldIndex);
-                        fields.insert(newIndex,item);
-                      }),
-                      itemBuilder:(context,index){
-                        final key=fields[index];
-                        final defaultHeader=customHeaders[key]??label(key);
-                        return ListTile(
-                          key:ValueKey('selected-column-$key'),
-                          dense:true,
-                          visualDensity:const VisualDensity(vertical:-3),
-                          contentPadding:const EdgeInsets.only(left:4,right:2),
-                          leading:const Icon(Icons.drag_handle,size:20),
-                          title:TextFormField(
-                            key:ValueKey('header-$key-$defaultHeader'),
-                            initialValue:defaultHeader,
-                            decoration:const InputDecoration(
-                              isDense:true,
-                              labelText:'Column heading',
-                              border:OutlineInputBorder(),
-                            ),
-                            onChanged:(v)=>customHeaders[key]=v,
-                          ),
-                          trailing:IconButton(
-                            tooltip:'Remove column',
-                            visualDensity:VisualDensity.compact,
-                            icon:const Icon(Icons.close,size:19),
-                            onPressed:()=>set(()=>fields=fields.where((x)=>x!=key).toList()),
-                          ),
-                        );
-                      },
+      final scheme=Theme.of(context).colorScheme;
+      return Material(
+        color:scheme.surface,
+        borderRadius:const BorderRadius.vertical(top:Radius.circular(22)),
+        clipBehavior:Clip.antiAlias,
+        child:SizedBox(
+          height:MediaQuery.sizeOf(context).height*0.90,
+          child:Padding(
+            padding:const EdgeInsets.fromLTRB(14,8,14,10),
+            child:Column(
+              crossAxisAlignment:CrossAxisAlignment.start,
+              children:[
+                Center(
+                  child:Container(
+                    width:42,
+                    height:4,
+                    margin:const EdgeInsets.only(bottom:8),
+                    decoration:BoxDecoration(
+                      color:scheme.onSurfaceVariant.withValues(alpha:.35),
+                      borderRadius:BorderRadius.circular(20),
                     ),
-            ),
-            const SizedBox(height:8),
-            Row(children:[
-              Expanded(child:Text(
-                'Available DB fields (${entries.length})',
-                style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w800),
-              )),
-            ]),
-            const Divider(height:1),
-            const SizedBox(height:2),
-            Expanded(
-              child:ListView.builder(
-                cacheExtent:200,
-                itemCount:entries.length,
-                itemBuilder:(context,index){
-                  final e=entries[index];
-                  final checked=fields.contains(e.key);
-                  return CheckboxListTile(
-                    dense:true,
-                    visualDensity:const VisualDensity(vertical:-2),
-                    contentPadding:EdgeInsets.zero,
-                    title:Text(
-                      customHeaders[e.key]??e.value,
-                      overflow:TextOverflow.ellipsis,
+                  ),
+                ),
+                Row(children:[
+                  Expanded(
+                    child:Text(
+                      'Print Report',
+                      style:Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight:FontWeight.w800,
+                      ),
                     ),
-                    subtitle:Text(e.key,overflow:TextOverflow.ellipsis),
-                    value:checked,
-                    onChanged:(v)=>set((){
-                      if (v == true && !fields.contains(e.key)) {
-                        fields=[...fields,e.key];
-                      } else if (v == false) {
-                        fields=fields.where((x)=>x!=e.key).toList();
-                      }
+                  ),
+                  IconButton(
+                    tooltip:'Close',
+                    onPressed:()=>Navigator.pop(context,false),
+                    icon:const Icon(Icons.close_rounded),
+                  ),
+                ]),
+                const SizedBox(height:2),
+                Text(
+                  'Current filtered list: ${rows.length} student(s)',
+                  style:Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color:scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height:10),
+                Row(children:[
+                  Expanded(child:SegmentedButton<String>(
+                    segments:const[
+                      ButtonSegment(value:'PSP',label:Text('PSP')),
+                      ButtonSegment(value:'UDISE',label:Text('UDISE')),
+                    ],
+                    selected:{source},
+                    onSelectionChanged:(v)=>set((){
+                      source=v.first;
+                      selectedClass='';
+                      entries=buildAvailableFields();
+                      classes=buildClasses();
+                      fields=entries.map((e)=>e.key).toList();
+                      customHeaders={for(final e in entries)e.key:e.value};
                     }),
-                  );
-                },
-              ),
+                  )),
+                ]),
+                const SizedBox(height:10),
+                SegmentedButton<String>(
+                  segments:const[
+                    ButtonSegment(value:'ALL',label:Text('Current List')),
+                    ButtonSegment(value:'CLASS',label:Text('Selected Class')),
+                  ],
+                  selected:{scope},
+                  onSelectionChanged:(v)=>set(()=>scope=v.first),
+                ),
+                if(scope=='CLASS') Padding(
+                  padding:const EdgeInsets.only(top:8),
+                  child:DropdownButtonFormField<String>(
+                    initialValue:selectedClass.isEmpty?null:selectedClass,
+                    isExpanded:true,
+                    decoration:const InputDecoration(labelText:'Class'),
+                    items:classes.map((c)=>DropdownMenuItem(
+                      value:c,
+                      child:Text('Class $c',overflow:TextOverflow.ellipsis),
+                    )).toList(),
+                    onChanged:(v)=>set(()=>selectedClass=v??''),
+                  ),
+                ),
+                const SizedBox(height:8),
+                Row(children:[
+                  Expanded(child:Text(
+                    'Selected columns (${fields.length})',
+                    style:Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight:FontWeight.w800,
+                    ),
+                  )),
+                  TextButton(
+                    onPressed:()=>set(()=>fields=entries.map((e)=>e.key).toList()),
+                    child:const Text('All'),
+                  ),
+                  TextButton(
+                    onPressed:()=>set(()=>fields=[]),
+                    child:const Text('Clear'),
+                  ),
+                ]),
+                Container(
+                  height:150,
+                  decoration:BoxDecoration(
+                    border:Border.all(color:scheme.outlineVariant),
+                    borderRadius:BorderRadius.circular(8),
+                  ),
+                  child:fields.isEmpty
+                      ?const Center(child:Text('No columns selected'))
+                      :ReorderableListView.builder(
+                          padding:const EdgeInsets.symmetric(vertical:2),
+                          itemCount:fields.length,
+                          onReorder:(oldIndex,newIndex)=>set((){
+                            if(newIndex>oldIndex){newIndex--;}
+                            final item=fields.removeAt(oldIndex);
+                            fields.insert(newIndex,item);
+                          }),
+                          itemBuilder:(context,index){
+                            final key=fields[index];
+                            final defaultHeader=customHeaders[key]??label(key);
+                            return ListTile(
+                              key:ValueKey('selected-column-$key'),
+                              dense:true,
+                              visualDensity:const VisualDensity(vertical:-3),
+                              contentPadding:const EdgeInsets.only(left:4,right:2),
+                              leading:const Icon(Icons.drag_handle,size:20),
+                              title:TextFormField(
+                                key:ValueKey('header-$key-$defaultHeader'),
+                                initialValue:defaultHeader,
+                                decoration:const InputDecoration(
+                                  isDense:true,
+                                  labelText:'Column heading',
+                                  border:OutlineInputBorder(),
+                                ),
+                                onChanged:(v)=>customHeaders[key]=v,
+                              ),
+                              trailing:IconButton(
+                                tooltip:'Remove column',
+                                visualDensity:VisualDensity.compact,
+                                icon:const Icon(Icons.close,size:19),
+                                onPressed:()=>set(()=>fields=fields.where((x)=>x!=key).toList()),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height:8),
+                Row(children:[
+                  Expanded(child:Text(
+                    'Available DB fields (${entries.length})',
+                    style:Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight:FontWeight.w800,
+                    ),
+                  )),
+                ]),
+                const Divider(height:1),
+                const SizedBox(height:2),
+                Expanded(
+                  child:ListView.builder(
+                    cacheExtent:200,
+                    itemCount:entries.length,
+                    itemBuilder:(context,index){
+                      final e=entries[index];
+                      final checked=fields.contains(e.key);
+                      return CheckboxListTile(
+                        dense:true,
+                        visualDensity:const VisualDensity(vertical:-2),
+                        contentPadding:EdgeInsets.zero,
+                        title:Text(
+                          customHeaders[e.key]??e.value,
+                          overflow:TextOverflow.ellipsis,
+                        ),
+                        subtitle:Text(e.key,overflow:TextOverflow.ellipsis),
+                        value:checked,
+                        onChanged:(v)=>set((){
+                          if (v == true && !fields.contains(e.key)) {
+                            fields=[...fields,e.key];
+                          } else if (v == false) {
+                            fields=fields.where((x)=>x!=e.key).toList();
+                          }
+                        }),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height:6),
+                Row(children:[
+                  Expanded(
+                    child:OutlinedButton(
+                      onPressed:()=>Navigator.pop(context,false),
+                      child:const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width:10),
+                  Expanded(
+                    child:FilledButton.icon(
+                      onPressed:()=>Navigator.pop(context,true),
+                      icon:const Icon(Icons.print_rounded),
+                      label:const Text('Print'),
+                    ),
+                  ),
+                ]),
+              ],
             ),
-          ]),
-        ),
-        actions:[
-          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),
-          FilledButton.icon(
-            onPressed:()=>Navigator.pop(context,true),
-            icon:const Icon(Icons.print),
-            label:const Text('Print'),
           ),
-        ],
+        ),
       );
     }),
   );
@@ -341,6 +399,14 @@ Future<void> showStudentPrintDialog(BuildContext context,{
       if (normKey(e.key) == target) {
         final v=e.value?.toString().trim()??'';
         if (v.isNotEmpty) {
+          if (target == 'gettingfreeeducation') {
+            final normalizedValue=v.toLowerCase().trim();
+            final yesValue=normalizedValue == 'yes' ||
+                normalizedValue == 'y' ||
+                normalizedValue == 'true' ||
+                normalizedValue == '1';
+            return yesValue ? 'YES' : 'NO';
+          }
           return v;
         }
       }
