@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _deleteProfile(Map<String, dynamic> profile) async {
+    final homeBloc = context.read<HomeBloc>();
     final name = profile['schoolName']?.toString() ?? 'this school';
     final confirmed = await showDialog<bool>(
       context: context,
@@ -63,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (confirmed != true) return;
     try {
-      await context.read<HomeBloc>().deleteProfile(profile['id'].toString());
+      await homeBloc.deleteProfile(profile['id'].toString());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('School profile deleted successfully.')),
@@ -77,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showProfileForm({Map<String, dynamic>? profile}) async {
+    final homeBloc = context.read<HomeBloc>();
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(
       text: profile?['schoolName']?.toString() ?? '',
@@ -162,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
       if (values == null) return;
-      await context.read<HomeBloc>().saveProfile(
+      await homeBloc.saveProfile(
         id: profile?['id']?.toString(),
         schoolName: values['schoolName']!,
         pspCode: values['pspCode']!,
