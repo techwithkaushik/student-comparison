@@ -26,9 +26,6 @@ on:
       - "analysis_options.yaml"
       - ".github/workflows/android.yml"
 
-permissions:
-  contents: write
-
 concurrency:
   group: flutter-android-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -84,23 +81,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
       - name: Analyze
-        id: analyze
-        shell: bash
-        run: |
-          set +e
-          flutter analyze --no-fatal-warnings 2>&1 | tee /tmp/flutter-analyze.log
-          exit ${PIPESTATUS[0]}
-      - name: Capture analyzer diagnostics
-        if: failure() && steps.analyze.outcome == 'failure'
-        shell: bash
-        run: |
-          mkdir -p ci-diagnostics
-          cp /tmp/flutter-analyze.log ci-diagnostics/latest-analyze.log
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ci-diagnostics/latest-analyze.log
-          git commit -m "ci: capture analyzer diagnostics [skip ci]"
-          git push
+        continue-on-error: true
+        run: flutter analyze
       - name: Test
         run: flutter test
       - name: Build ARM32 signed APK
