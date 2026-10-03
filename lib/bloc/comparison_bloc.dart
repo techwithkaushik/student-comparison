@@ -253,7 +253,14 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       final pspRows = await _repository.loadPspRows();
       final udiseRows = await _repository.loadUdiseRows();
       final rows = await compute(_buildComparisonRowsInBackground, <String, List<Map<String, dynamic>>>{'psp': pspRows, 'udise': udiseRows});
-      if (generation != _loadGeneration || emit.isDone) return;
+      if (generation != _loadGeneration || emit.isDone) {
+        // A newer load superseded this request. Never leave a caller awaiting
+        // load() forever just because its result became stale.
+        if (event.completer != null && !event.completer!.isCompleted) {
+          event.completer!.complete();
+        }
+        return;
+      }
 
       final source = await _repository.getAllRemarks();
       final remarks = <String, Map<String, dynamic>>{};
