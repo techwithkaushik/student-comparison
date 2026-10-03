@@ -247,7 +247,7 @@ class _ComparisonDashboardScreenState
       final bytes = Uint8List.fromList(utf8.encode(
         const JsonEncoder.withIndent('  ').convert(rows),
       ));
-      final profile = await AppDatabase.instance.getActiveSchoolProfile();
+      final profile = await _cubit.getActiveSchoolProfile();
       final code = pspExport
           ? (profile == null ? '' : profile['pspCode']?.toString().trim() ?? '')
           : (profile == null ? '' : profile['udiseCode']?.toString().trim() ?? '');
@@ -329,7 +329,7 @@ class _ComparisonDashboardScreenState
 
   Future<void> _printReport() async {
     try {
-      final profile = await AppDatabase.instance.getActiveSchoolProfile();
+      final profile = await _cubit.getActiveSchoolProfile();
       if (profile == null) {
         throw StateError('Please select a school profile before printing.');
       }
