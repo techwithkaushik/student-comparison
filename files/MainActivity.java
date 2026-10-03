@@ -425,7 +425,7 @@ public class MainActivity extends FlutterActivity {
                 y += rowHeight;
             }
 
-            p.setTypeface(Typeface.DEFAULT);
+            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
             for (int r = start; r < end; r++) {
                 List<String> row = rows.get(r);
                 p.setColor(android.graphics.Color.BLACK);
