@@ -39,8 +39,10 @@ class HomeCubit extends Cubit<HomeState> {
     emit(state.copyWith(status: HomeStatus.loading, clearError: true));
     try {
       final profiles = await database.getSchoolProfiles();
+      if (isClosed) return;
       emit(state.copyWith(status: HomeStatus.ready, profiles: profiles));
     } catch (e) {
+      if (isClosed) return;
       emit(state.copyWith(
         status: HomeStatus.failure,
         error: 'School profiles could not be loaded: $e',
@@ -88,6 +90,10 @@ class HomeCubit extends Cubit<HomeState> {
     return database.setActiveSchoolProfile(profileId);
   }
 
-  void setError(String message) => emit(state.copyWith(status: HomeStatus.failure, error: message));
+  void setError(String message) {
+    if (!isClosed) {
+      emit(state.copyWith(status: HomeStatus.failure, error: message));
+    }
+  }
   void clearError() => emit(state.copyWith(clearError: true));
 }
