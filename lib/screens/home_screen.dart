@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadProfiles() => context.read<HomeBloc>().load();
 
   Future<void> _importDatabase() async {
+    final appRepository = context.read<AppRepository>();
+    final homeBloc = context.read<HomeBloc>();
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -58,9 +60,9 @@ class _HomeScreenState extends State<HomeScreen> {
         throw StateError('Unable to read the selected database backup.');
       }
 
-      await context.read<AppRepository>().restoreDatabase(bytes);
+      await appRepository.restoreDatabase(bytes);
       if (!mounted) return;
-      await context.read<HomeBloc>().load();
+      await homeBloc.load();
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,8 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _exportDatabase() async {
+    final appRepository = context.read<AppRepository>();
     try {
-      final bytes = await context.read<AppRepository>().exportDatabase();
+      final bytes = await appRepository.exportDatabase();
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Backup Student Comparison database',
         fileName: 'student_comparison_backup.db',
