@@ -887,61 +887,6 @@ class AppDatabase {
         .toSet();
   }
 
-  static Map<String, dynamic> _sourcePspToJson(
-    Map<String, Object?> row,
-  ) {
-    final raw = _text(row['raw_json']);
-    if (raw.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      } catch (_) {}
-    }
-    return {
-      'Student NIC ID': row['nic_id'],
-      'SR No.': row['sr_no'],
-      'Aadhar Number': row['aadhaar_last4'],
-      'Student Name': row['student_name'],
-      'Father Name': row['father_name'],
-      'Mother Name': row['mother_name'],
-      'DOB': row['dob'],
-      'Gender': row['gender'],
-      'Studying in Class': row['studying_class'],
-      'Mobile Number': row['mobile'],
-      'Social Category': row['social_category'],
-      'Religion': row['religion'],
-    };
-  }
-
-  static Map<String, dynamic> _sourceUdiseToJson(
-    Map<String, Object?> row,
-  ) {
-    final raw = _text(row['raw_json']);
-    if (raw.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      } catch (_) {}
-    }
-    return {
-      'studentId': row['student_id'],
-      'studentCodeNat': row['pen'],
-      'uuid': row['uuid_last4'],
-      'uuidStatus': row['uuid_status'],
-      'nameAsUuid': row['name_as_uuid'],
-      'studentName': row['student_name'],
-      'fatherName': row['father_name'],
-      'motherName': row['mother_name'],
-      'dob': row['dob'],
-      'gender': row['gender'],
-      'classId': row['class_id'],
-      'classDesc': row['class_desc'],
-      'primaryMobile': row['mobile'],
-      'socialCategoryDesc': row['social_category'],
-      'minorityDesc': row['religion'],
-    };
-  }
-
   Future<Map<String, dynamic>?> getRemark({
     String? pspNic,
     String? udisePen,
