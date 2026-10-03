@@ -144,6 +144,9 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   }
 
   await restoreColumnPreset();
+  if (!context.mounted) {
+    return;
+  }
 
   final ok=await showModalBottomSheet<bool>(
     context:context,
