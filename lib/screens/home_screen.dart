@@ -1,7 +1,8 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:typed_data';
 import '../bloc/home_bloc.dart';
 import '../data/repositories/app_repository.dart';
 import '../bloc/comparison_bloc.dart';
