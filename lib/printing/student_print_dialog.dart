@@ -34,7 +34,7 @@ Future<PrintSettings?> showPrintPageSetup(
                     DropdownMenuItem(value: 'LETTER', child: Text('Letter')),
                     DropdownMenuItem(value: 'LEGAL', child: Text('Legal')),
                   ],
-                  onChanged: context.read<PrintSettingsCubit>().setPaper,
+                  onChanged: context.read<PrintSettingsBloc>().setPaper,
                 ),
                 DropdownButtonFormField<String>(
                   initialValue: s.orientation,
@@ -44,7 +44,7 @@ Future<PrintSettings?> showPrintPageSetup(
                     DropdownMenuItem(value: 'portrait', child: Text('Portrait')),
                     DropdownMenuItem(value: 'landscape', child: Text('Landscape')),
                   ],
-                  onChanged: context.read<PrintSettingsCubit>().setOrientation,
+                  onChanged: context.read<PrintSettingsBloc>().setOrientation,
                 ),
                 const Align(
                   alignment: Alignment.centerLeft,
@@ -55,13 +55,13 @@ Future<PrintSettings?> showPrintPageSetup(
                   Expanded(child: _MarginField(
                     label: 'Top',
                     controller: topController,
-                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginTop(int.tryParse(v) ?? s.marginTop),
+                    onChanged: (v) => context.read<PrintSettingsBloc>().setMarginTop(int.tryParse(v) ?? s.marginTop),
                   )),
                   const SizedBox(width: 8),
                   Expanded(child: _MarginField(
                     label: 'Right',
                     controller: rightController,
-                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginRight(int.tryParse(v) ?? s.marginRight),
+                    onChanged: (v) => context.read<PrintSettingsBloc>().setMarginRight(int.tryParse(v) ?? s.marginRight),
                   )),
                 ]),
                 const SizedBox(height: 8),
@@ -69,13 +69,13 @@ Future<PrintSettings?> showPrintPageSetup(
                   Expanded(child: _MarginField(
                     label: 'Bottom',
                     controller: bottomController,
-                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginBottom(int.tryParse(v) ?? s.marginBottom),
+                    onChanged: (v) => context.read<PrintSettingsBloc>().setMarginBottom(int.tryParse(v) ?? s.marginBottom),
                   )),
                   const SizedBox(width: 8),
                   Expanded(child: _MarginField(
                     label: 'Left',
                     controller: leftController,
-                    onChanged: (v) => context.read<PrintSettingsCubit>().setMarginLeft(int.tryParse(v) ?? s.marginLeft),
+                    onChanged: (v) => context.read<PrintSettingsBloc>().setMarginLeft(int.tryParse(v) ?? s.marginLeft),
                   )),
                 ]),
                 Row(children: [
@@ -83,7 +83,7 @@ Future<PrintSettings?> showPrintPageSetup(
                   Expanded(child: Slider(
                     min: 7, max: 16, divisions: 9, value: s.fontSize,
                     label: '${s.fontSize.toStringAsFixed(0)} pt',
-                    onChanged: context.read<PrintSettingsCubit>().setFontSize,
+                    onChanged: context.read<PrintSettingsBloc>().setFontSize,
                   )),
                   Text('${s.fontSize.toStringAsFixed(0)} pt'),
                 ]),
@@ -91,19 +91,19 @@ Future<PrintSettings?> showPrintPageSetup(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Auto-fit columns'),
                   value: s.autoFit,
-                  onChanged: context.read<PrintSettingsCubit>().setAutoFit,
+                  onChanged: context.read<PrintSettingsBloc>().setAutoFit,
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Repeat table header'),
                   value: s.repeatHeader,
-                  onChanged: context.read<PrintSettingsCubit>().setRepeatHeader,
+                  onChanged: context.read<PrintSettingsBloc>().setRepeatHeader,
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Page number'),
                   value: s.pageNumber,
-                  onChanged: context.read<PrintSettingsCubit>().setPageNumber,
+                  onChanged: context.read<PrintSettingsBloc>().setPageNumber,
                 ),
               ]),
             ),
@@ -111,7 +111,7 @@ Future<PrintSettings?> showPrintPageSetup(
               TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
               FilledButton(
                 onPressed: () async {
-                  await context.read<PrintSettingsCubit>().persist();
+                  await context.read<PrintSettingsBloc>().persist();
                   if (context.mounted) Navigator.pop(context, s);
                 },
                 child: const Text('Save'),
@@ -178,7 +178,7 @@ Future<void> showStudentPrintDialog(
         child: BlocBuilder<PrintReportBloc, PrintReportState>(
           builder: (context, s) {
             final scheme = Theme.of(context).colorScheme;
-            final bloc = context.read<PrintReportCubit>();
+            final bloc = context.read<PrintReportBloc>();
             return Material(
               color: scheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
