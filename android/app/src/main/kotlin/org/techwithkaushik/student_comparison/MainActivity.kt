@@ -236,12 +236,16 @@ public class MainActivity extends FlutterActivity {
             float right = pageWidth - 12f;
             float y = 18f;
 
+            // Report title/subtitle are normal weight. Only table column headers are bold.
             p.setTextSize(fontSize);
-            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+            p.setFakeBoldText(false);
             c.drawText(title, left, y, p);
             y += fontSize * 1.45f;
 
             p.setTextSize(fontSize);
+            p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+            p.setFakeBoldText(false);
             c.drawText(subtitle, left, y, p);
             y += fontSize * 1.45f;
 
@@ -281,7 +285,9 @@ public class MainActivity extends FlutterActivity {
             float colW = width / n;
 
             if (repeat || start == 0) {
+                // Header cells are the only bold text in the printed table.
                 p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                p.setFakeBoldText(true);
                 c.drawRect(left, y - rowHeight + 3, left + width, y + 3, p);
                 p.setColor(android.graphics.Color.WHITE);
                 for (int i = 0; i < n; i++) {
@@ -294,7 +300,9 @@ public class MainActivity extends FlutterActivity {
                 y += rowHeight;
             }
 
+            // Hard reset after the header: student data must never inherit bold state.
             p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+            p.setFakeBoldText(false);
             for (int r = start; r < end; r++) {
                 List<String> row = rows.get(r);
                 p.setColor(android.graphics.Color.BLACK);
@@ -313,6 +321,7 @@ public class MainActivity extends FlutterActivity {
         private void drawCellText(Canvas c, String text, float x, float baseline,
                                   float width, Paint p, boolean bold) {
             p.setTypeface(Typeface.create(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL));
+            p.setFakeBoldText(bold);
             p.setColor(bold ? android.graphics.Color.WHITE : android.graphics.Color.BLACK);
             p.setTextSize(fontSize);
             String value = text == null ? "" : text;
