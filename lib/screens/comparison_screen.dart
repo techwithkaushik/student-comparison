@@ -434,7 +434,19 @@ class _ComparisonDashboardScreenState
       value: _cubit,
       child: BlocBuilder<ComparisonCubit, ComparisonState>(
         builder: (context, state) {
-    return Scaffold(
+          final filtered = _filteredRows;
+          final pspBaseCount = _rows.where((row) => row.psp != null).length;
+          final matchedBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.matched).length;
+          final mismatchBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.mismatch).length;
+          final classes = _classes.toList()
+            ..sort((a, b) {
+              final ai = int.tryParse(a) ?? 99;
+              final bi = int.tryParse(b) ?? 99;
+              if (ai != bi) return ai.compareTo(bi);
+              return a.compareTo(b);
+            });
+
+          return Scaffold(
       appBar: AppBar(
         toolbarHeight: 52,
         titleSpacing: 14,
