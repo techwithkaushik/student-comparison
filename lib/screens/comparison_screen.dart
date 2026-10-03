@@ -1340,8 +1340,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 5), child: Align(alignment: Alignment.centerLeft, child: Text('All $side source fields', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent)))),
             Expanded(
-              child: SelectionArea(
-                child: GridView.builder(
+              child: GridView.builder(
                   padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 7, mainAxisSpacing: 7, childAspectRatio: 3.8),
                 itemCount: keys.length,
@@ -1410,7 +1409,6 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                   );
                   },
                 ),
-              ),
             ),
           ],
         ),
