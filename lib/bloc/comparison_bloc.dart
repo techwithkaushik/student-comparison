@@ -56,6 +56,12 @@ class ComparisonState extends Equatable {
     return remarks.containsKey('$p|$u');
   }
 
+  Set<String> get remarkKeys => remarks.keys.toSet();
+
+  int countType(MatchType type) => typeCounts[type] ?? 0;
+
+  int countDiff(String diff) => diffCounts[diff] ?? 0;
+
   static bool _isRte(ComparisonRow row) {
     final value = row.psp?.raw['Getting Free Education']?.toString().trim().toLowerCase() ?? '';
     return value == 'yes' || value == 'y' || value == 'true' || value == '1';
