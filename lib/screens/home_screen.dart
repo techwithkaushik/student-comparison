@@ -17,10 +17,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> get _profiles => context.read<HomeBloc>().state.profiles;
-  bool get _loading => context.read<HomeBloc>().state.status == HomeStatus.loading || context.read<HomeBloc>().state.status == HomeStatus.initial;
-  String? get _error => context.read<HomeBloc>().state.error;
-
   Future<void> _loadProfiles() => context.read<HomeBloc>().load();
 
   Future<void> _importDatabase() async {
@@ -340,9 +336,10 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add School'),
       ),
-      body: _loading
+      body: (state.status == HomeStatus.loading ||
+              state.status == HomeStatus.initial)
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
+          : state.error != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -351,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const Icon(Icons.error_outline, size: 42),
                         const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
+                        Text(state.error!, textAlign: TextAlign.center),
                         const SizedBox(height: 12),
                         FilledButton(
                           onPressed: _loadProfiles,
@@ -361,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 )
-              : _profiles.isEmpty
+              : state.profiles.isEmpty
                   ? _emptyState(scheme)
                   : RefreshIndicator(
                       onRefresh: _loadProfiles,
@@ -409,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${_profiles.length} school profile${_profiles.length == 1 ? '' : 's'} · Choose a school to compare its data',
+                                        '${state.profiles.length} school profile${state.profiles.length == 1 ? '' : 's'} · Choose a school to compare its data',
                                         style: Theme.of(context).textTheme.bodyMedium,
                                       ),
                                     ],
@@ -419,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 18),
-                          ..._profiles.map((profile) => Padding(
+                          ...state.profiles.map((profile) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: _profileCard(profile, scheme),
                               )),
