@@ -370,8 +370,12 @@ public class MainActivity extends FlutterActivity {
             }
 
             if (!rightHeader.isEmpty()) {
-                float rightWidth = p.measureText(rightHeader);
-                c.drawText(rightHeader, right - rightWidth, y, p);
+                // Draw count and page number only once in the top-right header.
+                String rightLabel = pageNumber
+                        ? rightHeader + "    Page " + displayPage + " of " + totalPages
+                        : rightHeader;
+                float rightLabelWidth = p.measureText(rightLabel);
+                c.drawText(rightLabel, right - rightLabelWidth, y, p);
             }
 
             y += fontSize * 1.45f;
@@ -383,14 +387,6 @@ public class MainActivity extends FlutterActivity {
             drawTable(c, y, start, end, allColumnIndexes(),
                     rowPage == 0 || repeatHeader);
 
-            // Count and page number share the same right-aligned header block.
-            if (!rightHeader.isEmpty()) {
-                String rightLabel = pageNumber
-                        ? rightHeader + "    Page " + displayPage + " of " + totalPages
-                        : rightHeader;
-                float rightLabelWidth = p.measureText(rightLabel);
-                c.drawText(rightLabel, right - rightLabelWidth, y - fontSize * 0.45f, p);
-            }
         }
 
         private float[] calculateColumnWidths(List<Integer> indexes, Paint p, float totalWidth) {
