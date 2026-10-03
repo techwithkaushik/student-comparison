@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home_bloc.dart';
+import '../bloc/comparison_bloc.dart';
+import '../data/repositories/comparison_repository.dart';
+import '../data/repositories/school_repository.dart';
 import 'comparison_screen.dart';
 
 /// Main landing page: one independent comparison workspace per school.
@@ -24,8 +27,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => ComparisonDashboardScreen(
-            schoolName: profile['schoolName']?.toString() ?? 'School Comparison',
+          builder: (_) => BlocProvider(
+            create: (context) => ComparisonBloc(
+              repository: context.read<ComparisonRepository>(),
+              schoolRepository: context.read<SchoolRepository>(),
+            ),
+            child: ComparisonDashboardScreen(
+              schoolName: profile['schoolName']?.toString() ?? 'School Comparison',
+            ),
           ),
         ),
       );
