@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class SqliteImportResult {
   final int pspCount;
@@ -49,18 +48,14 @@ class AppDatabase {
     return _db!;
   }
 
+  /// The SQLite database is app-private and must never trigger a runtime
+  /// storage permission request during application startup.
+  ///
+  /// Import/export operations can use the system file picker when they need
+  /// shared-storage access. The legacy public database migration below is
+  /// intentionally best-effort: if the old public folder is not accessible,
+  /// startup still succeeds and the database remains usable.
   Future<String> _persistentDatabasePath() async {
-    if (Platform.isAndroid) {
-      final permission = await Permission.storage.request();
-      if (!permission.isGranted && !permission.isLimited) {
-        throw Exception('Storage permission is required to access the database.');
-      }
-      final directory = Directory(_publicFolder);
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
-      }
-      return p.join(directory.path, _dbName);
-    }
     return p.join(await getDatabasesPath(), _dbName);
   }
 
