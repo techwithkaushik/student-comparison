@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../database/database.dart';
 import '../matching/matching_engine.dart';
@@ -168,6 +169,45 @@ class ComparisonCubit extends Cubit<ComparisonState> {
       if (!isClosed) emit(state.copyWith(error: 'Unable to load remarks: $e'));
     }
   }
+
+
+  Future<Map<String, dynamic>?> getActiveSchoolProfile() =>
+      database.getActiveSchoolProfile();
+
+  Future<void> importJsonRows({
+    required bool psp,
+    required List<Map<String, dynamic>> rows,
+  }) async {
+    if (psp) {
+      await database.replacePspRows(rows);
+    } else {
+      await database.replaceUdiseRows(rows);
+    }
+    await load();
+  }
+
+  Future<({int pspCount, int udiseCount, int remarkCount})> importSqlite(
+    List<int> bytes,
+  ) async {
+    final result = await database.importSqliteBytes(bytes);
+    await load();
+    return (
+      pspCount: result.pspCount,
+      udiseCount: result.udiseCount,
+      remarkCount: result.remarkCount,
+    );
+  }
+
+  Future<int> importLegacyRemarks(List<int> bytes) async {
+    final imported = await database.importLegacyRemarksBytes(bytes);
+    await loadRemarks();
+    return imported;
+  }
+
+  Future<Uint8List> exportDatabase() => database.exportDatabaseBytes();
+
+  Future<List<Map<String, dynamic>>> loadSourceRows({required bool psp}) =>
+      psp ? database.loadPspRows() : database.loadUdiseRows();
 
   Future<void> refresh() => load();
 
