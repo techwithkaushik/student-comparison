@@ -11,6 +11,7 @@ void main() {
         psp: null,
         udise: null,
         diffs: const [],
+        matchTier: 1,
       );
       final mismatch = ComparisonRow(
         type: MatchType.mismatch,
@@ -18,6 +19,7 @@ void main() {
         psp: null,
         udise: null,
         diffs: const ['NAME_MISMATCH'],
+        matchTier: 1,
       );
 
       final state = ComparisonState(
