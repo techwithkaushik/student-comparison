@@ -24,9 +24,13 @@ void main() {
         matchTier: 1,
       );
 
-      final state = ComparisonState(
+      final state = ComparisonState.derive(
         rows: [matched, mismatch],
         filter: 'MATCHED',
+        classFilter: '',
+        search: '',
+        searchActive: false,
+        remarks: const {},
       );
 
       expect(state.filteredRows, [matched]);
