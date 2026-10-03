@@ -331,9 +331,9 @@ class _ComparisonDashboardScreenState
 
   List<ComparisonRow> get _filteredRows => _bloc.state.filteredRows;
 
-  int _countType(MatchType type) => _bloc.state.countType(type);
+  int _countType(MatchType type) => _bloc.state.typeCounts[type] ?? 0;
 
-  int _countDiff(String diff) => _bloc.state.countDiff(diff);
+  int _countDiff(String diff) => _bloc.state.diffCounts[diff] ?? 0;
 
   Set<String> get _classes => _bloc.state.classes;
 
@@ -385,9 +385,9 @@ class _ComparisonDashboardScreenState
       child: BlocBuilder<ComparisonBloc, ComparisonState>(
         builder: (context, state) {
           final filtered = _filteredRows;
-          final pspBaseCount = _rows.where((row) => row.psp != null).length;
-          final matchedBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.matched).length;
-          final mismatchBaseCount = _rows.where((row) => row.psp != null && row.type == MatchType.mismatch).length;
+          final pspBaseCount = state.pspCount;
+          final matchedBaseCount = state.matchedPspCount;
+          final mismatchBaseCount = state.mismatchPspCount;
           final classes = _classes.toList()
             ..sort((a, b) {
               final ai = int.tryParse(a) ?? 99;
@@ -522,10 +522,10 @@ class _ComparisonDashboardScreenState
             all: pspBaseCount,
             matchedCount: matchedBaseCount,
             mismatchCount: mismatchBaseCount,
-            rte: _rows.where((row) => _pspRte(row) == 'RTE').length,
+            rte: state.rteCount,
             pspOnly: _countType(MatchType.notInUdise),
             udiseOnly: _countType(MatchType.notInPsp),
-            remarks: _rows.where(_hasRemark).length,
+            remarks: state.remarkCount,
             name: _countDiff('NAME_MISMATCH'),
             dob: _countDiff('DOB_MISMATCH'),
             father: _countDiff('FATHER_MISMATCH'),
@@ -576,7 +576,9 @@ class _ComparisonDashboardScreenState
                     itemBuilder: (_, index) {
                       final row = filtered[index];
                       return _StudentRow(
-                        key: ValueKey('${row.psp?.nicId ?? ''}|${row.udise?.studentCodeNat ?? ''}|$index'),
+                        key: ValueKey(
+                          '${row.psp?.nicId ?? ''}|${row.udise?.studentCodeNat ?? ''}',
+                        ),
                         row: row,
                         hasRemark: _hasRemark(row),
                         statusText: _statusText(row),
@@ -1056,8 +1058,7 @@ class _StudentRow extends StatelessWidget {
     final p = row.psp;
     final u = row.udise;
 
-    return SelectionArea(
-      child: Card(
+    return Card(
       margin: const EdgeInsets.only(bottom: 4),
       // Flat rows avoid per-card shadows and expensive offscreen clipping.
       elevation: 0,
@@ -1229,7 +1230,6 @@ class _StudentRow extends StatelessWidget {
           _ComparisonFieldRow(label: 'Mobile', psp: p?.mobile, udise: u?.mobile, mismatch: row.diffs.contains('MOBILE_MISMATCH')),
           _AadhaarPreviewRow(row: row),
         ],
-      ),
       ),
     );
   }
