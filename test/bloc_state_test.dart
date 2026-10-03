@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:student_comparison/bloc/comparison_cubit.dart';
+import 'package:student_comparison/bloc/comparison_bloc.dart';
 import 'package:student_comparison/matching/models.dart';
 
 void main() {
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('diff filter toggles through Cubit state', () {
-      final cubit = ComparisonCubit();
+      final cubit = ComparisonBloc();
       addTearDown(cubit.close);
 
       cubit.toggleDiffFilter('NAME_MISMATCH');
