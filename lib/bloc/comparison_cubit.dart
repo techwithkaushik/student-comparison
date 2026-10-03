@@ -12,6 +12,7 @@ class ComparisonState {
   final String filter;
   final String classFilter;
   final String search;
+  final bool searchActive;
   final Map<String, Map<String, dynamic>> remarks;
   final String? error;
 
@@ -21,6 +22,7 @@ class ComparisonState {
     this.filter = 'ALL',
     this.classFilter = '',
     this.search = '',
+    this.searchActive = false,
     this.remarks = const {},
     this.error,
   });
@@ -103,6 +105,7 @@ class ComparisonState {
     String? filter,
     String? classFilter,
     String? search,
+    bool? searchActive,
     Map<String, Map<String, dynamic>>? remarks,
     String? error,
     bool clearError = false,
@@ -113,6 +116,7 @@ class ComparisonState {
       filter: filter ?? this.filter,
       classFilter: classFilter ?? this.classFilter,
       search: search ?? this.search,
+      searchActive: searchActive ?? this.searchActive,
       remarks: remarks ?? this.remarks,
       error: clearError ? null : (error ?? this.error),
     );
@@ -222,6 +226,9 @@ class ComparisonCubit extends Cubit<ComparisonState> {
   }
   void setSearch(String value) {
     if (!isClosed) emit(state.copyWith(search: value));
+  }
+  void setSearchActive(bool value) {
+    if (!isClosed) emit(state.copyWith(searchActive: value));
   }
   void setError(String message) {
     if (!isClosed) emit(state.copyWith(status: ComparisonStatus.failure, error: message));
