@@ -26,6 +26,9 @@ on:
       - "analysis_options.yaml"
       - ".github/workflows/android.yml"
 
+permissions:
+  contents: write
+
 concurrency:
   group: flutter-android-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
