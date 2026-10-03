@@ -71,64 +71,22 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   List<MapEntry<String,String>> buildAvailableFields() {
     final out=<MapEntry<String,String>>[];
     final seen=<String>{};
-    void add(String key,String text) {
-      final n=normKey(key);
-      if (n.isEmpty || seen.contains(n)) {
+
+    void addRawKey(String key) {
+      final trimmed=key.trim();
+      if (trimmed.isEmpty || normKey(trimmed) == 'sno') {
         return;
       }
-      seen.add(n);
-      out.add(MapEntry(key,text));
-    }
-
-    // Preferred labels/order only. Cell values always come from raw DB JSON.
-    final preferred=<MapEntry<String,String>>[
-      const MapEntry('Student NIC ID','NIC ID / PEN'),
-      const MapEntry('studentCodeNat','National Student Code'),
-      const MapEntry('studentId','Student ID'),
-      const MapEntry('SR No.','S.No / SR'),
-      const MapEntry('Student Name','Name'),
-      const MapEntry('studentName','Name'),
-      const MapEntry('Father Name','Father Name'),
-      const MapEntry('fatherName','Father Name'),
-      const MapEntry('Mother Name','Mother Name'),
-      const MapEntry('motherName','Mother Name'),
-      const MapEntry('DOB','DOB'),
-      const MapEntry('dob','DOB'),
-      const MapEntry('Admission Date','Admission Date'),
-      const MapEntry('admissionDate','Admission Date'),
-      const MapEntry('dateOfAdmission','Admission Date'),
-      const MapEntry('Gender','Gender'),
-      const MapEntry('gender','Gender'),
-      const MapEntry('Studying in Class','Class'),
-      const MapEntry('classDesc','Class'),
-      const MapEntry('classId','Class ID'),
-      const MapEntry('Mobile Number','Mobile'),
-      const MapEntry('primaryMobile','Mobile'),
-      const MapEntry('Aadhar Number','Aadhaar'),
-      const MapEntry('uuid','UUID / Aadhaar'),
-      const MapEntry('uuidStatus','Aadhaar Verification Status'),
-      const MapEntry('nameAsUuid','Name as Aadhaar'),
-      const MapEntry('Social Category','Social Category'),
-      const MapEntry('socialCategoryDesc','Social Category'),
-      const MapEntry('socCatId','Social Category ID'),
-      const MapEntry('Religion','Religion'),
-      const MapEntry('minorityDesc','Religion / Minority'),
-      const MapEntry('minorityId','Religion / Minority ID'),
-    ];
-
-    final data=sourceRows();
-    for(final e in preferred) {
-      if(data.any((r){
-        final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
-        return raw.keys.any((k)=>normKey(k)==normKey(e.key));
-      })) {
-        add(e.key,e.value);
+      if (seen.add(trimmed)) {
+        out.add(MapEntry(trimmed,label(trimmed)));
       }
     }
-    for(final r in data) {
+
+    // Printable columns come exclusively from the selected source's raw DB JSON.
+    for(final r in sourceRows()) {
       final raw=source=='PSP'?r.psp!.raw:r.udise!.raw;
-      for(final k in raw.keys) {
-        add(k,label(k));
+      for(final key in raw.keys) {
+        addRawKey(key);
       }
     }
     return out;
@@ -148,9 +106,44 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   }
 
   var entries=buildAvailableFields();
-  fields=entries.map((e)=>e.key).toList();
-  customHeaders={for(final e in entries)e.key:e.value};
   var classes=buildClasses();
+
+  Future<void> restoreColumnPreset() async {
+    final preset=await NativePrintService.loadColumnPreferences(source:source);
+    if (preset == null) {
+      fields=entries.map((e)=>e.key).toList();
+      customHeaders={for(final e in entries)e.key:e.value};
+      return;
+    }
+
+    final byNormalized=<String,String>{
+      for(final e in entries) normKey(e.key):e.key,
+    };
+    final savedFields=(preset['fields'] as List<dynamic>? ?? const <dynamic>[]);
+    final savedHeaders=(preset['headers'] as Map<dynamic,dynamic>? ?? const <dynamic,dynamic>{});
+
+    final restoredFields=<String>[];
+    for(final item in savedFields) {
+      final actual=byNormalized[normKey(item.toString())];
+      if (actual != null && !restoredFields.contains(actual)) {
+        restoredFields.add(actual);
+      }
+    }
+
+    fields=restoredFields;
+    customHeaders={for(final e in entries)e.key:e.value};
+    for(final entry in savedHeaders.entries) {
+      final actual=byNormalized[normKey(entry.key.toString())];
+      if (actual != null) {
+        final header=entry.value?.toString() ?? '';
+        if (header.trim().isNotEmpty) {
+          customHeaders[actual]=header;
+        }
+      }
+    }
+  }
+
+  await restoreColumnPreset();
 
   final ok=await showModalBottomSheet<bool>(
     context:context,
@@ -211,14 +204,21 @@ Future<void> showStudentPrintDialog(BuildContext context,{
                       ButtonSegment(value:'UDISE',label:Text('UDISE')),
                     ],
                     selected:{source},
-                    onSelectionChanged:(v)=>set((){
-                      source=v.first;
-                      selectedClass='';
-                      entries=buildAvailableFields();
-                      classes=buildClasses();
-                      fields=entries.map((e)=>e.key).toList();
-                      customHeaders={for(final e in entries)e.key:e.value};
-                    }),
+                    onSelectionChanged:(v) async {
+                      final nextSource=v.first;
+                      set((){
+                        source=nextSource;
+                        selectedClass='';
+                        entries=buildAvailableFields();
+                        classes=buildClasses();
+                        fields=[];
+                        customHeaders={for(final e in entries)e.key:e.value};
+                      });
+                      await restoreColumnPreset();
+                      if (context.mounted) {
+                        set(());
+                      }
+                    },
                   )),
                 ]),
                 const SizedBox(height:10),
@@ -398,28 +398,15 @@ Future<void> showStudentPrintDialog(BuildContext context,{
     for (final e in raw.entries) {
       if (normKey(e.key) == target) {
         final v=e.value?.toString().trim()??'';
-        if (v.isNotEmpty) {
-          if (target == 'gettingfreeeducation') {
-            final normalizedValue=v.toLowerCase().trim();
-            final yesValue=normalizedValue == 'yes' ||
-                normalizedValue == 'y' ||
-                normalizedValue == 'true' ||
-                normalizedValue == '1';
-            return yesValue ? 'YES' : 'NO';
-          }
-          return v;
+        if (target == 'gettingfreeeducation') {
+          final normalizedValue=v.toLowerCase();
+          final yesValue=normalizedValue == 'yes' ||
+              normalizedValue == 'y' ||
+              normalizedValue == 'true' ||
+              normalizedValue == '1';
+          return yesValue ? 'YES' : 'NO';
         }
-      }
-    }
-    if (target == 'admissiondate' || target == 'dateofadmission' || target == 'admissiondt') {
-      for (final e in raw.entries) {
-        final n=normKey(e.key);
-        if (n.contains('admission') && (n.contains('date') || n.contains('dt'))) {
-          final v=e.value?.toString().trim()??'';
-          if (v.isNotEmpty) {
-            return v;
-          }
-        }
+        return v;
       }
     }
     return '';
@@ -436,15 +423,22 @@ Future<void> showStudentPrintDialog(BuildContext context,{
   }).whereType<MapEntry<String,String>>().toList();
 
   final table=<List<String>>[];
-  for(var i=0;i<data.length;i++){
-    table.add(['${i+1}',...selected.map((e)=>valueFor(data[i],e.key))]);
+  for(final row in data){
+    table.add(selected.map((e)=>valueFor(row,e.key)).toList());
   }
 
   await NativePrintService.printTable(
     title:'($pspCode) ($udiseCode) $schoolName',
     subtitle:'${scope=='ALL'?'All':'Class : $selectedClass'}    $source REPORT    Student Count : $table.length',
-    columns:['S.No',...selected.map((e)=>e.value)],
+    columns:selected.map((e)=>e.value).toList(),
     rows:table,
     settings:settings,
+  );
+
+  // Remember the exact raw-field selection, order and renamed headings for the next print.
+  await NativePrintService.saveColumnPreferences(
+    source:source,
+    fields:fields,
+    headers:customHeaders,
   );
 }
