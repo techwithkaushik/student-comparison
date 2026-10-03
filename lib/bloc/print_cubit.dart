@@ -3,7 +3,7 @@ import '../matching/models.dart';
 import '../printing/native_print_service.dart';
 
 class PrintSettingsCubit extends Cubit<PrintSettings> {
-  PrintSettingsCubit(PrintSettings initial) : super(initial);
+  PrintSettingsCubit(super.initial);
   void setPaper(String? v) { if (v != null) emit(state.copyWith(paper: v)); }
   void setOrientation(String? v) { if (v != null) emit(state.copyWith(orientation: v)); }
   void setMargin(double v) => emit(state.copyWith(margin: v.round()));
@@ -224,7 +224,7 @@ class PrintReportCubit extends Cubit<PrintReportState> {
     if (!state.valid) throw StateError('Please select a class and at least one field.');
     final columns = selectedColumns();
     await NativePrintService.printTable(
-      title: '${pspCode} ${udiseCode} $schoolName',
+      title: '($pspCode) ($udiseCode) $schoolName',
       subtitle: '${state.scope == 'ALL' ? 'All' : 'Class : ${state.selectedClass}'}    ${state.source} REPORT    Student Count : ${state.printableRows.length}',
       columns: columns.map((e) => e.value).toList(growable: false),
       rows: buildTable(),
