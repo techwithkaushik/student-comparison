@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _importDatabase() async {
     final appRepository = context.read<AppRepository>();
     final homeBloc = context.read<HomeBloc>();
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
         withData: true,
       );
       if (result == null) return;
+      if (!mounted) return;
 
       final confirmed = await showDialog<bool>(
         context: context,
@@ -65,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await homeBloc.load();
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Database restored successfully. School profiles and data are ready.'),
         ),
@@ -80,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _exportDatabase() async {
     final appRepository = context.read<AppRepository>();
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final bytes = await appRepository.exportDatabase();
       final path = await FilePicker.platform.saveFile(
@@ -88,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
         bytes: Uint8List.fromList(bytes),
       );
       if (path != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Database backup exported successfully.')),
         );
       }
