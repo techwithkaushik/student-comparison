@@ -128,7 +128,7 @@ class PrintSettingsBloc extends Bloc<PrintSettingsEvent, PrintSettingsState> {
       emit(state.copyWith(saving: false));
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(saving: false, error: 'Could not save print settings: \$e'));
+      emit(state.copyWith(saving: false, error: 'Could not save print settings: $e'));
     }
   }
 
@@ -288,7 +288,7 @@ class PrintReportBloc extends Bloc<PrintReportEvent, PrintReportState> {
   String _label(String key) {
     final s = key.replaceAll(RegExp(r'[_-]+'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
     if (s.isEmpty) return key;
-    return s.split(' ').map((w) => w.isEmpty ? w : '\${w[0].toUpperCase()}\${w.substring(1)}').join(' ');
+    return s.split(' ').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
   }
   List<MapEntry<String, String>> _availableFields() {
     final out = <MapEntry<String, String>>[];
@@ -358,7 +358,7 @@ class PrintReportBloc extends Bloc<PrintReportEvent, PrintReportState> {
       }
       emit(state.copyWith(fields: List.unmodifiable(restored), customHeaders: Map.unmodifiable(headers), loadingPreset: false));
     } catch (e) {
-      emit(state.copyWith(loadingPreset: false, error: 'Could not restore print columns: \$e'));
+      emit(state.copyWith(loadingPreset: false, error: 'Could not restore print columns: $e'));
     }
   }
   void _onToggleField(PrintReportFieldToggled event, Emitter<PrintReportState> emit) {
@@ -403,7 +403,7 @@ class PrintReportBloc extends Bloc<PrintReportEvent, PrintReportState> {
   List<List<String>> buildTable() {
     final columns = selectedColumns();
     return state.printableRows.asMap().entries.map((entry) => <String>[
-      '\${entry.key + 1}',
+      '${entry.key + 1}',
       ...columns.map((c) => _valueFor(entry.value, c.key)),
     ]).toList(growable: false);
   }
@@ -417,11 +417,11 @@ class PrintReportBloc extends Bloc<PrintReportEvent, PrintReportState> {
     emit(state.copyWith(printing: true, clearError: true));
     try {
       final columns = selectedColumns();
-      final scopeLabel = state.scope == 'ALL' ? 'All' : 'Class: \${state.selectedClass}';
-      final reportLabel = '\${state.source} Report';
-      final countLabel = 'count: \${state.printableRows.length}';
+      final scopeLabel = state.scope == 'ALL' ? 'All' : 'Class: ${state.selectedClass}';
+      final reportLabel = '${state.source} Report';
+      final countLabel = 'count: ${state.printableRows.length}';
       await _repository.printTable(
-        title: '\$scopeLabel | \$reportLabel | \$countLabel',
+        title: '$scopeLabel | $reportLabel | $countLabel',
         columns: <String>['S.No.', ...columns.map((e) => e.value)],
         rows: buildTable(),
         settings: event.settings,
@@ -435,7 +435,7 @@ class PrintReportBloc extends Bloc<PrintReportEvent, PrintReportState> {
       emit(state.copyWith(printing: false));
     } catch (e, st) {
       if (!event.completer.isCompleted) event.completer.completeError(e, st);
-      emit(state.copyWith(printing: false, error: 'Print failed: \$e'));
+      emit(state.copyWith(printing: false, error: 'Print failed: $e'));
     }
   }
 
