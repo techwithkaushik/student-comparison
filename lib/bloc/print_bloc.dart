@@ -24,6 +24,8 @@ class PrintSettingsState extends Equatable {
   int get marginRight => settings.marginRight;
   int get marginBottom => settings.marginBottom;
   int get marginLeft => settings.marginLeft;
+  int get cellVerticalPadding => settings.cellVerticalPadding;
+  int get cellHorizontalPadding => settings.cellHorizontalPadding;
   double get fontSize => settings.fontSize;
   bool get autoFit => settings.autoFit;
   bool get repeatHeader => settings.repeatHeader;
@@ -78,6 +80,16 @@ final class PrintMarginLeftChanged extends PrintSettingsEvent {
   const PrintMarginLeftChanged(this.value);
   @override List<Object?> get props => [value];
 }
+final class PrintCellVerticalPaddingChanged extends PrintSettingsEvent {
+  final int value;
+  const PrintCellVerticalPaddingChanged(this.value);
+  @override List<Object?> get props => [value];
+}
+final class PrintCellHorizontalPaddingChanged extends PrintSettingsEvent {
+  final int value;
+  const PrintCellHorizontalPaddingChanged(this.value);
+  @override List<Object?> get props => [value];
+}
 final class PrintFontSizeChanged extends PrintSettingsEvent {
   final double value;
   const PrintFontSizeChanged(this.value);
@@ -113,6 +125,8 @@ class PrintSettingsBloc extends Bloc<PrintSettingsEvent, PrintSettingsState> {
     on<PrintMarginRightChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(marginRight: e.value.clamp(0, 50).toInt()))));
     on<PrintMarginBottomChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(marginBottom: e.value.clamp(0, 50).toInt()))));
     on<PrintMarginLeftChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(marginLeft: e.value.clamp(0, 50).toInt()))));
+    on<PrintCellVerticalPaddingChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(cellVerticalPadding: e.value.clamp(0, 10).toInt()))));
+    on<PrintCellHorizontalPaddingChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(cellHorizontalPadding: e.value.clamp(0, 10).toInt()))));
     on<PrintFontSizeChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(fontSize: e.value))));
     on<PrintAutoFitChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(autoFit: e.value))));
     on<PrintRepeatHeaderChanged>((e, emit) => emit(state.copyWith(settings: state.settings.copyWith(repeatHeader: e.value))));
@@ -138,6 +152,8 @@ class PrintSettingsBloc extends Bloc<PrintSettingsEvent, PrintSettingsState> {
   void setMarginRight(int value) => add(PrintMarginRightChanged(value));
   void setMarginBottom(int value) => add(PrintMarginBottomChanged(value));
   void setMarginLeft(int value) => add(PrintMarginLeftChanged(value));
+  void setCellVerticalPadding(int value) => add(PrintCellVerticalPaddingChanged(value));
+  void setCellHorizontalPadding(int value) => add(PrintCellHorizontalPaddingChanged(value));
   void setFontSize(double value) => add(PrintFontSizeChanged(value));
   void setAutoFit(bool value) => add(PrintAutoFitChanged(value));
   void setRepeatHeader(bool value) => add(PrintRepeatHeaderChanged(value));
