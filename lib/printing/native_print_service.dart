@@ -8,6 +8,8 @@ class PrintSettings {
   final int marginRight;
   final int marginBottom;
   final int marginLeft;
+  final int cellVerticalPadding;
+  final int cellHorizontalPadding;
   final double fontSize;
   final bool autoFit;
   final bool repeatHeader;
@@ -20,6 +22,8 @@ class PrintSettings {
     this.marginRight = 5,
     this.marginBottom = 5,
     this.marginLeft = 5,
+    this.cellVerticalPadding = 0,
+    this.cellHorizontalPadding = 1,
     this.fontSize = 10,
     this.autoFit = true,
     this.repeatHeader = true,
@@ -33,6 +37,8 @@ class PrintSettings {
     int? marginRight,
     int? marginBottom,
     int? marginLeft,
+    int? cellVerticalPadding,
+    int? cellHorizontalPadding,
     double? fontSize,
     bool? autoFit,
     bool? repeatHeader,
@@ -44,6 +50,8 @@ class PrintSettings {
     marginRight: marginRight ?? this.marginRight,
     marginBottom: marginBottom ?? this.marginBottom,
     marginLeft: marginLeft ?? this.marginLeft,
+    cellVerticalPadding: cellVerticalPadding ?? this.cellVerticalPadding,
+    cellHorizontalPadding: cellHorizontalPadding ?? this.cellHorizontalPadding,
     fontSize: fontSize ?? this.fontSize,
     autoFit: autoFit ?? this.autoFit,
     repeatHeader: repeatHeader ?? this.repeatHeader,
@@ -57,6 +65,8 @@ class PrintSettings {
     'marginRight': marginRight,
     'marginBottom': marginBottom,
     'marginLeft': marginLeft,
+    'cellVerticalPadding': cellVerticalPadding,
+    'cellHorizontalPadding': cellHorizontalPadding,
     'fontSize': fontSize,
     'autoFit': autoFit,
     'repeatHeader': repeatHeader,
@@ -73,6 +83,8 @@ class PrintSettings {
       marginRight: (m['marginRight'] as num?)?.toInt() ?? legacy,
       marginBottom: (m['marginBottom'] as num?)?.toInt() ?? legacy,
       marginLeft: (m['marginLeft'] as num?)?.toInt() ?? legacy,
+      cellVerticalPadding: (m['cellVerticalPadding'] as num?)?.toInt() ?? 0,
+      cellHorizontalPadding: (m['cellHorizontalPadding'] as num?)?.toInt() ?? 1,
       fontSize: (m['fontSize'] as num?)?.toDouble() ?? 10,
       autoFit: m['autoFit'] != false,
       repeatHeader: m['repeatHeader'] != false,
