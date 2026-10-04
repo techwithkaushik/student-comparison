@@ -147,6 +147,8 @@ public class MainActivity extends FlutterActivity {
         e.putInt("marginRight", asInt(values.get("marginRight"), legacyMargin));
         e.putInt("marginBottom", asInt(values.get("marginBottom"), legacyMargin));
         e.putInt("marginLeft", asInt(values.get("marginLeft"), legacyMargin));
+        e.putInt("cellVerticalPadding", asInt(values.get("cellVerticalPadding"), 0));
+        e.putInt("cellHorizontalPadding", asInt(values.get("cellHorizontalPadding"), 1));
         e.putFloat("fontSize", asFloat(values.get("fontSize"), 10f));
         e.putBoolean("autoFit", asBool(values.get("autoFit"), true));
         e.putBoolean("repeatHeader", asBool(values.get("repeatHeader"), true));
@@ -164,6 +166,8 @@ public class MainActivity extends FlutterActivity {
         out.put("marginRight", p.getInt("marginRight", legacyMargin));
         out.put("marginBottom", p.getInt("marginBottom", legacyMargin));
         out.put("marginLeft", p.getInt("marginLeft", legacyMargin));
+        out.put("cellVerticalPadding", p.getInt("cellVerticalPadding", 0));
+        out.put("cellHorizontalPadding", p.getInt("cellHorizontalPadding", 1));
         out.put("fontSize", p.getFloat("fontSize", 10f));
         out.put("autoFit", p.getBoolean("autoFit", true));
         out.put("repeatHeader", p.getBoolean("repeatHeader", true));
@@ -184,6 +188,8 @@ public class MainActivity extends FlutterActivity {
         int marginRightMm = clampMargin(asInt(settings.get("marginRight"), legacyMarginMm));
         int marginBottomMm = clampMargin(asInt(settings.get("marginBottom"), legacyMarginMm));
         int marginLeftMm = clampMargin(asInt(settings.get("marginLeft"), legacyMarginMm));
+        float cellVerticalPaddingMm = clampCellPadding(asInt(settings.get("cellVerticalPadding"), 0));
+        float cellHorizontalPaddingMm = clampCellPadding(asInt(settings.get("cellHorizontalPadding"), 1));
         float fontSize = asFloat(settings.get("fontSize"), 10f);
         boolean autoFit = asBool(settings.get("autoFit"), true);
         boolean repeatHeader = asBool(settings.get("repeatHeader"), true);
@@ -232,7 +238,8 @@ public class MainActivity extends FlutterActivity {
                 "Student Comparison - Report",
                 new StudentTablePrintAdapter(
                         title, columns, rows, fontSize, autoFit, repeatHeader, pageNumber,
-                        marginTopMm, marginRightMm, marginBottomMm, marginLeftMm),
+                        marginTopMm, marginRightMm, marginBottomMm, marginLeftMm,
+                        cellVerticalPaddingMm, cellHorizontalPaddingMm),
                 attrs
         );
     }
@@ -253,11 +260,14 @@ public class MainActivity extends FlutterActivity {
         private final float marginRight;
         private final float marginBottom;
         private final float marginLeft;
+        private final float cellVerticalPadding;
+        private final float cellHorizontalPadding;
 
         StudentTablePrintAdapter(
                 String title, List<String> columns, List<List<String>> rows,
                 float fontSize, boolean autoFit, boolean repeatHeader, boolean pageNumber,
-                int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm) {
+                int marginTopMm, int marginRightMm, int marginBottomMm, int marginLeftMm,
+                float cellVerticalPaddingMm, float cellHorizontalPaddingMm) {
             this.title = title;
             this.columns = columns;
             this.rows = rows;
@@ -269,6 +279,8 @@ public class MainActivity extends FlutterActivity {
             this.marginRight = mmToPoints(marginRightMm);
             this.marginBottom = mmToPoints(marginBottomMm);
             this.marginLeft = mmToPoints(marginLeftMm);
+            this.cellVerticalPadding = mmToPoints(cellVerticalPaddingMm);
+            this.cellHorizontalPadding = mmToPoints(cellHorizontalPaddingMm);
         }
 
         @Override
@@ -281,9 +293,10 @@ public class MainActivity extends FlutterActivity {
             }
             pageWidth = Math.round(newAttributes.getMediaSize().getWidthMils() * 0.072f);
             pageHeight = Math.round(newAttributes.getMediaSize().getHeightMils() * 0.072f);
-            // Compact vertical cell padding while keeping enough height for
-            // wrapped two-line student values.
-            rowHeight = Math.max(24f, fontSize * 2.4f);
+            // Cell padding is configurable from Print Page Setup.
+            // Row height is derived from the two-line text area plus vertical padding.
+            float lineHeight = fontSize * 1.15f;
+            rowHeight = Math.max(18f, lineHeight * 2f + cellVerticalPadding * 2f);
             headerHeight = fontSize * 5.0f;
             int count = pageCount();
             PrintDocumentInfo info = new PrintDocumentInfo.Builder("student_comparison_report")
@@ -436,7 +449,7 @@ public class MainActivity extends FlutterActivity {
         }
 
         private float[] calculateColumnWidths(List<Integer> indexes, Paint p, float totalWidth) {
-            final float horizontalPadding = 6f; // 3pt on each side; compact cells.
+            final float horizontalPadding = Math.max(2f, cellHorizontalPadding * 2f);
 
             // When Auto-fit is disabled, deliberately use equal-width columns.
             // When enabled, size columns from headings and representative data.
@@ -566,7 +579,7 @@ public class MainActivity extends FlutterActivity {
             p.setColor(android.graphics.Color.BLACK);
             p.setTextSize(fontSize);
             String value = text == null ? "" : text.trim();
-            float maxWidth = Math.max(10f, width - 6f);
+            float maxWidth = Math.max(10f, width - cellHorizontalPadding * 2f);
 
             if (value.isEmpty()) {
                 return;
@@ -591,15 +604,19 @@ public class MainActivity extends FlutterActivity {
             Paint.FontMetrics fm = p.getFontMetrics();
             float base1 = top + (rowHeight - lineHeight * (second.isEmpty() ? 1 : 2)) / 2f
                     - fm.ascent;
-            c.drawText(first, x + 3, base1, p);
+            c.drawText(first, x + cellHorizontalPadding, base1, p);
             if (!second.isEmpty()) {
-                c.drawText(second, x + 3, base1 + lineHeight, p);
+                c.drawText(second, x + cellHorizontalPadding, base1 + lineHeight, p);
             }
         }
     }
 
     private static int clampMargin(int value) {
         return Math.max(0, Math.min(50, value));
+    }
+
+    private static float clampCellPadding(int value) {
+        return Math.max(0f, Math.min(10f, value));
     }
 
     private static float mmToPoints(int mm) {
