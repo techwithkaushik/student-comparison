@@ -14,6 +14,8 @@ Future<PrintSettings?> showPrintPageSetup(
   final rightController = TextEditingController(text: initial.marginRight.toString());
   final bottomController = TextEditingController(text: initial.marginBottom.toString());
   final leftController = TextEditingController(text: initial.marginLeft.toString());
+  final cellVerticalController = TextEditingController(text: initial.cellVerticalPadding.toString());
+  final cellHorizontalController = TextEditingController(text: initial.cellHorizontalPadding.toString());
   try {
     return await showDialog<PrintSettings>(
       context: context,
@@ -78,6 +80,25 @@ Future<PrintSettings?> showPrintPageSetup(
                     onChanged: (v) => context.read<PrintSettingsBloc>().setMarginLeft(int.tryParse(v) ?? s.marginLeft),
                   )),
                 ]),
+                const SizedBox(height: 10),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Cell Padding (mm)', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 6),
+                Row(children: [
+                  Expanded(child: _MarginField(
+                    label: 'Vertical',
+                    controller: cellVerticalController,
+                    onChanged: (v) => context.read<PrintSettingsBloc>().setCellVerticalPadding(int.tryParse(v) ?? s.cellVerticalPadding),
+                  )),
+                  const SizedBox(width: 8),
+                  Expanded(child: _MarginField(
+                    label: 'Horizontal',
+                    controller: cellHorizontalController,
+                    onChanged: (v) => context.read<PrintSettingsBloc>().setCellHorizontalPadding(int.tryParse(v) ?? s.cellHorizontalPadding),
+                  )),
+                ]),
                 Row(children: [
                   const Text('Table font'),
                   Expanded(child: Slider(
@@ -138,6 +159,8 @@ Future<PrintSettings?> showPrintPageSetup(
     rightController.dispose();
     bottomController.dispose();
     leftController.dispose();
+    cellVerticalController.dispose();
+    cellHorizontalController.dispose();
     await cubit.close();
   }
 }
