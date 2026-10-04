@@ -281,7 +281,9 @@ public class MainActivity extends FlutterActivity {
             }
             pageWidth = Math.round(newAttributes.getMediaSize().getWidthMils() * 0.072f);
             pageHeight = Math.round(newAttributes.getMediaSize().getHeightMils() * 0.072f);
-            rowHeight = Math.max(30f, fontSize * 3.0f);
+            // Compact vertical cell padding while keeping enough height for
+            // wrapped two-line student values.
+            rowHeight = Math.max(24f, fontSize * 2.4f);
             headerHeight = fontSize * 5.0f;
             int count = pageCount();
             PrintDocumentInfo info = new PrintDocumentInfo.Builder("student_comparison_report")
