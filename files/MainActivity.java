@@ -619,7 +619,7 @@ public class MainActivity extends FlutterActivity {
         return Math.max(0f, Math.min(10f, value));
     }
 
-    private static float mmToPoints(int mm) {
+    private static float mmToPoints(float mm) {
         return mm * 72f / 25.4f;
     }
 
