@@ -167,8 +167,8 @@ class _Choice extends StatelessWidget {
   @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap());
 }
 class _F extends StatelessWidget {
-  final String label; final int? matchedCount; final IconData icon; final bool selected; final VoidCallback onTap;
-  const _F({required this.label,required this.matchedCount,required this.icon,required this.selected,required this.onTap});
+  final String label; final IconData icon; final bool selected; final VoidCallback onTap;
+  const _F({required this.label,required this.icon,required this.selected,required this.onTap});
   @override Widget build(BuildContext c)=>FilterChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap(),visualDensity:VisualDensity.compact);
 }
 class _MiniFilter extends StatelessWidget {
