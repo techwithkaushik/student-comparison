@@ -80,13 +80,9 @@ List<String> compareStudents(PspStudent p, UdiseStudent u) {
 }
 
 bool hasCoreIdentityMismatch(List<String> diffs) {
-  return diffs.any(
-    (d) =>
-        d != 'AADHAAR_MISMATCH' &&
-        d != 'AADHAAR_NOT_FOUND' &&
-        d != 'MOBILE_MISMATCH' &&
-        d != 'MOBILE_NOT_FOUND',
-  );
+  // Classification is OR-based: any detected difference makes the
+  // matched pair a MISMATCH. Only a row with no differences is MATCHED.
+  return diffs.isNotEmpty;
 }
 
 int exactScore(PspStudent p, UdiseStudent u) {
