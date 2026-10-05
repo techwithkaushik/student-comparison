@@ -164,39 +164,25 @@ class ComparisonSummarySection extends StatelessWidget {
                 ),
                 Padding(
                   padding: chipMargin,
-                  child:
-                  _StatusFilterChip(
+                  child: _StatusDropdownChip(
                     label: 'Aadhaar',
-                  icon: Icons.fingerprint_rounded,
-                  selected: aadhaarStatusFilters.isNotEmpty,
-                  count: aadhaarStatusFilters.length,
-                  onTap: () => _showStatusSheet(
-                    context,
-                    title: 'Aadhaar Status',
+                    icon: Icons.fingerprint_rounded,
                     options: aadhaarStatusOptions,
                     selected: aadhaarStatusFilters,
                     labelFor: aadhaarStatusLabel,
-                    onToggle: onAadhaarToggle,
-                  ),
+                    onChanged: onAadhaarToggle,
                     padding: compact,
                   ),
                 ),
                 Padding(
                   padding: chipMargin,
-                  child:
-                _StatusFilterChip(
-                  label: 'APAAR',
-                  icon: Icons.badge_rounded,
-                  selected: apaarStatusFilters.isNotEmpty,
-                  count: apaarStatusFilters.length,
-                  onTap: () => _showStatusSheet(
-                    context,
-                    title: 'APAAR Status',
+                  child: _StatusDropdownChip(
+                    label: 'APAAR',
+                    icon: Icons.badge_rounded,
                     options: apaarStatusOptions,
                     selected: apaarStatusFilters,
                     labelFor: apaarStatusLabel,
-                    onToggle: onApaarToggle,
-                  ),
+                    onChanged: onApaarToggle,
                     padding: compact,
                   ),
                 ),
@@ -382,39 +368,79 @@ class _FilterChip extends StatelessWidget {
   );
 }
 
-class _StatusFilterChip extends StatelessWidget {
+class _StatusDropdownChip extends StatelessWidget {
   final String label;
   final IconData icon;
-  final bool selected;
-  final int count;
-  final VoidCallback onTap;
+  final Set<String> options;
+  final Set<String> selected;
+  final String Function(String) labelFor;
+  final ValueChanged<String> onChanged;
   final EdgeInsets padding;
 
-  const _StatusFilterChip({
+  const _StatusDropdownChip({
     required this.label,
     required this.icon,
+    required this.options,
     required this.selected,
-    required this.count,
-    required this.onTap,
+    required this.labelFor,
+    required this.onChanged,
     required this.padding,
   });
 
   @override
-  Widget build(BuildContext context) => FilterChip(
-    label: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14),
-        const SizedBox(width: 3),
-        Text(count == 0 ? label : '$label $count'),
+  Widget build(BuildContext context) {
+    final selectedKey = selected.isEmpty ? null : selected.first;
+    final displayLabel = selectedKey == null
+        ? label
+        : '$label: ${labelFor(selectedKey)}';
+
+    return PopupMenuButton<String>(
+      tooltip: '$label status',
+      onSelected: (key) {
+        if (key == '__CLEAR__') {
+          if (selectedKey != null) onChanged(selectedKey);
+        } else {
+          onChanged(key);
+        }
+      },
+      itemBuilder: (_) => [
+        if (selectedKey != null)
+          const PopupMenuItem<String>(
+            value: '__CLEAR__',
+            child: Text('Clear'),
+          ),
+        ...options.map(
+          (key) => PopupMenuItem<String>(
+            value: key,
+            child: Text(labelFor(key)),
+          ),
+        ),
       ],
-    ),
-    selected: selected,
-    onSelected: (_) => onTap(),
-    showCheckmark: false,
-    padding: padding,
-    selectedColor: Theme.of(context).colorScheme.primaryContainer,
-    side: selected ? BorderSide(color: Theme.of(context).colorScheme.primary) : null,
-    visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-  );
+      child: Container(
+        height: 32,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: selectedKey == null
+              ? Theme.of(context).colorScheme.surfaceContainerHighest
+              : Theme.of(context).colorScheme.primaryContainer,
+          border: Border.all(
+            color: selectedKey == null
+                ? Theme.of(context).colorScheme.outlineVariant
+                : Theme.of(context).colorScheme.primary,
+          ),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14),
+            const SizedBox(width: 3),
+            Text(displayLabel),
+            const SizedBox(width: 1),
+            const Icon(Icons.arrow_drop_down_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
 }
