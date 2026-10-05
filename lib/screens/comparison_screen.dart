@@ -1418,8 +1418,7 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
         ),
       ),
     );
