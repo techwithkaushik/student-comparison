@@ -520,7 +520,14 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   }
 
   void _onSourceFilter(ComparisonSourceFilterChanged event, Emitter<ComparisonState> emit) => emit(_derive(sourceFilter: event.value));
-  void _onStatusFilterToggle(ComparisonStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.statusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(statusFilters: next, filter: 'ALL')); }
+  void _onStatusFilterToggle(ComparisonStatusFilterToggled event, Emitter<ComparisonState> emit) {
+    // MATCHED and MISMATCH are mutually exclusive.
+    // Tapping the active status clears it; selecting the other replaces it.
+    final next = state.statusFilters.contains(event.value)
+        ? <String>{}
+        : <String>{event.value};
+    emit(_derive(statusFilters: next, filter: 'ALL'));
+  }
   void _onDiffFiltersChanged(ComparisonDiffFiltersChanged event, Emitter<ComparisonState> emit) => emit(_derive(diffFilters: event.values, filter: 'ALL'));
   void _onApaarStatusToggle(ComparisonApaarStatusFilterToggled event, Emitter<ComparisonState> emit) {
     // APAAR is a single-select filter: tap the active value to clear it,
