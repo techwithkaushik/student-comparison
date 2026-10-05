@@ -537,24 +537,41 @@ class _ComparisonDashboardScreenState
             category: _countDiff('CATEGORY_MISMATCH'),
             religion: _countDiff('RELIGION_MISMATCH'),
             aadhaar: _countDiff('AADHAAR_MISMATCH'),
-            aadhaarMissing: _countDiff(
-              'AADHAAR_NOT_FOUND',
-            ),
+            aadhaarMissing: _countDiff('AADHAAR_NOT_FOUND'),
             mobile: _countDiff('MOBILE_MISMATCH'),
-            selected: _filter,
-            onSelected: (value) {
-              _bloc.setFilter(value);
-            },
-            onDiffSelected: (diff) {
-              _bloc.toggleDiffFilter(diff);
-            },
+            sourceFilter: state.sourceFilter,
+            statusFilters: state.statusFilters,
+            diffFilters: state.diffFilters,
+            apaarStatusFilters: state.apaarStatusFilters,
+            aadhaarStatusFilters: state.aadhaarStatusFilters,
             classes: classes,
             classFilter: _classFilter,
-            onClassChanged: (value) {
-              _bloc.setClassFilter(value);
+            apaarStatusOptions: _bloc.apaarStatusOptions,
+            aadhaarStatusOptions: _bloc.aadhaarStatusOptions,
+            apaarStatusLabel: _bloc.apaarStatusLabel,
+            aadhaarStatusLabel: _bloc.aadhaarStatusLabel,
+            onSourceChanged: _bloc.setSourceFilter,
+            onStatusToggle: _bloc.toggleStatusFilter,
+            onDiffChanged: _bloc.setDiffFilters,
+            onApaarToggle: _bloc.toggleApaarStatusFilter,
+            onAadhaarToggle: _bloc.toggleAadhaarStatusFilter,
+            onClassChanged: _bloc.setClassFilter,
+            onClearFilters: () {
+              _bloc.setSourceFilter('ALL');
+              _bloc.setDiffFilters(const <String>{});
+              for (final value in List<String>.from(state.statusFilters)) {
+                _bloc.toggleStatusFilter(value);
+              }
+              for (final value in List<String>.from(state.apaarStatusFilters)) {
+                _bloc.toggleApaarStatusFilter(value);
+              }
+              for (final value in List<String>.from(state.aadhaarStatusFilters)) {
+                _bloc.toggleAadhaarStatusFilter(value);
+              }
+              _bloc.setClassFilter('');
             },
             onPrint: _printReport,
-          ),
+          )
 
 
           Expanded(
