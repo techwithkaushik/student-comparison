@@ -1490,6 +1490,89 @@ class _ComparisonDetailsDialog extends StatelessWidget {
   }
 }
 
+class _PenApaarFieldRow extends StatelessWidget {
+  final String? psp;
+  final String? pen;
+  final String? apaarId;
+
+  const _PenApaarFieldRow({
+    required this.psp,
+    required this.pen,
+    required this.apaarId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final p = (psp ?? '').trim().isEmpty ? '—' : psp!.trim();
+    final penValue = (pen ?? '').trim().isEmpty ? '—' : pen!.trim();
+    final apaarValue = (apaarId ?? '').trim();
+    final style = TextStyle(
+      fontSize: 10,
+      fontWeight: FontWeight.w600,
+      color: scheme.onSurface,
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: .45),
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'NIC ID / PEN',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(p, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+          ),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  penValue,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: style,
+                ),
+                if (apaarValue.isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    apaarValue,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: style.copyWith(
+                      fontSize: 9,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AadhaarPreviewRow extends StatelessWidget {
   final ComparisonRow row;
 
