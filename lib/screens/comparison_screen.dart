@@ -565,29 +565,33 @@ class _ComparisonDashboardScreenState
                       ),
                     ),
                   )
-                : ListView.builder(
-                    // The sliver already wraps rows in repaint boundaries.
-                    // Do not retain off-screen row states for this read-only list.
-                    addAutomaticKeepAlives: false,
-                    addRepaintBoundaries: true,
-                    semanticChildCount: filtered.length,
-                    padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
-                    itemCount: filtered.length,
-                    itemBuilder: (_, index) {
-                      final row = filtered[index];
-                      return _StudentRow(
-                        key: ValueKey(
-                          '${row.psp?.nicId ?? ''}|${row.udise?.studentCodeNat ?? ''}',
-                        ),
-                        row: row,
-                        hasRemark: _hasRemark(row),
-                        statusText: _statusText(row),
-                        statusColor: _statusColor(context, row),
-                        rteText: _pspRte(row),
-                        remark: _remarkFor(row)?['remark']?.toString() ?? '',
-                        onRemarkTap: () => _editRemark(row),
-                      );
-                    },
+                : SelectionArea(
+                    // One selection registrar for the whole lazy list keeps text
+                    // selectable without creating a SelectionArea per student row.
+                    child: ListView.builder(
+                      // The sliver already wraps rows in repaint boundaries.
+                      // Do not retain off-screen row states for this read-only list.
+                      addAutomaticKeepAlives: false,
+                      addRepaintBoundaries: true,
+                      semanticChildCount: filtered.length,
+                      padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, index) {
+                        final row = filtered[index];
+                        return _StudentRow(
+                          key: ValueKey(
+                            '${row.psp?.nicId ?? ''}|${row.udise?.studentCodeNat ?? ''}',
+                          ),
+                          row: row,
+                          hasRemark: _hasRemark(row),
+                          statusText: _statusText(row),
+                          statusColor: _statusColor(context, row),
+                          rteText: _pspRte(row),
+                          remark: _remarkFor(row)?['remark']?.toString() ?? '',
+                          onRemarkTap: () => _editRemark(row),
+                        );
+                      },
+                    ),
                   ),
           )
           ],
@@ -1340,7 +1344,10 @@ class _ComparisonDetailsDialog extends StatelessWidget {
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 5), child: Align(alignment: Alignment.centerLeft, child: Text('All $side source fields', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accent)))),
             Expanded(
-              child: GridView.builder(
+              child: SelectionArea(
+                // Keep one selection registrar for all source fields in the
+                // dialog instead of making every field independently selectable.
+                child: GridView.builder(
                   padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 7, mainAxisSpacing: 7, childAspectRatio: 3.8),
                 itemCount: keys.length,
@@ -1407,8 +1414,10 @@ class _ComparisonDetailsDialog extends StatelessWidget {
                       ],
                     ),
                   );
-                  },
+                    },
+                  ),
                 ),
+              ),
             ),
           ],
         ),
