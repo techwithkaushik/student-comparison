@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../../matching/models.dart';
+import '../../../matching/models.dart';
 
 class ComparisonClickableHeader extends StatelessWidget {
   final String title;
