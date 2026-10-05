@@ -686,7 +686,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     final options = <String>{};
     for (final row in state.rows) {
       if (row.type != MatchType.mismatch) continue;
-      if (state.sourceFilter == 'PSP' && row.psp == null) continue;
+      if (state.sourceFilter == 'PSP' && row.psp == null) { continue; }
       if (state.sourceFilter == 'UDISE' && row.udise == null) continue;
       if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) continue;
       if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) continue;
