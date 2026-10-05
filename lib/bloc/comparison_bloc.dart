@@ -25,6 +25,11 @@ class ComparisonState extends Equatable {
   final int remarkCount;
   final String filter;
   final String classFilter;
+  final String sourceFilter;
+  final Set<String> statusFilters;
+  final Set<String> diffFilters;
+  final Set<String> apaarStatusFilters;
+  final Set<String> aadhaarStatusFilters;
   final String search;
   final bool searchActive;
   final Map<String, Map<String, dynamic>> remarks;
