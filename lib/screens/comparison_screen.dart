@@ -9,7 +9,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/comparison_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../matching/models.dart';
-import '../presentation/comparison/widgets/comparison_details_dialog.dart';
 import '../presentation/comparison/widgets/comparison_student_row.dart';
 import '../presentation/comparison/widgets/comparison_summary.dart';
 import '../printing/native_print_service.dart';
