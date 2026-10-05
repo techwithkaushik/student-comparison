@@ -571,9 +571,7 @@ class _ComparisonDashboardScreenState
               _bloc.setClassFilter('');
             },
             onPrint: _printReport,
-          )
-
-
+          ),
           Expanded(
             child: filtered.isEmpty
                 ? const Center(
