@@ -132,12 +132,12 @@ class _FilterSheet extends StatelessWidget {
       )),
       _Section('Differences', Icons.rule_rounded, Wrap(spacing:7,runSpacing:7,children:diffOptions.entries.map((e)=>FilterChip(
         avatar:Icon(_diffIcon(e.key),size:17), label:Text(e.key == 'AADHAAR_NOT_FOUND' ? 'Aadhaar missing ${e.value}' : '${e.key.replaceAll('_MISMATCH','').replaceAll('_',' ')} ${e.value}'),
-        selected:diffFilters.contains(e.key), onSelected:(_) { final next=<String>{...diffFilters}; if(!next.add(e.key))next.remove(e.key); onDiffChanged(next); },
+        selected:diffFilters.contains(e.key), showCheckmark:false, selectedColor:Theme.of(context).colorScheme.primaryContainer, side:diffFilters.contains(e.key)?BorderSide(color:Theme.of(context).colorScheme.primary):null, onSelected:(_) { final next=<String>{...diffFilters}; if(!next.add(e.key))next.remove(e.key); onDiffChanged(next); },
       )).toList())),
       if(apaarStatusOptions.isNotEmpty)_Section('APAAR Status',Icons.badge_rounded,Wrap(spacing:7,runSpacing:7,children:apaarStatusOptions.map((k)=>FilterChip(
-        avatar:const Icon(Icons.badge_rounded,size:17),label:Text(apaarStatusLabel(k)),selected:apaarStatusFilters.contains(k),onSelected:(_)=>onApaarToggle(k))).toList())),
+        avatar:const Icon(Icons.badge_rounded,size:17),label:Text(apaarStatusLabel(k)),selected:apaarStatusFilters.contains(k),showCheckmark:false,selectedColor:Theme.of(context).colorScheme.primaryContainer,side:apaarStatusFilters.contains(k)?BorderSide(color:Theme.of(context).colorScheme.primary):null,onSelected:(_)=>onApaarToggle(k))).toList())),
       if(aadhaarStatusOptions.isNotEmpty)_Section('Aadhaar Status',Icons.fingerprint_rounded,Wrap(spacing:7,runSpacing:7,children:aadhaarStatusOptions.map((k)=>FilterChip(
-        avatar:const Icon(Icons.fingerprint_rounded,size:17),label:Text(aadhaarStatusLabel(k)),selected:aadhaarStatusFilters.contains(k),onSelected:(_)=>onAadhaarToggle(k))).toList())),
+        avatar:const Icon(Icons.fingerprint_rounded,size:17),label:Text(aadhaarStatusLabel(k)),selected:aadhaarStatusFilters.contains(k),showCheckmark:false,selectedColor:Theme.of(context).colorScheme.primaryContainer,side:aadhaarStatusFilters.contains(k)?BorderSide(color:Theme.of(context).colorScheme.primary):null,onSelected:(_)=>onAadhaarToggle(k))).toList())),
       const SizedBox(height:8),
       OutlinedButton.icon(onPressed:onClearFilters,icon:const Icon(Icons.clear_all_rounded),label:const Text('Clear all filters')),
     ]),
@@ -159,17 +159,17 @@ class _Section extends StatelessWidget {
 class _SourceChip extends StatelessWidget {
   final String label; final IconData icon; final bool selected; final VoidCallback onTap;
   const _SourceChip(this.label,this.icon,this.selected,this.onTap);
-  @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:16),label:Text(label),selected:selected,onSelected:(_)=>onTap(),visualDensity:VisualDensity.compact);
+  @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:16),label:Text(label),selected:selected,onSelected:(_)=>onTap(),showCheckmark:false,selectedColor:Theme.of(c).colorScheme.primaryContainer,side:selected?BorderSide(color:Theme.of(c).colorScheme.primary):null,visualDensity:VisualDensity.compact);
 }
 class _Choice extends StatelessWidget {
   final String label; final IconData icon; final bool selected; final VoidCallback onTap;
   const _Choice(this.label,this.icon,this.selected,this.onTap);
-  @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap());
+  @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap(),showCheckmark:false,selectedColor:Theme.of(c).colorScheme.primaryContainer,side:selected?BorderSide(color:Theme.of(c).colorScheme.primary):null);
 }
 class _F extends StatelessWidget {
   final String label; final IconData icon; final bool selected; final VoidCallback onTap;
   const _F({required this.label,required this.icon,required this.selected,required this.onTap});
-  @override Widget build(BuildContext c)=>FilterChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap(),visualDensity:VisualDensity.compact);
+  @override Widget build(BuildContext c)=>FilterChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap(),showCheckmark:false,selectedColor:Theme.of(c).colorScheme.primaryContainer,side:selected?BorderSide(color:Theme.of(c).colorScheme.primary):null,visualDensity:VisualDensity.compact);
 }
 class _MiniFilter extends StatelessWidget {
   final String label; const _MiniFilter(this.label);
