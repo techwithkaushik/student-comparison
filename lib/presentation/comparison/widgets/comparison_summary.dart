@@ -30,6 +30,7 @@ class ComparisonSummarySection extends StatelessWidget {
   final VoidCallback onPrint;
 
   const ComparisonSummarySection({
+    super.key,
     required this.all,
     required this.matchedCount,
     required this.mismatchCount,
