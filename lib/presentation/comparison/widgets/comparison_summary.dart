@@ -203,58 +203,7 @@ class ComparisonSummarySection extends StatelessWidget {
     );
   }
 
-  Future<void> _showStatusSheet(
-    BuildContext context, {
-    required String title,
-    required Set<String> options,
-    required Set<String> selected,
-    required String Function(String) labelFor,
-    required ValueChanged<String> onToggle,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        var current = <String>{...selected};
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-          return SafeArea(
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              children: [
-                Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: options.map((key) => _FilterChip(
-                    labelFor(key),
-                    title == 'APAAR Status' ? Icons.badge_rounded : Icons.fingerprint_rounded,
-                    current.contains(key),
-                    () {
-                      if (current.contains(key)) {
-                        current.clear();
-                      } else {
-                        current
-                          ..clear()
-                          ..add(key);
-                      }
-                      onToggle(key);
-                      setSheetState(() {});
-                    },
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  )).toList(),
-                ),
-              ],
-            ),
-          );
-          },
-        );
-      },
-    );
-  }
-}
+
 
 class _ClassChip extends StatelessWidget {
   final String classFilter;
