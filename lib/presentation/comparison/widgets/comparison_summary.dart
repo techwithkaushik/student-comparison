@@ -1,421 +1,177 @@
 import 'package:flutter/material.dart';
 
 class ComparisonSummarySection extends StatelessWidget {
-  final int all;
-  final int matchedCount;
-  final int mismatchCount;
-  final int rte;
-  final int pspOnly;
-  final int udiseOnly;
-  final int remarks;
-
-  final int name;
-  final int dob;
-  final int father;
-  final int mother;
-  final int classMismatch;
-  final int gender;
-  final int category;
-  final int religion;
-  final int aadhaar;
-  final int aadhaarMissing;
-  final int mobile;
-
-  final String selected;
-  final ValueChanged<String> onSelected;
-  final ValueChanged<String> onDiffSelected;
+  final int all, matchedCount, mismatchCount, rte, pspOnly, udiseOnly, remarks;
+  final int name, dob, father, mother, classMismatch, gender, category, religion, aadhaar, aadhaarMissing, mobile;
+  final String sourceFilter, classFilter;
+  final Set<String> statusFilters, diffFilters, apaarStatusFilters, aadhaarStatusFilters;
   final List<String> classes;
-  final String classFilter;
-  final ValueChanged<String> onClassChanged;
-  final VoidCallback onPrint;
+  final Set<String> apaarStatusOptions, aadhaarStatusOptions;
+  final String Function(String) apaarStatusLabel, aadhaarStatusLabel;
+  final ValueChanged<String> onSourceChanged, onStatusToggle, onApaarToggle, onAadhaarToggle, onClassChanged;
+  final ValueChanged<Set<String>> onDiffChanged;
+  final VoidCallback onClearFilters, onPrint;
 
   const ComparisonSummarySection({
-    super.key,
-    required this.all,
-    required this.matchedCount,
-    required this.mismatchCount,
-    required this.rte,
-    required this.pspOnly,
-    required this.udiseOnly,
-    required this.remarks,
-    required this.name,
-    required this.dob,
-    required this.father,
-    required this.mother,
-    required this.classMismatch,
-    required this.gender,
-    required this.category,
-    required this.religion,
-    required this.aadhaar,
-    required this.aadhaarMissing,
-    required this.mobile,
-    required this.selected,
-    required this.onSelected,
-    required this.onDiffSelected,
-    required this.classes,
-    required this.classFilter,
-    required this.onClassChanged,
-    required this.onPrint,
+    super.key, required this.all, required this.matchedCount, required this.mismatchCount,
+    required this.rte, required this.pspOnly, required this.udiseOnly, required this.remarks,
+    required this.name, required this.dob, required this.father, required this.mother,
+    required this.classMismatch, required this.gender, required this.category, required this.religion,
+    required this.aadhaar, required this.aadhaarMissing, required this.mobile,
+    required this.sourceFilter, required this.classFilter, required this.statusFilters,
+    required this.diffFilters, required this.apaarStatusFilters, required this.aadhaarStatusFilters,
+    required this.classes, required this.apaarStatusOptions, required this.aadhaarStatusOptions,
+    required this.apaarStatusLabel, required this.aadhaarStatusLabel, required this.onSourceChanged,
+    required this.onStatusToggle, required this.onDiffChanged, required this.onApaarToggle,
+    required this.onAadhaarToggle, required this.onClassChanged, required this.onClearFilters, required this.onPrint,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 3),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary/status chips wrap to the next line instead of scrolling.
-          Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: [
-              ComparisonStatChip(
-                label: 'All',
-                value: all,
-                selected: selected == 'ALL',
-                onTap: () => onSelected('ALL'),
-              ),
-              ComparisonCountChip(label: 'Matched', percent: matchedCount, color: Colors.green, selected: selected == 'MATCHED', onTap: () => onSelected('MATCHED')),
-              ComparisonCountChip(label: 'Mismatch', percent: mismatchCount, color: Colors.red, selected: selected == 'MISMATCH', onTap: () => onSelected('MISMATCH')),
-              ComparisonStatChip(
-                label: 'PSP only',
-                value: pspOnly,
-                color: Colors.blue,
-                selected: selected == 'PSP_ONLY',
-                onTap: () => onSelected('PSP_ONLY'),
-              ),
-              ComparisonStatChip(
-                label: 'UDISE only',
-                value: udiseOnly,
-                color: Colors.blue,
-                selected: selected == 'UDISE_ONLY',
-                onTap: () => onSelected('UDISE_ONLY'),
-              ),
-              ComparisonStatChip(
-                label: 'Remarked',
-                value: remarks,
-                color: Colors.deepPurple,
-                selected: selected == 'REMARKED',
-                onTap: () => onSelected('REMARKED'),
-              ),
-              ComparisonStatChip(label: 'RTE', value: rte, color: Colors.orange, selected: selected == 'RTE', onTap: () => onSelected('RTE')),
-            ],
-          ),
-          const SizedBox(height: 5),
-          // Difference chips also wrap vertically. No horizontal scrolling.
-          Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: [
-              ComparisonDiffChip(
-                label: 'Name',
-                value: name,
-                selected: selected == 'DIFF:NAME_MISMATCH',
-                onTap: () => onDiffSelected('NAME_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'DOB',
-                value: dob,
-                selected: selected == 'DIFF:DOB_MISMATCH',
-                onTap: () => onDiffSelected('DOB_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Father',
-                value: father,
-                selected: selected == 'DIFF:FATHER_MISMATCH',
-                onTap: () => onDiffSelected('FATHER_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Mother',
-                value: mother,
-                selected: selected == 'DIFF:MOTHER_MISMATCH',
-                onTap: () => onDiffSelected('MOTHER_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Class',
-                value: classMismatch,
-                selected: selected == 'DIFF:CLASS_MISMATCH',
-                onTap: () => onDiffSelected('CLASS_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Gender',
-                value: gender,
-                selected: selected == 'DIFF:GENDER_MISMATCH',
-                onTap: () => onDiffSelected('GENDER_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Category',
-                value: category,
-                selected: selected == 'DIFF:CATEGORY_MISMATCH',
-                onTap: () => onDiffSelected('CATEGORY_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Religion',
-                value: religion,
-                selected: selected == 'DIFF:RELIGION_MISMATCH',
-                onTap: () => onDiffSelected('RELIGION_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Aadhaar ✗',
-                value: aadhaar,
-                selected: selected == 'DIFF:AADHAAR_MISMATCH',
-                onTap: () => onDiffSelected('AADHAAR_MISMATCH'),
-              ),
-              ComparisonDiffChip(
-                label: 'Aadhaar —',
-                value: aadhaarMissing,
-                selected: selected == 'DIFF:AADHAAR_NOT_FOUND',
-                onTap: () => onDiffSelected('AADHAAR_NOT_FOUND'),
-              ),
-              ComparisonDiffChip(
-                label: 'Mobile',
-                value: mobile,
-                selected: selected == 'DIFF:MOBILE_MISMATCH',
-                onTap: () => onDiffSelected('MOBILE_MISMATCH'),
-              ),
-              const SizedBox(width: 2),
-              SizedBox(
-                width: 90,
-                height: 30,
-                child: DropdownButtonFormField<String>(
-                  initialValue: classFilter.isEmpty ? '' : classFilter,
-                  isDense: true,
-                  decoration: InputDecoration(
-                    labelText: 'Class',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: '', child: Text('All')),
-                    ...classes.map(
-                      (value) => DropdownMenuItem(
-                        value: value,
-                        child: Text('Class $value'),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) => onClassChanged(value ?? ''),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Print',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.print_rounded, size: 21),
-                onPressed: onPrint,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ComparisonStatChip extends StatelessWidget {
-  final String label;
-  final int value;
-  final Color? color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const ComparisonStatChip({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-    this.color,
-  });
+  int get activeFilterCount => statusFilters.length + diffFilters.length +
+      apaarStatusFilters.length + aadhaarStatusFilters.length +
+      (classFilter.isEmpty ? 0 : 1) + (sourceFilter == 'ALL' ? 0 : 1);
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final baseColor = color ?? scheme.primary;
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+    child: SizedBox(
+      height: activeFilterCount == 0 ? 36 : 64,
+      child: Column(children: [
+        SizedBox(height: 34, child: ListView(scrollDirection: Axis.horizontal, children: [
+          _SourceChip('All', Icons.select_all_rounded, sourceFilter == 'ALL', () => onSourceChanged('ALL')),
+          _SourceChip('PSP', Icons.description_rounded, sourceFilter == 'PSP', () => onSourceChanged('PSP')),
+          _SourceChip('UDISE', Icons.school_rounded, sourceFilter == 'UDISE', () => onSourceChanged('UDISE')),
+          const SizedBox(width: 5),
+          ActionChip(avatar: const Icon(Icons.tune_rounded, size: 17), label: Text(activeFilterCount == 0 ? 'Filters' : 'Filters $activeFilterCount'), onPressed: () => _showFilters(context)),
+          const SizedBox(width: 2),
+          IconButton(tooltip: 'Print', visualDensity: VisualDensity.compact, onPressed: onPrint, icon: const Icon(Icons.print_rounded, size: 21)),
+        ])),
+        if (activeFilterCount > 0) SizedBox(height: 26, child: ListView(scrollDirection: Axis.horizontal, children: [
+          if (sourceFilter != 'ALL') _MiniFilter(sourceFilter),
+          if (classFilter.isNotEmpty) _MiniFilter('Class $classFilter'),
+          ...statusFilters.map((e) => _MiniFilter(_statusLabel(e))),
+          ...diffFilters.map((e) => _MiniFilter(_diffLabel(e))),
+          ...apaarStatusFilters.map((e) => _MiniFilter('APAAR: ${apaarStatusLabel(e)}')),
+          ...aadhaarStatusFilters.map((e) => _MiniFilter('Aadhaar: ${aadhaarStatusLabel(e)}')),
+        ])),
+      ]),
+    ),
+  );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(9),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 50, minHeight: 30),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-          decoration: BoxDecoration(
-            gradient: selected
-                ? LinearGradient(
-                    colors: [
-                      baseColor.withValues(alpha: .22),
-                      baseColor.withValues(alpha: .08),
-                    ],
-                  )
-                : null,
-            color: selected ? null : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? baseColor : scheme.outlineVariant,
-              width: selected ? 1.4 : .7,
-            ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: baseColor.withValues(alpha: .10),
-                      blurRadius: 7,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$value',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: selected ? baseColor : scheme.onSurface,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? baseColor : scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  String _statusLabel(String s) => switch (s) {
+    'MATCHED' => 'Matched', 'MISMATCH' => 'Mismatch', 'PSP_ONLY' => 'PSP only',
+    'UDISE_ONLY' => 'UDISE only', 'REMARKED' => 'Remarked', 'RTE' => 'RTE', _ => s,
+  };
+  String _diffLabel(String s) => switch (s) {
+    'NAME_MISMATCH' => 'Name', 'DOB_MISMATCH' => 'DOB', 'FATHER_MISMATCH' => 'Father',
+    'MOTHER_MISMATCH' => 'Mother', 'CLASS_MISMATCH' => 'Class', 'GENDER_MISMATCH' => 'Gender',
+    'CATEGORY_MISMATCH' => 'Category', 'RELIGION_MISMATCH' => 'Religion',
+    'AADHAAR_MISMATCH' => 'Aadhaar', 'AADHAAR_NOT_FOUND' => 'Aadhaar missing',
+    'MOBILE_MISMATCH' => 'Mobile', _ => s,
+  };
+
+  Future<void> _showFilters(BuildContext context) => showModalBottomSheet<void>(
+    context: context, isScrollControlled: true, showDragHandle: true,
+    builder: (ctx) => _FilterSheet(
+      sourceFilter: sourceFilter, statusFilters: statusFilters, diffFilters: diffFilters,
+      apaarStatusFilters: apaarStatusFilters, aadhaarStatusFilters: aadhaarStatusFilters,
+      classes: classes, classFilter: classFilter,
+      diffOptions: {'NAME_MISMATCH':name,'DOB_MISMATCH':dob,'FATHER_MISMATCH':father,'MOTHER_MISMATCH':mother,
+        'CLASS_MISMATCH':classMismatch,'GENDER_MISMATCH':gender,'CATEGORY_MISMATCH':category,'RELIGION_MISMATCH':religion,
+        'AADHAAR_MISMATCH':aadhaar,'AADHAAR_NOT_FOUND':aadhaarMissing,'MOBILE_MISMATCH':mobile},
+      apaarStatusOptions: apaarStatusOptions, aadhaarStatusOptions: aadhaarStatusOptions,
+      apaarStatusLabel: apaarStatusLabel, aadhaarStatusLabel: aadhaarStatusLabel,
+      onSourceChanged: onSourceChanged, onStatusToggle: onStatusToggle, onDiffChanged: onDiffChanged,
+      onApaarToggle: onApaarToggle, onAadhaarToggle: onAadhaarToggle, onClassChanged: onClassChanged,
+      onClearFilters: onClearFilters,
+    ),
+  );
 }
 
-class ComparisonCountChip extends StatelessWidget {
-  final String label;
-  final int percent;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-  const ComparisonCountChip({super.key, required this.label, required this.percent, required this.color, required this.selected, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final count = percent;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 50, minHeight: 30),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-          decoration: BoxDecoration(
-            gradient: selected
-                ? LinearGradient(
-                    colors: [
-                      color.withValues(alpha: .22),
-                      color.withValues(alpha: .08),
-                    ],
-                  )
-                : null,
-            color: selected ? null : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? color : scheme.outlineVariant,
-              width: selected ? 1.4 : .7,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: selected ? color : scheme.onSurface,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  color: selected ? color : scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-class ComparisonDiffChip extends StatelessWidget {
-  final String label;
-  final int value;
-  final bool selected;
-  final VoidCallback onTap;
+class _FilterSheet extends StatelessWidget {
+  final String sourceFilter, classFilter;
+  final Set<String> statusFilters, diffFilters, apaarStatusFilters, aadhaarStatusFilters;
+  final List<String> classes;
+  final Map<String,int> diffOptions;
+  final Set<String> apaarStatusOptions, aadhaarStatusOptions;
+  final String Function(String) apaarStatusLabel, aadhaarStatusLabel;
+  final ValueChanged<String> onSourceChanged, onStatusToggle, onApaarToggle, onAadhaarToggle, onClassChanged;
+  final ValueChanged<Set<String>> onDiffChanged;
+  final VoidCallback onClearFilters;
 
-  const ComparisonDiffChip({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
+  const _FilterSheet({required this.sourceFilter, required this.statusFilters, required this.diffFilters,
+    required this.apaarStatusFilters, required this.aadhaarStatusFilters, required this.classes, required this.classFilter,
+    required this.diffOptions, required this.apaarStatusOptions, required this.aadhaarStatusOptions,
+    required this.apaarStatusLabel, required this.aadhaarStatusLabel, required this.onSourceChanged,
+    required this.onStatusToggle, required this.onDiffChanged, required this.onApaarToggle, required this.onAadhaarToggle,
+    required this.onClassChanged, required this.onClearFilters});
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+  Widget build(BuildContext context) => SafeArea(child: ConstrainedBox(
+    constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .82),
+    child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 20), children: [
+      const Text('Filters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 12),
+      _Section('Source', Icons.source_rounded, Wrap(spacing: 7, children: [
+        _Choice('All', Icons.select_all_rounded, sourceFilter == 'ALL', () => onSourceChanged('ALL')),
+        _Choice('PSP', Icons.description_rounded, sourceFilter == 'PSP', () => onSourceChanged('PSP')),
+        _Choice('UDISE', Icons.school_rounded, sourceFilter == 'UDISE', () => onSourceChanged('UDISE')),
+      ])),
+      _Section('Comparison Status', Icons.compare_arrows_rounded, Wrap(spacing: 7, runSpacing: 7, children: [
+        _F('Matched', matchedCount:null, icon:Icons.check_circle_rounded, selected:statusFilters.contains('MATCHED'), onTap:()=>onStatusToggle('MATCHED')),
+        _F('Mismatch', matchedCount:null, icon:Icons.error_rounded, selected:statusFilters.contains('MISMATCH'), onTap:()=>onStatusToggle('MISMATCH')),
+        _F('PSP only', matchedCount:null, icon:Icons.person_add_rounded, selected:statusFilters.contains('PSP_ONLY'), onTap:()=>onStatusToggle('PSP_ONLY')),
+        _F('UDISE only', matchedCount:null, icon:Icons.person_search_rounded, selected:statusFilters.contains('UDISE_ONLY'), onTap:()=>onStatusToggle('UDISE_ONLY')),
+        _F('Remarked', matchedCount:null, icon:Icons.comment_rounded, selected:statusFilters.contains('REMARKED'), onTap:()=>onStatusToggle('REMARKED')),
+        _F('RTE', matchedCount:null, icon:Icons.verified_rounded, selected:statusFilters.contains('RTE'), onTap:()=>onStatusToggle('RTE')),
+      ])),
+      _Section('Class', Icons.school_rounded, DropdownButtonFormField<String>(
+        initialValue: classFilter.isEmpty ? '' : classFilter,
+        decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, prefixIcon: Icon(Icons.school_rounded), labelText: 'Select class'),
+        items: [const DropdownMenuItem(value:'',child:Text('All classes')), ...classes.map((v)=>DropdownMenuItem(value:v,child:Text('Class $v')))],
+        onChanged: (v)=>onClassChanged(v ?? ''),
+      )),
+      _Section('Differences', Icons.rule_rounded, Wrap(spacing:7,runSpacing:7,children:diffOptions.entries.map((e)=>FilterChip(
+        avatar:Icon(_diffIcon(e.key),size:17), label:Text(e.key == 'AADHAAR_NOT_FOUND' ? 'Aadhaar missing ${e.value}' : '${e.key.replaceAll('_MISMATCH','').replaceAll('_',' ')} ${e.value}'),
+        selected:diffFilters.contains(e.key), onSelected:(_)=>{ final next=<String>{...diffFilters}; if(!next.add(e.key))next.remove(e.key); onDiffChanged(next); },
+      )).toList())),
+      if(apaarStatusOptions.isNotEmpty)_Section('APAAR Status',Icons.badge_rounded,Wrap(spacing:7,runSpacing:7,children:apaarStatusOptions.map((k)=>FilterChip(
+        avatar:const Icon(Icons.badge_rounded,size:17),label:Text(apaarStatusLabel(k)),selected:apaarStatusFilters.contains(k),onSelected:(_)=>onApaarToggle(k))).toList())),
+      if(aadhaarStatusOptions.isNotEmpty)_Section('Aadhaar Status',Icons.fingerprint_rounded,Wrap(spacing:7,runSpacing:7,children:aadhaarStatusOptions.map((k)=>FilterChip(
+        avatar:const Icon(Icons.fingerprint_rounded,size:17),label:Text(aadhaarStatusLabel(k)),selected:aadhaarStatusFilters.contains(k),onSelected:(_)=>onAadhaarToggle(k))).toList())),
+      const SizedBox(height:8),
+      OutlinedButton.icon(onPressed:onClearFilters,icon:const Icon(Icons.clear_all_rounded),label:const Text('Clear all filters')),
+    ]),
+  ));
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: 80,
-          height: 28,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: selected
-                  ? scheme.primaryContainer
-                  : scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: selected ? scheme.primary : scheme.outlineVariant,
-                width: selected ? 1.1 : .6,
-              ),
-            ),
-            child: Text(
-              '$label $value',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  IconData _diffIcon(String k)=>switch(k){
+    'NAME_MISMATCH'=>Icons.person_rounded,'DOB_MISMATCH'=>Icons.cake_rounded,'FATHER_MISMATCH'=>Icons.man_rounded,
+    'MOTHER_MISMATCH'=>Icons.woman_rounded,'CLASS_MISMATCH'=>Icons.school_rounded,'GENDER_MISMATCH'=>Icons.wc_rounded,
+    'CATEGORY_MISMATCH'=>Icons.category_rounded,'RELIGION_MISMATCH'=>Icons.diversity_3_rounded,
+    'AADHAAR_MISMATCH'||'AADHAAR_NOT_FOUND'=>Icons.fingerprint_rounded,'MOBILE_MISMATCH'=>Icons.phone_rounded,_=>Icons.filter_alt_rounded};
 }
 
+class _Section extends StatelessWidget {
+  final String title; final IconData icon; final Widget child;
+  const _Section(this.title,this.icon,this.child);
+  @override Widget build(BuildContext context)=>Padding(padding:const EdgeInsets.only(bottom:14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Padding(padding:const EdgeInsets.only(bottom:7),child:Row(children:[Icon(icon,size:17),const SizedBox(width:7),Text(title,style:const TextStyle(fontWeight:FontWeight.w800))])),child]));
+}
+class _SourceChip extends StatelessWidget {
+  final String label; final IconData icon; final bool selected; final VoidCallback onTap;
+  const _SourceChip(this.label,this.icon,this.selected,this.onTap);
+  @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:16),label:Text(label),selected:selected,onSelected:(_)=>onTap(),visualDensity:VisualDensity.compact);
+}
+class _Choice extends StatelessWidget {
+  final String label; final IconData icon; final bool selected; final VoidCallback onTap;
+  const _Choice(this.label,this.icon,this.selected,this.onTap);
+  @override Widget build(BuildContext c)=>ChoiceChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap());
+}
+class _F extends StatelessWidget {
+  final String label; final int? matchedCount; final IconData icon; final bool selected; final VoidCallback onTap;
+  const _F({required this.label,required this.matchedCount,required this.icon,required this.selected,required this.onTap});
+  @override Widget build(BuildContext c)=>FilterChip(avatar:Icon(icon,size:17),label:Text(label),selected:selected,onSelected:(_)=>onTap(),visualDensity:VisualDensity.compact);
+}
+class _MiniFilter extends StatelessWidget {
+  final String label; const _MiniFilter(this.label);
+  @override Widget build(BuildContext c)=>Padding(padding:const EdgeInsets.only(right:5),child:Chip(label:Text(label,style:const TextStyle(fontSize:10)),visualDensity:VisualDensity.compact));
+}
