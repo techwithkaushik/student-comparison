@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class ComparisonSummarySection extends StatelessWidget {
   final String sourceFilter, classFilter;
-  final Set<String> statusFilters, apaarStatusFilters, aadhaarStatusFilters;
+  final Set<String> statusFilters, diffFilters, apaarStatusFilters, aadhaarStatusFilters;
   final List<String> classes;
-  final Set<String> apaarStatusOptions, aadhaarStatusOptions;
-  final String Function(String) apaarStatusLabel, aadhaarStatusLabel;
-  final ValueChanged<String> onSourceChanged, onStatusToggle, onApaarToggle, onAadhaarToggle, onClassChanged;
+  final Set<String> apaarStatusOptions, aadhaarStatusOptions, mismatchDiffOptions;
+  final String Function(String) apaarStatusLabel, aadhaarStatusLabel, mismatchDiffLabel;
+  final ValueChanged<String> onSourceChanged, onStatusToggle, onApaarToggle, onAadhaarToggle, onClassChanged, onDiffToggle;
   final VoidCallback onClearFilters, onPrint;
 
   const ComparisonSummarySection({
@@ -14,24 +14,29 @@ class ComparisonSummarySection extends StatelessWidget {
     required this.sourceFilter,
     required this.classFilter,
     required this.statusFilters,
+    required this.diffFilters,
     required this.apaarStatusFilters,
     required this.aadhaarStatusFilters,
     required this.classes,
     required this.apaarStatusOptions,
     required this.aadhaarStatusOptions,
+    required this.mismatchDiffOptions,
     required this.apaarStatusLabel,
     required this.aadhaarStatusLabel,
+    required this.mismatchDiffLabel,
     required this.onSourceChanged,
     required this.onStatusToggle,
     required this.onApaarToggle,
     required this.onAadhaarToggle,
     required this.onClassChanged,
+    required this.onDiffToggle,
     required this.onClearFilters,
     required this.onPrint,
   });
 
   int get activeFilterCount =>
       (sourceFilter == 'ALL' ? 0 : 1) +
+      diffFilters.length +
       statusFilters.length +
       apaarStatusFilters.length +
       aadhaarStatusFilters.length +
@@ -146,6 +151,25 @@ class ComparisonSummarySection extends StatelessWidget {
               ],
             ),
           ),
+          if (statusFilters.contains('MISMATCH') && mismatchDiffOptions.isNotEmpty) ...[
+            const SizedBox(height: 1),
+            SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: mismatchDiffOptions.map((key) => Padding(
+                  padding: chipMargin,
+                  child: _FilterChip(
+                    mismatchDiffLabel(key),
+                    Icons.tune_rounded,
+                    diffFilters.contains(key),
+                    () => onDiffToggle(key),
+                    padding: compact,
+                  ),
+                )).toList(),
+              ),
+            ),
+          ],
           const SizedBox(height: 1),
           SizedBox(
             height: 34,
@@ -222,11 +246,13 @@ class _ClassChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       tooltip: 'Class filter',
+      initialValue: classFilter.isEmpty ? null : classFilter,
       onSelected: onChanged,
       itemBuilder: (_) => [
         const PopupMenuItem(value: '', child: Text('All classes')),
-        ...classes.map((value) => PopupMenuItem(
+        ...classes.map((value) => CheckedPopupMenuItem<String>(
           value: value,
+          checked: value == classFilter,
           child: Text('Class $value'),
         )),
       ],
@@ -341,10 +367,6 @@ class _StatusDropdownChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedKey = selected.isEmpty ? null : selected.first;
-    final displayLabel = selectedKey == null
-        ? label
-        : '$label: ${labelFor(selectedKey)}';
-
     return PopupMenuButton<String>(
       tooltip: '$label status',
       onSelected: (key) {
@@ -354,6 +376,7 @@ class _StatusDropdownChip extends StatelessWidget {
           onChanged(key);
         }
       },
+      initialValue: selectedKey,
       itemBuilder: (_) => [
         if (selectedKey != null)
           const PopupMenuItem<String>(
@@ -361,8 +384,9 @@ class _StatusDropdownChip extends StatelessWidget {
             child: Text('Clear'),
           ),
         ...options.map(
-          (key) => PopupMenuItem<String>(
+          (key) => CheckedPopupMenuItem<String>(
             value: key,
+            checked: key == selectedKey,
             child: Text(labelFor(key)),
           ),
         ),
@@ -386,8 +410,18 @@ class _StatusDropdownChip extends StatelessWidget {
           children: [
             Icon(icon, size: 14),
             const SizedBox(width: 3),
-            Text(displayLabel),
-            const SizedBox(width: 1),
+            if (selectedKey == null)
+              Text(label)
+            else
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 11, height: 1)),
+                  Text(labelFor(selectedKey).toLowerCase(), style: const TextStyle(fontSize: 9, height: 1.1)),
+                ],
+              ),
+            const SizedBox(width: 2),
             const Icon(Icons.arrow_drop_down_rounded, size: 18),
           ],
         ),
