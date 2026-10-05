@@ -39,107 +39,134 @@ class ComparisonSummarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = const EdgeInsets.symmetric(horizontal: 7, vertical: 1);
+    const compact = EdgeInsets.symmetric(horizontal: 5, vertical: 0);
+    const chipMargin = EdgeInsets.all(2.5);
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 2, 6, 3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 34,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.5),
+            child: Wrap(
+              spacing: 0,
+              runSpacing: 0,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _Choice(
-                  'All',
-                  Icons.select_all_rounded,
-                  sourceFilter == 'ALL',
-                  () => onSourceChanged('ALL'),
-                  padding: compact,
+                Padding(
+                  padding: chipMargin,
+                  child: _Choice(
+                    'All',
+                    Icons.select_all_rounded,
+                    sourceFilter == 'ALL',
+                    () => onSourceChanged('ALL'),
+                    padding: compact,
+                  ),
                 ),
-                _Choice(
-                  'PSP',
-                  Icons.description_rounded,
-                  sourceFilter == 'PSP',
-                  () => onSourceChanged('PSP'),
-                  padding: compact,
+                Padding(
+                  padding: chipMargin,
+                  child: _Choice(
+                    'PSP',
+                    Icons.description_rounded,
+                    sourceFilter == 'PSP',
+                    () => onSourceChanged('PSP'),
+                    padding: compact,
+                  ),
                 ),
-                _Choice(
-                  'UDISE',
-                  Icons.school_rounded,
-                  sourceFilter == 'UDISE',
-                  () => onSourceChanged('UDISE'),
-                  padding: compact,
+                Padding(
+                  padding: chipMargin,
+                  child: _Choice(
+                    'UDISE',
+                    Icons.school_rounded,
+                    sourceFilter == 'UDISE',
+                    () => onSourceChanged('UDISE'),
+                    padding: compact,
+                  ),
                 ),
-                _Choice(
-                  'PSP-ONLY',
-                  Icons.person_add_rounded,
-                  sourceFilter == 'PSP_ONLY',
-                  () => onSourceChanged('PSP_ONLY'),
-                  padding: compact,
+                Padding(
+                  padding: chipMargin,
+                  child: _Choice(
+                    'PSP-ONLY',
+                    Icons.person_add_rounded,
+                    sourceFilter == 'PSP_ONLY',
+                    () => onSourceChanged('PSP_ONLY'),
+                    padding: compact,
+                  ),
                 ),
-                _Choice(
-                  'UDISE-ONLY',
-                  Icons.person_search_rounded,
-                  sourceFilter == 'UDISE_ONLY',
-                  () => onSourceChanged('UDISE_ONLY'),
-                  padding: compact,
+                Padding(
+                  padding: chipMargin,
+                  child: _Choice(
+                    'UDISE-ONLY',
+                    Icons.person_search_rounded,
+                    sourceFilter == 'UDISE_ONLY',
+                    () => onSourceChanged('UDISE_ONLY'),
+                    padding: compact,
+                  ),
                 ),
-                const SizedBox(width: 5),
-                _ClassChip(
-                  classFilter: classFilter,
-                  classes: classes,
-                  onChanged: onClassChanged,
+                Padding(
+                  padding: chipMargin,
+                  child: _ClassChip(
+                    classFilter: classFilter,
+                    classes: classes,
+                    onChanged: onClassChanged,
+                  ),
                 ),
-                const SizedBox(width: 2),
-                IconButton(
-                  tooltip: 'Print',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onPrint,
-                  icon: const Icon(Icons.print_rounded, size: 21),
+                Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: IconButton(
+                    tooltip: 'Print',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onPrint,
+                    icon: const Icon(Icons.print_rounded, size: 21),
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           SizedBox(
             height: 34,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _FilterChip(
+                Padding(padding: chipMargin, child: _FilterChip(
                   'MATCHED',
                   Icons.check_circle_rounded,
                   statusFilters.contains('MATCHED'),
                   () => onStatusToggle('MATCHED'),
                   padding: compact,
-                ),
-                _FilterChip(
+                )),
+                Padding(padding: chipMargin, child: _FilterChip(
                   'MISMATCH',
                   Icons.error_rounded,
                   statusFilters.contains('MISMATCH'),
                   () => onStatusToggle('MISMATCH'),
                   padding: compact,
-                ),
+                )),
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           SizedBox(
             height: 34,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _FilterChip(
-                  'RTE',
+                Padding(
+                  padding: chipMargin,
+                  child: _FilterChip(
+                    'RTE',
                   Icons.verified_rounded,
                   statusFilters.contains('RTE'),
                   () => onStatusToggle('RTE'),
-                  padding: compact,
+                    padding: compact,
+                  ),
                 ),
-                const SizedBox(width: 5),
-                _StatusFilterChip(
-                  label: 'Aadhaar',
+                Padding(
+                  padding: chipMargin,
+                  child:
+                  _StatusFilterChip(
+                    label: 'Aadhaar',
                   icon: Icons.fingerprint_rounded,
                   selected: aadhaarStatusFilters.isNotEmpty,
                   count: aadhaarStatusFilters.length,
@@ -151,9 +178,12 @@ class ComparisonSummarySection extends StatelessWidget {
                     labelFor: aadhaarStatusLabel,
                     onToggle: onAadhaarToggle,
                   ),
-                  padding: compact,
+                    padding: compact,
+                  ),
                 ),
-                const SizedBox(width: 5),
+                Padding(
+                  padding: chipMargin,
+                  child:
                 _StatusFilterChip(
                   label: 'APAAR',
                   icon: Icons.badge_rounded,
@@ -167,7 +197,8 @@ class ComparisonSummarySection extends StatelessWidget {
                     labelFor: apaarStatusLabel,
                     onToggle: onApaarToggle,
                   ),
-                  padding: compact,
+                    padding: compact,
+                  ),
                 ),
                 if (activeFilterCount > 0) ...[
                   const SizedBox(width: 5),
@@ -294,11 +325,18 @@ class _Choice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ChoiceChip(
-    avatar: Icon(icon, size: 15),
-    label: Text(label),
+    label: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14),
+        const SizedBox(width: 3),
+        Text(label),
+      ],
+    ),
     selected: selected,
     onSelected: (_) => onTap(),
     showCheckmark: false,
+    labelPadding: EdgeInsets.zero,
     padding: padding,
     selectedColor: Theme.of(context).colorScheme.primaryContainer,
     side: selected ? BorderSide(color: Theme.of(context).colorScheme.primary) : null,
@@ -317,8 +355,14 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FilterChip(
-    avatar: Icon(icon, size: 15),
-    label: Text(label),
+    label: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14),
+        const SizedBox(width: 3),
+        Text(label),
+      ],
+    ),
     selected: selected,
     onSelected: (_) => onTap(),
     showCheckmark: false,
@@ -348,8 +392,14 @@ class _StatusFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FilterChip(
-    avatar: Icon(icon, size: 15),
-    label: Text(count == 0 ? label : '$label $count'),
+    label: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14),
+        const SizedBox(width: 3),
+        Text(count == 0 ? label : '$label $count'),
+      ],
+    ),
     selected: selected,
     onSelected: (_) => onTap(),
     showCheckmark: false,
