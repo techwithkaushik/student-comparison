@@ -10,7 +10,7 @@ class ComparisonClickableHeader extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const ComparisonClickableHeader({required this.title, required this.subtitle, required this.color, required this.onTap});
+  const ComparisonClickableHeader({super.key, required this.title, required this.subtitle, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class ComparisonDetailsDialog extends StatelessWidget {
   final ComparisonRow row;
   final String side;
 
-  const ComparisonDetailsDialog({required this.row, required this.side});
+  const ComparisonDetailsDialog({super.key, required this.row, required this.side});
 
   String _value(dynamic value) {
     if (value == null) return '—';
