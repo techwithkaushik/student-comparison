@@ -44,6 +44,11 @@ class ComparisonState extends Equatable {
     this.remarkCount = 0,
     this.filter = 'ALL',
     this.classFilter = '',
+    this.sourceFilter = 'ALL',
+    this.statusFilters = const {},
+    this.diffFilters = const {},
+    this.apaarStatusFilters = const {},
+    this.aadhaarStatusFilters = const {},
     this.search = '',
     this.searchActive = false,
     this.remarks = const {},
@@ -67,10 +72,29 @@ class ComparisonState extends Equatable {
     return value == 'yes' || value == 'y' || value == 'true' || value == '1';
   }
 
+  static String _apaarStatusKey(UdiseStudent? student) {
+    if (student == null) return '__MISSING__';
+    final raw = student.raw;
+    final desc = raw['apaarIdStatusDesc']?.toString().trim() ?? '';
+    final id = raw['apaarId']?.toString().trim() ?? '';
+    if (desc.isNotEmpty) return desc.toUpperCase();
+    if (id.isNotEmpty) return 'GENERATED';
+    return '__MISSING__';
+  }
+  static String _aadhaarStatusKey(UdiseStudent? student) {
+    if (student == null) return '__MISSING__';
+    final status = student.raw['uuidStatus']?.toString().trim() ?? '';
+    return status.isEmpty ? '__MISSING__' : status;
+  }
   static ComparisonState derive({
     required List<ComparisonRow> rows,
     required String filter,
     required String classFilter,
+    required String sourceFilter,
+    required Set<String> statusFilters,
+    required Set<String> diffFilters,
+    required Set<String> apaarStatusFilters,
+    required Set<String> aadhaarStatusFilters,
     required String search,
     required bool searchActive,
     required Map<String, Map<String, dynamic>> remarks,
@@ -82,14 +106,40 @@ class ComparisonState extends Equatable {
     final q = search.trim().toLowerCase();
 
     bool matches(ComparisonRow row) {
-      if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) return false;
-      if (filter == 'RTE' && !_isRte(row)) return false;
-      if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
-      if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
-      if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
-      if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
-      if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) return false;
-      if (classFilter.isNotEmpty && (row.psp?.classCanonValue ?? '') != classFilter) return false;
+      final hasPsp = row.psp != null;
+      final hasUdise = row.udise != null;
+      if (sourceFilter == 'PSP' && !hasPsp) return false;
+      if (sourceFilter == 'UDISE' && !hasUdise) return false;
+      if (statusFilters.isNotEmpty) {
+        final statusMatch = statusFilters.any((value) {
+          switch (value) {
+            case 'MATCHED': return row.type == MatchType.matched;
+            case 'MISMATCH': return row.type == MatchType.mismatch;
+            case 'PSP_ONLY': return row.type == MatchType.notInUdise;
+            case 'UDISE_ONLY': return row.type == MatchType.notInPsp;
+            case 'REMARKED': return immutableRemarks.containsKey(_remarkKey(row));
+            case 'RTE': return _isRte(row);
+            default: return false;
+          }
+        });
+        if (!statusMatch) return false;
+      }
+      if (diffFilters.isNotEmpty && !diffFilters.any((diff) => row.diffs.contains(diff))) return false;
+      if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
+      if (aadhaarStatusFilters.isNotEmpty && (!hasUdise || !aadhaarStatusFilters.contains(_aadhaarStatusKey(row.udise)))) return false;
+      if (classFilter.isNotEmpty) {
+        final cls = hasUdise ? (row.udise?.classCanonValue ?? '') : (row.psp?.classCanonValue ?? '');
+        if (cls != classFilter) return false;
+      }
+      if (statusFilters.isEmpty && diffFilters.isEmpty) {
+        if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) return false;
+        if (filter == 'RTE' && !_isRte(row)) return false;
+        if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
+        if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
+        if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
+        if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
+        if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) return false;
+      }
       if (q.isEmpty) return true;
 
       final values = <String?>[
@@ -141,6 +191,11 @@ class ComparisonState extends Equatable {
       remarkCount: remarked,
       filter: filter,
       classFilter: classFilter,
+      sourceFilter: sourceFilter,
+      statusFilters: Set<String>.unmodifiable(statusFilters),
+      diffFilters: Set<String>.unmodifiable(diffFilters),
+      apaarStatusFilters: Set<String>.unmodifiable(apaarStatusFilters),
+      aadhaarStatusFilters: Set<String>.unmodifiable(aadhaarStatusFilters),
       search: search,
       searchActive: searchActive,
       remarks: immutableRemarks,
@@ -168,6 +223,11 @@ class ComparisonState extends Equatable {
     int? remarkCount,
     String? filter,
     String? classFilter,
+    String? sourceFilter,
+    Set<String>? statusFilters,
+    Set<String>? diffFilters,
+    Set<String>? apaarStatusFilters,
+    Set<String>? aadhaarStatusFilters,
     String? search,
     bool? searchActive,
     Map<String, Map<String, dynamic>>? remarks,
@@ -187,6 +247,11 @@ class ComparisonState extends Equatable {
     remarkCount: remarkCount ?? this.remarkCount,
     filter: filter ?? this.filter,
     classFilter: classFilter ?? this.classFilter,
+    sourceFilter: sourceFilter ?? this.sourceFilter,
+    statusFilters: statusFilters ?? this.statusFilters,
+    diffFilters: diffFilters ?? this.diffFilters,
+    apaarStatusFilters: apaarStatusFilters ?? this.apaarStatusFilters,
+    aadhaarStatusFilters: aadhaarStatusFilters ?? this.aadhaarStatusFilters,
     search: search ?? this.search,
     searchActive: searchActive ?? this.searchActive,
     remarks: remarks ?? this.remarks,
@@ -197,7 +262,7 @@ class ComparisonState extends Equatable {
   List<Object?> get props => [
     status, rows, filteredRows, classes, typeCounts, diffCounts,
     pspCount, matchedPspCount, mismatchPspCount, rteCount, remarkCount,
-    filter, classFilter, search, searchActive, remarks, error,
+    filter, classFilter, sourceFilter, statusFilters, diffFilters, apaarStatusFilters, aadhaarStatusFilters, search, searchActive, remarks, error,
   ];
 }
 
@@ -238,6 +303,31 @@ final class ComparisonDiffFilterToggled extends ComparisonEvent {
 final class ComparisonClassFilterChanged extends ComparisonEvent {
   final String value;
   const ComparisonClassFilterChanged(this.value);
+  @override List<Object?> get props => [value];
+}
+final class ComparisonSourceFilterChanged extends ComparisonEvent {
+  final String value;
+  const ComparisonSourceFilterChanged(this.value);
+  @override List<Object?> get props => [value];
+}
+final class ComparisonStatusFilterToggled extends ComparisonEvent {
+  final String value;
+  const ComparisonStatusFilterToggled(this.value);
+  @override List<Object?> get props => [value];
+}
+final class ComparisonDiffFiltersChanged extends ComparisonEvent {
+  final Set<String> values;
+  const ComparisonDiffFiltersChanged(this.values);
+  @override List<Object?> get props => [values];
+}
+final class ComparisonApaarStatusFilterToggled extends ComparisonEvent {
+  final String value;
+  const ComparisonApaarStatusFilterToggled(this.value);
+  @override List<Object?> get props => [value];
+}
+final class ComparisonAadhaarStatusFilterToggled extends ComparisonEvent {
+  final String value;
+  const ComparisonAadhaarStatusFilterToggled(this.value);
   @override List<Object?> get props => [value];
 }
 final class ComparisonSearchChanged extends ComparisonEvent {
@@ -300,6 +390,11 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     on<ComparisonFilterChanged>(_onFilter);
     on<ComparisonDiffFilterToggled>(_onDiffFilter);
     on<ComparisonClassFilterChanged>(_onClassFilter);
+    on<ComparisonSourceFilterChanged>(_onSourceFilter);
+    on<ComparisonStatusFilterToggled>(_onStatusFilterToggle);
+    on<ComparisonDiffFiltersChanged>(_onDiffFiltersChanged);
+    on<ComparisonApaarStatusFilterToggled>(_onApaarStatusToggle);
+    on<ComparisonAadhaarStatusFilterToggled>(_onAadhaarStatusToggle);
     on<ComparisonSearchChanged>(_onSearch);
     on<ComparisonSearchActivityChanged>(
       (e, emit) => emit(state.copyWith(searchActive: e.value)),
@@ -343,6 +438,11 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
         rows: rows,
         filter: state.filter,
         classFilter: state.classFilter,
+        sourceFilter: state.sourceFilter,
+        statusFilters: state.statusFilters,
+        diffFilters: state.diffFilters,
+        apaarStatusFilters: state.apaarStatusFilters,
+        aadhaarStatusFilters: state.aadhaarStatusFilters,
         search: state.search,
         searchActive: state.searchActive,
         remarks: remarks,
@@ -359,6 +459,11 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   ComparisonState _derive({
     String? filter,
     String? classFilter,
+    String? sourceFilter,
+    Set<String>? statusFilters,
+    Set<String>? diffFilters,
+    Set<String>? apaarStatusFilters,
+    Set<String>? aadhaarStatusFilters,
     String? search,
     Map<String, Map<String, dynamic>>? remarks,
     String? error,
@@ -368,6 +473,11 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       rows: state.rows,
       filter: filter ?? state.filter,
       classFilter: classFilter ?? state.classFilter,
+      sourceFilter: sourceFilter ?? state.sourceFilter,
+      statusFilters: statusFilters ?? state.statusFilters,
+      diffFilters: diffFilters ?? state.diffFilters,
+      apaarStatusFilters: apaarStatusFilters ?? state.apaarStatusFilters,
+      aadhaarStatusFilters: aadhaarStatusFilters ?? state.aadhaarStatusFilters,
       search: search ?? state.search,
       searchActive: state.searchActive,
       remarks: remarks ?? state.remarks,
@@ -402,6 +512,11 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     emit(_derive(classFilter: event.value));
   }
 
+  void _onSourceFilter(ComparisonSourceFilterChanged event, Emitter<ComparisonState> emit) => emit(_derive(sourceFilter: event.value));
+  void _onStatusFilterToggle(ComparisonStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.statusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(statusFilters: next, filter: 'ALL')); }
+  void _onDiffFiltersChanged(ComparisonDiffFiltersChanged event, Emitter<ComparisonState> emit) => emit(_derive(diffFilters: event.values, filter: 'ALL'));
+  void _onApaarStatusToggle(ComparisonApaarStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.apaarStatusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(apaarStatusFilters: next)); }
+  void _onAadhaarStatusToggle(ComparisonAadhaarStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.aadhaarStatusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(aadhaarStatusFilters: next)); }
   void _onSearch(
     ComparisonSearchChanged event,
     Emitter<ComparisonState> emit,
@@ -487,6 +602,16 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   Future<void> load({List<ComparisonRow> initialRows = const []}) {
     final c = Completer<void>(); add(ComparisonLoadRequested(initialRows: initialRows, completer: c)); return c.future;
   }
+  void setSourceFilter(String value) => add(ComparisonSourceFilterChanged(value));
+  void toggleStatusFilter(String value) => add(ComparisonStatusFilterToggled(value));
+  void setDiffFilters(Set<String> values) => add(ComparisonDiffFiltersChanged(values));
+  void toggleApaarStatusFilter(String value) => add(ComparisonApaarStatusFilterToggled(value));
+  void toggleAadhaarStatusFilter(String value) => add(ComparisonAadhaarStatusFilterToggled(value));
+  Set<String> get apaarStatusOptions => state.rows.where((r) => r.udise != null).map((r) => ComparisonState._apaarStatusKey(r.udise)).toSet();
+  Set<String> get aadhaarStatusOptions => state.rows.where((r) => r.udise != null).map((r) => ComparisonState._aadhaarStatusKey(r.udise)).toSet();
+  String apaarStatusLabel(String key) => key == '__MISSING__' ? 'Not Available' : key == 'GENERATED' ? 'Generated' : key;
+  String aadhaarStatusLabel(String key) { switch (key) { case '1': return 'Verified'; case '2': return 'Verification Failed'; case '0': return 'Not Verified'; default: return 'Not Available'; } }
+
   void setFilter(String value) => add(ComparisonFilterChanged(value));
   void toggleDiffFilter(String diff) => add(ComparisonDiffFilterToggled(diff));
   void setClassFilter(String value) => add(ComparisonClassFilterChanged(value));
