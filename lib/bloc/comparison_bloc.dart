@@ -739,7 +739,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       if (state.statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) { continue; }
       if (state.statusFilters.contains('RTE') && !ComparisonState._isRte(row)) { continue; }
       if (state.diffFilters.isNotEmpty &&
-          !state.diffFilters.any(row.diffs.contains)) continue;
+          !state.diffFilters.any(row.diffs.contains)) { continue; }
       yield row;
     }
   }
