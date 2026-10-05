@@ -302,6 +302,11 @@ class _ComparisonDashboardScreenState extends State<ComparisonDashboardScreen> {
                     onApaarToggle: _bloc.toggleApaarStatusFilter,
                     onAadhaarToggle: _bloc.toggleAadhaarStatusFilter,
                     onClassChanged: _bloc.setClassFilter,
+                    onDiffToggle: (value) {
+                      final next = <String>{...state.diffFilters};
+                      if (!next.add(value)) next.remove(value);
+                      _bloc.setDiffFilters(next);
+                    },
                     onClearFilters: () {
                       _bloc.setSourceFilter('ALL');
                       _bloc.setDiffFilters(const <String>{});
