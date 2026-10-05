@@ -366,6 +366,7 @@ class _FilterChip extends StatelessWidget {
     selected: selected,
     onSelected: (_) => onTap(),
     showCheckmark: false,
+    labelPadding: EdgeInsets.zero,
     padding: padding,
     selectedColor: Theme.of(context).colorScheme.primaryContainer,
     side: selected ? BorderSide(color: Theme.of(context).colorScheme.primary) : null,
