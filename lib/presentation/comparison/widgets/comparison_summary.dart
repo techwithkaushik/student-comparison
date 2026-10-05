@@ -197,26 +197,35 @@ class ComparisonSummarySection extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-          children: [
-            Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: options.map((key) => _FilterChip(
-                labelFor(key),
-                title == 'APAAR Status' ? Icons.badge_rounded : Icons.fingerprint_rounded,
-                selected.contains(key),
-                () => onToggle(key),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              )).toList(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final current = <String>{...selected};
+          return SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              children: [
+                Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: options.map((key) => _FilterChip(
+                    labelFor(key),
+                    title == 'APAAR Status' ? Icons.badge_rounded : Icons.fingerprint_rounded,
+                    current.contains(key),
+                    () {
+                      if (!current.add(key)) current.remove(key);
+                      onToggle(key);
+                      setSheetState(() {});
+                    },
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  )).toList(),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
