@@ -43,7 +43,6 @@ class _ComparisonDashboardScreenState
   List<ComparisonRow> get _rows => _bloc.state.rows;
   bool get _loadingData => _bloc.state.status == ComparisonStatus.loading || _bloc.state.status == ComparisonStatus.initial;
   String? get _dataError => _bloc.state.error;
-  String get _filter => _bloc.state.filter;
   String get _classFilter => _bloc.state.classFilter;
   bool get _searchActive => _bloc.state.searchActive;
   Set<String> get _remarkKeys => _bloc.state.remarkKeys;
