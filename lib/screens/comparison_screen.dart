@@ -53,11 +53,19 @@ class _ComparisonDashboardScreenState extends State<ComparisonDashboardScreen> {
   Future<List<Map<String, dynamic>>> _decodeJsonRows(Uint8List bytes, String label) async {
     final decoded = jsonDecode(utf8.decode(bytes));
     List<dynamic> rows;
-    if (decoded is List) rows = decoded;
-    else if (decoded is Map<String, dynamic> && decoded['data'] is List) rows = decoded['data'] as List;
-    else if (decoded is Map<String, dynamic> && decoded['result'] is List) rows = decoded['result'] as List;
-    else if (decoded is Map<String, dynamic> && decoded['result'] is Map<String, dynamic> && decoded['result']['data'] is List) rows = decoded['result']['data'] as List;
-    else throw Exception('No $label student records found.');
+    if (decoded is List) {
+      rows = decoded;
+    } else if (decoded is Map<String, dynamic> && decoded['data'] is List) {
+      rows = decoded['data'] as List;
+    } else if (decoded is Map<String, dynamic> && decoded['result'] is List) {
+      rows = decoded['result'] as List;
+    } else if (decoded is Map<String, dynamic> &&
+        decoded['result'] is Map<String, dynamic> &&
+        decoded['result']['data'] is List) {
+      rows = decoded['result']['data'] as List;
+    } else {
+      throw Exception('No $label student records found.');
+    }
     final out = rows.whereType<Map>().map((r) => Map<String, dynamic>.from(r)).toList();
     if (out.isEmpty) throw Exception('No valid $label student records found.');
     return out;
@@ -151,7 +159,11 @@ class _ComparisonDashboardScreenState extends State<ComparisonDashboardScreen> {
       if (saved != true) return;
       final text = controller.text.trim();
       if (!mounted) return;
-      if (text.isEmpty) await _bloc.deleteRemark(row); else await _bloc.saveRemark(row: row, remark: text);
+      if (text.isEmpty) {
+        await _bloc.deleteRemark(row);
+      } else {
+        await _bloc.saveRemark(row: row, remark: text);
+      }
     } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remark update failed: $e'))); }
     finally { controller.dispose(); }
   }
@@ -290,9 +302,15 @@ class _ComparisonDashboardScreenState extends State<ComparisonDashboardScreen> {
                     onClearFilters: () {
                       _bloc.setSourceFilter('ALL');
                       _bloc.setDiffFilters(const <String>{});
-                      for (final value in List<String>.from(state.statusFilters)) _bloc.toggleStatusFilter(value);
-                      for (final value in List<String>.from(state.apaarStatusFilters)) _bloc.toggleApaarStatusFilter(value);
-                      for (final value in List<String>.from(state.aadhaarStatusFilters)) _bloc.toggleAadhaarStatusFilter(value);
+                      for (final value in List<String>.from(state.statusFilters)) {
+                        _bloc.toggleStatusFilter(value);
+                      }
+                      for (final value in List<String>.from(state.apaarStatusFilters)) {
+                        _bloc.toggleApaarStatusFilter(value);
+                      }
+                      for (final value in List<String>.from(state.aadhaarStatusFilters)) {
+                        _bloc.toggleAadhaarStatusFilter(value);
+                      }
                       _bloc.setClassFilter('');
                     },
                     onPrint: _printReport,
