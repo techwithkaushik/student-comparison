@@ -416,11 +416,3 @@ class ComparisonDiffChip extends StatelessWidget {
   }
 }
 
-const List<String> _admissionDateKeys = <String>[
-  'Admission Date',
-  'Admission date',
-  'admissionDate',
-  'admission_date',
-  'Date of Admission',
-];
-
