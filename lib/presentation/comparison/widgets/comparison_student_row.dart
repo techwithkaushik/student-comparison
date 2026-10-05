@@ -3,6 +3,14 @@ import 'package:flutter/material.dart';
 import '../../matching/models.dart';
 import 'comparison_details_dialog.dart';
 
+const List<String> _admissionDateKeys = <String>[
+  'Admission Date',
+  'Admission date',
+  'admissionDate',
+  'admission_date',
+  'Date of Admission',
+];
+
 class ComparisonStudentRow extends StatelessWidget {
   final ComparisonRow row;
   final bool hasRemark;
