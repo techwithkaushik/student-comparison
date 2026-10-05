@@ -80,9 +80,16 @@ List<String> compareStudents(PspStudent p, UdiseStudent u) {
 }
 
 bool hasCoreIdentityMismatch(List<String> diffs) {
-  // Classification is OR-based: any detected difference makes the
-  // matched pair a MISMATCH. Only a row with no differences is MATCHED.
-  return diffs.isNotEmpty;
+  // Identity classification is OR-based across identity fields.
+  // Aadhaar/mobile are informational verification fields and do not
+  // independently change MATCHED -> MISMATCH.
+  return diffs.any(
+    (diff) =>
+        diff != 'AADHAAR_MISMATCH' &&
+        diff != 'AADHAAR_NOT_FOUND' &&
+        diff != 'MOBILE_MISMATCH' &&
+        diff != 'MOBILE_NOT_FOUND',
+  );
 }
 
 int exactScore(PspStudent p, UdiseStudent u) {
