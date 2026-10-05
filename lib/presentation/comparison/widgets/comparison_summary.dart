@@ -225,6 +225,7 @@ class ComparisonStatChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const ComparisonStatChip({
+    super.key,
     required this.label,
     required this.value,
     required this.selected,
@@ -304,7 +305,7 @@ class ComparisonCountChip extends StatelessWidget {
   final Color color;
   final bool selected;
   final VoidCallback onTap;
-  const ComparisonCountChip({required this.label, required this.percent, required this.color, required this.selected, required this.onTap});
+  const ComparisonCountChip({super.key, required this.label, required this.percent, required this.color, required this.selected, required this.onTap});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -367,6 +368,7 @@ class ComparisonDiffChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const ComparisonDiffChip({
+    super.key,
     required this.label,
     required this.value,
     required this.selected,
