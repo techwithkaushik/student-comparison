@@ -133,7 +133,7 @@ class ComparisonState extends Equatable {
       if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
       if (aadhaarStatusFilters.isNotEmpty && (!hasUdise || !aadhaarStatusFilters.contains(_aadhaarStatusKey(row.udise)))) return false;
       if (classFilter.isNotEmpty) {
-        final cls = hasUdise ? (row.udise?.classCanonValue ?? '') : (row.psp?.classCanonValue ?? '');
+        final cls = hasUdise ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '') : (row.psp?.classCanonValue ?? '');
         if (cls != classFilter) return false;
       }
       if (statusFilters.isEmpty && diffFilters.isEmpty) {
