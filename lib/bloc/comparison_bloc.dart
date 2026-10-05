@@ -115,6 +115,8 @@ class ComparisonState extends Equatable {
       final hasUdise = row.udise != null;
       if (sourceFilter == 'PSP' && !hasPsp) return false;
       if (sourceFilter == 'UDISE' && !hasUdise) return false;
+      if (sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
+      if (sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
       if (statusFilters.isNotEmpty) {
         final statusMatch = statusFilters.any((value) {
           switch (value) {
