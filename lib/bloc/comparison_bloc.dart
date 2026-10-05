@@ -530,7 +530,7 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   ) {
     emit(_derive(
       sourceFilter: event.value,
-      classFilter: event.value == 'ALL' ? state.classFilter : '',
+      classFilter: '',
       diffFilters: const <String>{},
     ));
   }
@@ -723,8 +723,36 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   void setDiffFilters(Set<String> values) => add(ComparisonDiffFiltersChanged(values));
   void toggleApaarStatusFilter(String value) => add(ComparisonApaarStatusFilterToggled(value));
   void toggleAadhaarStatusFilter(String value) => add(ComparisonAadhaarStatusFilterToggled(value));
-  Set<String> get apaarStatusOptions => state.rows.where((r) => r.udise != null).map((r) => ComparisonState._apaarStatusKey(r.udise)).toSet();
-  Set<String> get aadhaarStatusOptions => state.rows.where((r) => r.udise != null).map((r) => ComparisonState._aadhaarStatusKey(r.udise)).toSet();
+  Iterable<ComparisonRow> get _stageThreeBaseRows sync* {
+    for (final row in state.rows) {
+      if (state.sourceFilter == 'PSP' && row.psp == null) continue;
+      if (state.sourceFilter == 'UDISE' && row.udise == null) continue;
+      if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) continue;
+      if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) continue;
+      if (state.classFilter.isNotEmpty) {
+        final cls = row.udise != null
+            ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '')
+            : (row.psp?.classCanonValue ?? '');
+        if (cls != state.classFilter) continue;
+      }
+      if (state.statusFilters.contains('MATCHED') && row.type != MatchType.matched) continue;
+      if (state.statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) continue;
+      if (state.statusFilters.contains('RTE') && !ComparisonState._isRte(row)) continue;
+      if (state.diffFilters.isNotEmpty &&
+          !state.diffFilters.any(row.diffs.contains)) continue;
+      yield row;
+    }
+  }
+
+  Set<String> get apaarStatusOptions => _stageThreeBaseRows
+      .where((r) => r.udise != null)
+      .map((r) => ComparisonState._apaarStatusKey(r.udise))
+      .toSet();
+
+  Set<String> get aadhaarStatusOptions => _stageThreeBaseRows
+      .where((r) => r.udise != null)
+      .map((r) => ComparisonState._aadhaarStatusKey(r.udise))
+      .toSet();
   String apaarStatusLabel(String key) => key == '__MISSING__' ? 'Not Available' : key == 'GENERATED' ? 'Generated' : key;
   String aadhaarStatusLabel(String key) { switch (key) { case '1': return 'Verified'; case '2': return 'Verification Failed'; case '0': return 'Not Verified'; default: return 'Not Available'; } }
 
