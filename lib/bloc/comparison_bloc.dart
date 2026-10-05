@@ -685,16 +685,16 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   Set<String> get mismatchDiffOptions {
     final options = <String>{};
     for (final row in state.rows) {
-      if (row.type != MatchType.mismatch) continue;
+      if (row.type != MatchType.mismatch) { continue; }
       if (state.sourceFilter == 'PSP' && row.psp == null) { continue; }
-      if (state.sourceFilter == 'UDISE' && row.udise == null) continue;
-      if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) continue;
-      if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) continue;
+      if (state.sourceFilter == 'UDISE' && row.udise == null) { continue; }
+      if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) { continue; }
+      if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) { continue; }
       if (state.classFilter.isNotEmpty) {
         final cls = row.udise != null
             ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '')
             : (row.psp?.classCanonValue ?? '');
-        if (cls != state.classFilter) continue;
+        if (cls != state.classFilter) { continue; }
       }
       options.addAll(row.diffs);
     }
@@ -725,19 +725,19 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   void toggleAadhaarStatusFilter(String value) => add(ComparisonAadhaarStatusFilterToggled(value));
   Iterable<ComparisonRow> get _stageThreeBaseRows sync* {
     for (final row in state.rows) {
-      if (state.sourceFilter == 'PSP' && row.psp == null) continue;
-      if (state.sourceFilter == 'UDISE' && row.udise == null) continue;
-      if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) continue;
-      if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) continue;
+      if (state.sourceFilter == 'PSP' && row.psp == null) { continue; }
+      if (state.sourceFilter == 'UDISE' && row.udise == null) { continue; }
+      if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) { continue; }
+      if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) { continue; }
       if (state.classFilter.isNotEmpty) {
         final cls = row.udise != null
             ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '')
             : (row.psp?.classCanonValue ?? '');
-        if (cls != state.classFilter) continue;
+        if (cls != state.classFilter) { continue; }
       }
-      if (state.statusFilters.contains('MATCHED') && row.type != MatchType.matched) continue;
-      if (state.statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) continue;
-      if (state.statusFilters.contains('RTE') && !ComparisonState._isRte(row)) continue;
+      if (state.statusFilters.contains('MATCHED') && row.type != MatchType.matched) { continue; }
+      if (state.statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) { continue; }
+      if (state.statusFilters.contains('RTE') && !ComparisonState._isRte(row)) { continue; }
       if (state.diffFilters.isNotEmpty &&
           !state.diffFilters.any(row.diffs.contains)) continue;
       yield row;
