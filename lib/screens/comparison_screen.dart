@@ -1225,7 +1225,14 @@ class _StudentRow extends StatelessWidget {
           ),
           _ComparisonFieldRow(label: 'DOB', psp: p?.dob, udise: u?.dob, mismatch: row.diffs.contains('DOB_MISMATCH')),
           _ComparisonFieldRow(label: 'Class', psp: p?.studyingClass, udise: u?.classDesc.isNotEmpty == true ? u?.classDesc : u?.classId, mismatch: row.diffs.contains('CLASS_MISMATCH')),
-          _ComparisonFieldRow(label: 'NIC ID / PEN', psp: p?.nicId, udise: u?.studentCodeNat),
+          _PenApaarFieldRow(
+            psp: p?.nicId,
+            pen: u?.studentCodeNat,
+            apaarId: _rawValue(
+              u?.raw,
+              const ['apaarId', 'APAAR ID', 'APAAR Id', 'apaar_id'],
+            ),
+          ),
           _ComparisonFieldRow(label: 'Father', psp: p?.fatherName, udise: u?.fatherName, mismatch: row.diffs.contains('FATHER_MISMATCH')),
           _ComparisonFieldRow(label: 'Mother', psp: p?.motherName, udise: u?.motherName, mismatch: row.diffs.contains('MOTHER_MISMATCH')),
           _ComparisonFieldRow(label: 'Gender', psp: p?.gender, udise: _genderLabel(u?.gender), mismatch: row.diffs.contains('GENDER_MISMATCH')),
