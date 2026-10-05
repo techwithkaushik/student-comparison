@@ -522,8 +522,23 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   void _onSourceFilter(ComparisonSourceFilterChanged event, Emitter<ComparisonState> emit) => emit(_derive(sourceFilter: event.value));
   void _onStatusFilterToggle(ComparisonStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.statusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(statusFilters: next, filter: 'ALL')); }
   void _onDiffFiltersChanged(ComparisonDiffFiltersChanged event, Emitter<ComparisonState> emit) => emit(_derive(diffFilters: event.values, filter: 'ALL'));
-  void _onApaarStatusToggle(ComparisonApaarStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.apaarStatusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(apaarStatusFilters: next)); }
-  void _onAadhaarStatusToggle(ComparisonAadhaarStatusFilterToggled event, Emitter<ComparisonState> emit) { final next = <String>{...state.aadhaarStatusFilters}; if (!next.add(event.value)) next.remove(event.value); emit(_derive(aadhaarStatusFilters: next)); }
+  void _onApaarStatusToggle(ComparisonApaarStatusFilterToggled event, Emitter<ComparisonState> emit) {
+    // APAAR is a single-select filter: tap the active value to clear it,
+    // otherwise replace the previous value with the newly selected value.
+    final next = state.apaarStatusFilters.contains(event.value)
+        ? <String>{}
+        : <String>{event.value};
+    emit(_derive(apaarStatusFilters: next));
+  }
+
+  void _onAadhaarStatusToggle(ComparisonAadhaarStatusFilterToggled event, Emitter<ComparisonState> emit) {
+    // Aadhaar is a single-select filter: tap the active value to clear it,
+    // otherwise replace the previous value with the newly selected value.
+    final next = state.aadhaarStatusFilters.contains(event.value)
+        ? <String>{}
+        : <String>{event.value};
+    emit(_derive(aadhaarStatusFilters: next));
+  }
   void _onSearch(
     ComparisonSearchChanged event,
     Emitter<ComparisonState> emit,
