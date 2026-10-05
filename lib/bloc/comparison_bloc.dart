@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:async'; // CI validation
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart' show compute;
