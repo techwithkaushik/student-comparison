@@ -117,12 +117,12 @@ class _FilterSheet extends StatelessWidget {
         _Choice('UDISE', Icons.school_rounded, sourceFilter == 'UDISE', () => onSourceChanged('UDISE')),
       ])),
       _Section('Comparison Status', Icons.compare_arrows_rounded, Wrap(spacing: 7, runSpacing: 7, children: [
-        _F('Matched', matchedCount:null, icon:Icons.check_circle_rounded, selected:statusFilters.contains('MATCHED'), onTap:()=>onStatusToggle('MATCHED')),
-        _F('Mismatch', matchedCount:null, icon:Icons.error_rounded, selected:statusFilters.contains('MISMATCH'), onTap:()=>onStatusToggle('MISMATCH')),
-        _F('PSP only', matchedCount:null, icon:Icons.person_add_rounded, selected:statusFilters.contains('PSP_ONLY'), onTap:()=>onStatusToggle('PSP_ONLY')),
-        _F('UDISE only', matchedCount:null, icon:Icons.person_search_rounded, selected:statusFilters.contains('UDISE_ONLY'), onTap:()=>onStatusToggle('UDISE_ONLY')),
-        _F('Remarked', matchedCount:null, icon:Icons.comment_rounded, selected:statusFilters.contains('REMARKED'), onTap:()=>onStatusToggle('REMARKED')),
-        _F('RTE', matchedCount:null, icon:Icons.verified_rounded, selected:statusFilters.contains('RTE'), onTap:()=>onStatusToggle('RTE')),
+        _F(label:'Matched', icon:Icons.check_circle_rounded, selected:statusFilters.contains('MATCHED'), onTap:()=>onStatusToggle('MATCHED')),
+        _F(label:'Mismatch', icon:Icons.error_rounded, selected:statusFilters.contains('MISMATCH'), onTap:()=>onStatusToggle('MISMATCH')),
+        _F(label:'PSP only', icon:Icons.person_add_rounded, selected:statusFilters.contains('PSP_ONLY'), onTap:()=>onStatusToggle('PSP_ONLY')),
+        _F(label:'UDISE only', icon:Icons.person_search_rounded, selected:statusFilters.contains('UDISE_ONLY'), onTap:()=>onStatusToggle('UDISE_ONLY')),
+        _F(label:'Remarked', icon:Icons.comment_rounded, selected:statusFilters.contains('REMARKED'), onTap:()=>onStatusToggle('REMARKED')),
+        _F(label:'RTE', icon:Icons.verified_rounded, selected:statusFilters.contains('RTE'), onTap:()=>onStatusToggle('RTE')),
       ])),
       _Section('Class', Icons.school_rounded, DropdownButtonFormField<String>(
         initialValue: classFilter.isEmpty ? '' : classFilter,
@@ -132,7 +132,7 @@ class _FilterSheet extends StatelessWidget {
       )),
       _Section('Differences', Icons.rule_rounded, Wrap(spacing:7,runSpacing:7,children:diffOptions.entries.map((e)=>FilterChip(
         avatar:Icon(_diffIcon(e.key),size:17), label:Text(e.key == 'AADHAAR_NOT_FOUND' ? 'Aadhaar missing ${e.value}' : '${e.key.replaceAll('_MISMATCH','').replaceAll('_',' ')} ${e.value}'),
-        selected:diffFilters.contains(e.key), onSelected:(_)=>{ final next=<String>{...diffFilters}; if(!next.add(e.key))next.remove(e.key); onDiffChanged(next); },
+        selected:diffFilters.contains(e.key), onSelected:(_) { final next=<String>{...diffFilters}; if(!next.add(e.key))next.remove(e.key); onDiffChanged(next); },
       )).toList())),
       if(apaarStatusOptions.isNotEmpty)_Section('APAAR Status',Icons.badge_rounded,Wrap(spacing:7,runSpacing:7,children:apaarStatusOptions.map((k)=>FilterChip(
         avatar:const Icon(Icons.badge_rounded,size:17),label:Text(apaarStatusLabel(k)),selected:apaarStatusFilters.contains(k),onSelected:(_)=>onApaarToggle(k))).toList())),
