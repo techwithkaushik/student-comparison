@@ -205,6 +205,8 @@ class ComparisonSummarySection extends StatelessWidget {
 
 
 
+}
+
 class _ClassChip extends StatelessWidget {
   final String classFilter;
   final List<String> classes;
