@@ -228,9 +228,10 @@ class ComparisonSummarySection extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final current = <String>{...selected};
+      builder: (context) {
+        var current = <String>{...selected};
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
           return SafeArea(
             child: ListView(
               shrinkWrap: true,
@@ -246,7 +247,13 @@ class ComparisonSummarySection extends StatelessWidget {
                     title == 'APAAR Status' ? Icons.badge_rounded : Icons.fingerprint_rounded,
                     current.contains(key),
                     () {
-                      if (!current.add(key)) current.remove(key);
+                      if (current.contains(key)) {
+                        current.clear();
+                      } else {
+                        current
+                          ..clear()
+                          ..add(key);
+                      }
                       onToggle(key);
                       setSheetState(() {});
                     },
@@ -256,8 +263,9 @@ class ComparisonSummarySection extends StatelessWidget {
               ],
             ),
           );
-        },
-      ),
+          },
+        );
+      },
     );
   }
 }
