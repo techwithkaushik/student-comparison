@@ -1,4 +1,5 @@
 name: Flutter Android
+# CI validation after comparison filter fixes
 
 on:
   workflow_dispatch:
