@@ -117,21 +117,21 @@ class ComparisonState extends Equatable {
       if (sourceFilter == 'UDISE' && !hasUdise) return false;
       if (sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
       if (sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
-      if (statusFilters.isNotEmpty) {
-        final statusMatch = statusFilters.any((value) {
-          switch (value) {
-            case 'MATCHED': return row.type == MatchType.matched;
-            case 'MISMATCH': return row.type == MatchType.mismatch;
-            case 'PSP_ONLY': return row.type == MatchType.notInUdise;
-            case 'UDISE_ONLY': return row.type == MatchType.notInPsp;
-            case 'REMARKED': return immutableRemarks.containsKey(_remarkKey(row));
-            case 'RTE': return _isRte(row);
-            default: return false;
-          }
-        });
-        if (!statusMatch) return false;
+      // Stage 2: MATCHED/MISMATCH is a mutually-exclusive status filter.
+      if (statusFilters.contains('MATCHED') && row.type != MatchType.matched) {
+        return false;
       }
-      if (diffFilters.isNotEmpty && !diffFilters.any((diff) => row.diffs.contains(diff))) return false;
+      if (statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) {
+        return false;
+      }
+      // Stage 3: RTE is applied after source/class + match status.
+      if (statusFilters.contains('RTE') && !_isRte(row)) return false;
+      // Stage 2b: mismatch reasons are applied only to the already filtered
+      // mismatch dataset. Multiple selected reasons are OR'ed.
+      if (diffFilters.isNotEmpty &&
+          !diffFilters.any((diff) => row.diffs.contains(diff))) {
+        return false;
+      }
       if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
       if (aadhaarStatusFilters.isNotEmpty && (!hasUdise || !aadhaarStatusFilters.contains(_aadhaarStatusKey(row.udise)))) return false;
       if (classFilter.isNotEmpty) {
@@ -516,19 +516,56 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
     Emitter<ComparisonState> emit,
   ) {
     if (event.value == state.classFilter) return;
-    emit(_derive(classFilter: event.value));
+    // Source and Class belong to the same first-stage filter group.
+    emit(_derive(
+      classFilter: event.value,
+      sourceFilter: event.value.isEmpty ? state.sourceFilter : 'ALL',
+      diffFilters: const <String>{},
+    ));
   }
 
-  void _onSourceFilter(ComparisonSourceFilterChanged event, Emitter<ComparisonState> emit) => emit(_derive(sourceFilter: event.value));
-  void _onStatusFilterToggle(ComparisonStatusFilterToggled event, Emitter<ComparisonState> emit) {
-    // MATCHED and MISMATCH are mutually exclusive.
-    // Tapping the active status clears it; selecting the other replaces it.
-    final next = state.statusFilters.contains(event.value)
-        ? <String>{}
-        : <String>{event.value};
+  void _onSourceFilter(
+    ComparisonSourceFilterChanged event,
+    Emitter<ComparisonState> emit,
+  ) {
+    emit(_derive(
+      sourceFilter: event.value,
+      classFilter: event.value == 'ALL' ? state.classFilter : '',
+      diffFilters: const <String>{},
+    ));
+  }
+
+  void _onStatusFilterToggle(
+    ComparisonStatusFilterToggled event,
+    Emitter<ComparisonState> emit,
+  ) {
+    final next = <String>{...state.statusFilters};
+    if (event.value == 'RTE') {
+      if (!next.add('RTE')) next.remove('RTE');
+    } else {
+      // MATCHED and MISMATCH are mutually exclusive.
+      if (next.contains(event.value)) {
+        next.remove(event.value);
+      } else {
+        next
+          ..remove('MATCHED')
+          ..remove('MISMATCH')
+          ..add(event.value);
+      }
+      // A previous mismatch-reason selection belongs to the old status.
+      emit(_derive(statusFilters: next, diffFilters: const <String>{}, filter: 'ALL'));
+      return;
+    }
     emit(_derive(statusFilters: next, filter: 'ALL'));
   }
-  void _onDiffFiltersChanged(ComparisonDiffFiltersChanged event, Emitter<ComparisonState> emit) => emit(_derive(diffFilters: event.values, filter: 'ALL'));
+  void _onDiffFiltersChanged(
+    ComparisonDiffFiltersChanged event,
+    Emitter<ComparisonState> emit,
+  ) {
+    // Mismatch reasons are meaningful only while MISMATCH is active.
+    if (!state.statusFilters.contains('MISMATCH')) return;
+    emit(_derive(diffFilters: event.values, filter: 'ALL'));
+  }
   void _onApaarStatusToggle(ComparisonApaarStatusFilterToggled event, Emitter<ComparisonState> emit) {
     // APAAR is a single-select filter: tap the active value to clear it,
     // otherwise replace the previous value with the newly selected value.
@@ -631,6 +668,56 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   Future<void> load({List<ComparisonRow> initialRows = const []}) {
     final c = Completer<void>(); add(ComparisonLoadRequested(initialRows: initialRows, completer: c)); return c.future;
   }
+  static const mismatchDiffOrder = <String>[
+    'NAME_MISMATCH',
+    'FATHER_MISMATCH',
+    'MOTHER_MISMATCH',
+    'DOB_MISMATCH',
+    'CLASS_MISMATCH',
+    'GENDER_MISMATCH',
+    'CATEGORY_MISMATCH',
+    'RELIGION_MISMATCH',
+    'MOBILE_MISMATCH',
+    'AADHAAR_NOT_FOUND',
+    'AADHAAR_MISMATCH',
+  ];
+
+  Set<String> get mismatchDiffOptions {
+    final options = <String>{};
+    for (final row in state.rows) {
+      if (row.type != MatchType.mismatch) continue;
+      if (state.sourceFilter == 'PSP' && row.psp == null) continue;
+      if (state.sourceFilter == 'UDISE' && row.udise == null) continue;
+      if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) continue;
+      if (state.sourceFilter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) continue;
+      if (state.classFilter.isNotEmpty) {
+        final cls = row.udise != null
+            ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '')
+            : (row.psp?.classCanonValue ?? '');
+        if (cls != state.classFilter) continue;
+      }
+      options.addAll(row.diffs);
+    }
+    return mismatchDiffOrder.where(options.contains).toSet();
+  }
+
+  String mismatchDiffLabel(String key) {
+    switch (key) {
+      case 'NAME_MISMATCH': return 'Name';
+      case 'FATHER_MISMATCH': return 'Father Name';
+      case 'MOTHER_MISMATCH': return 'Mother Name';
+      case 'DOB_MISMATCH': return 'DOB';
+      case 'CLASS_MISMATCH': return 'Class';
+      case 'GENDER_MISMATCH': return 'Gender';
+      case 'CATEGORY_MISMATCH': return 'Category';
+      case 'RELIGION_MISMATCH': return 'Religion';
+      case 'MOBILE_MISMATCH': return 'Mobile';
+      case 'AADHAAR_NOT_FOUND': return 'Aadhaar Not Found';
+      case 'AADHAAR_MISMATCH': return 'Aadhaar Mismatch';
+      default: return key;
+    }
+  }
+
   void setSourceFilter(String value) => add(ComparisonSourceFilterChanged(value));
   void toggleStatusFilter(String value) => add(ComparisonStatusFilterToggled(value));
   void setDiffFilters(Set<String> values) => add(ComparisonDiffFiltersChanged(values));
