@@ -330,7 +330,7 @@ class PenApaarFieldRow extends StatelessWidget {
 class AadhaarPreviewRow extends StatelessWidget {
   final ComparisonRow row;
 
-  const AadhaarPreviewRow({required this.row});
+  const AadhaarPreviewRow({super.key, required this.row});
 
   @override
   Widget build(BuildContext context) {
@@ -438,7 +438,7 @@ class AadhaarPreviewRow extends StatelessWidget {
 
 class ComparisonFieldRow extends StatelessWidget {
   final String label; final String? psp; final String? udise; final bool mismatch;
-  const ComparisonFieldRow({required this.label, required this.psp, required this.udise, this.mismatch = false});
+  const ComparisonFieldRow({super.key, required this.label, required this.psp, required this.udise, this.mismatch = false});
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
