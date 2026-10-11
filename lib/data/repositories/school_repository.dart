@@ -33,4 +33,7 @@ class SchoolRepository {
 
   Future<Map<String, int>> getDashboardStats() =>
       _database.getSchoolDashboardStats();
+
+  Future<Map<String, dynamic>> getProfileDashboardStats(String profileId) =>
+      _database.getSchoolProfileDashboardStats(profileId);
 }
