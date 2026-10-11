@@ -168,15 +168,25 @@ class ComparisonState extends Equatable {
         return false;
       }
       if (aadhaarStatusFilters.isNotEmpty &&
-          !aadhaarStatusFilters.any(_aadhaarStatusKeys(row).contains)) return false;
+          !aadhaarStatusFilters.any(_aadhaarStatusKeys(row).contains)) {
+        return false;
+      }
       if (classFilter.isNotEmpty) {
         final cls = hasUdise ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '') : (row.psp?.classCanonValue ?? '');
-        if (cls != classFilter) return false;
+        if (cls != classFilter) {
+          return false;
+        }
       }
       if (statusFilters.isEmpty && diffFilters.isEmpty) {
-        if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) return false;
-        if (filter == 'RTE' && !_isRte(row)) return false;
-        if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
+        if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) {
+          return false;
+        }
+        if (filter == 'RTE' && !_isRte(row)) {
+          return false;
+        }
+        if (filter == 'MATCHED' && row.type != MatchType.matched) {
+          return false;
+        }
         if (filter == 'MISMATCH' &&
             row.type != MatchType.mismatch &&
             !row.diffs.contains('AADHAAR_MISMATCH')) {
