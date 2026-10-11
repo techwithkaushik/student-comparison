@@ -402,6 +402,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+  int _classSortOrder(String rawName) {
+    final name = rawName.trim().toLowerCase();
+    const wordRanks = <String, int>{
+      'pre-primary': 0, 'nursery': 0, 'lkg': 0, 'ukg': 0, 'kindergarten': 0,
+      'first': 1, '1st': 1, 'i': 1,
+      'second': 2, '2nd': 2, 'ii': 2,
+      'third': 3, '3rd': 3, 'iii': 3,
+      'fourth': 4, '4th': 4, 'iv': 4,
+      'fifth': 5, '5th': 5, 'v': 5,
+      'sixth': 6, '6th': 6, 'vi': 6,
+      'seventh': 7, '7th': 7, 'vii': 7,
+      'eighth': 8, '8th': 8, 'viii': 8,
+      'ninth': 9, '9th': 9, 'ix': 9,
+      'tenth': 10, '10th': 10, 'x': 10,
+      'eleventh': 11, '11th': 11, 'xi': 11,
+      'twelfth': 12, '12th': 12, 'xii': 12,
+    };
+    if (wordRanks.containsKey(name)) return wordRanks[name]!;
+    final numeric = RegExp(r'\d+').firstMatch(name);
+    if (numeric != null) return int.parse(numeric.group(0)!);
+    return 1000;
+  }
+
   Widget _schoolDashboard(Map<String, dynamic> profile) {
     final scheme = Theme.of(context).colorScheme;
     return FutureBuilder<Map<String, dynamic>>(
@@ -432,8 +455,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   'udise': row['udise'] as int? ?? 0,
                 })
             .toList()
-          ..sort((a, b) => (int.tryParse(a['name'].toString()) ?? 999)
-              .compareTo(int.tryParse(b['name'].toString()) ?? 999));
+          ..sort((a, b) =>
+              _classSortOrder(a['name'].toString()).compareTo(
+                _classSortOrder(b['name'].toString()),
+              ));
         final total = psp + udise;
         final gap = (psp - udise).abs();
         final dataState = psp > 0 && udise > 0
@@ -503,16 +528,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(child: _metricTile('PSP students', psp, const Color(0xFF3977F6), Icons.people_alt_rounded)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _metricTile('UDISE students', udise, const Color(0xFF9B59D0), Icons.groups_rounded)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _metricTile('Count gap', gap, const Color(0xFFFF9F43), Icons.compare_arrows_rounded)),
                 ],
               ),
               const SizedBox(height: 14),
