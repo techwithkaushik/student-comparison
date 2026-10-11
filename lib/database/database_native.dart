@@ -363,6 +363,39 @@ class AppDatabase {
         .toList();
   }
 
+  /// Returns aggregate counts for the homepage dashboard across all schools.
+  Future<Map<String, int>> getSchoolDashboardStats() async {
+    final db = await database;
+
+    Future<int> count(String table) async {
+      final rows = await db.rawQuery('SELECT COUNT(*) AS total FROM $table');
+      return int.tryParse(rows.first['total']?.toString() ?? '') ?? 0;
+    }
+
+    final completeRows = await db.rawQuery('''
+      SELECT COUNT(*) AS total
+      FROM school_profiles s
+      WHERE EXISTS (
+        SELECT 1 FROM psp_students p
+        WHERE p.school_profile_id = s.id
+      )
+      AND EXISTS (
+        SELECT 1 FROM udise_students u
+        WHERE u.school_profile_id = s.id
+      )
+    ''');
+
+    return {
+      'schools': await count('school_profiles'),
+      'pspStudents': await count('psp_students'),
+      'udiseStudents': await count('udise_students'),
+      'completeSchools': int.tryParse(
+            completeRows.first['total']?.toString() ?? '',
+          ) ??
+          0,
+    };
+  }
+
   Future<Map<String, dynamic>?> getActiveSchoolProfile() async {
     final profiles = await getSchoolProfiles();
     if (profiles.isEmpty) {
