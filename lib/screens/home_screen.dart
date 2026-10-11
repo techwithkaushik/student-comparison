@@ -564,7 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
-                              width: (classes.length * 48.0).clamp(160.0, 900.0),
+                              width: (classes.length * 48.0).clamp(160.0, 900.0).toDouble(),
                               height: 112,
                               child: CustomPaint(
                                 painter: _SchoolClassBarPainter(classes: classes),
@@ -851,7 +851,7 @@ class _SchoolClassBarPainter extends CustomPainter {
       final row = classes[i];
       final psp = row['psp'] as int? ?? 0;
       final udise = row['udise'] as int? ?? 0;
-      final barWidth = (slot * 0.25).clamp(4.0, 13.0);
+      final barWidth = (slot * 0.25).clamp(4.0, 13.0).toDouble();
       final center = left + slot * i + slot / 2;
       final pspHeight = chartHeight * psp / maxValue;
       final udiseHeight = chartHeight * udise / maxValue;
