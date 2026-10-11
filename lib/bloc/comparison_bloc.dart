@@ -693,7 +693,8 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   Set<String> get mismatchDiffOptions {
     final options = <String>{};
     for (final row in state.rows) {
-      if (row.type != MatchType.mismatch) { continue; }
+      if (row.type != MatchType.mismatch &&
+          !row.diffs.contains('AADHAAR_MISMATCH')) { continue; }
       if (state.sourceFilter == 'PSP' && row.psp == null) { continue; }
       if (state.sourceFilter == 'UDISE' && row.udise == null) { continue; }
       if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) { continue; }
