@@ -17,7 +17,22 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<void> _loadProfiles() => context.read<HomeBloc>().load();
+  late Future<Map<String, int>> _dashboardStatsFuture;
+
+  Future<void> _loadProfiles() async {
+    setState(() {
+      _dashboardStatsFuture =
+          context.read<SchoolRepository>().getDashboardStats();
+    });
+    await context.read<HomeBloc>().load();
+  }
+
+  void _refreshDashboardStats() {
+    setState(() {
+      _dashboardStatsFuture =
+          context.read<SchoolRepository>().getDashboardStats();
+    });
+  }
 
   Future<void> _importDatabase() async {
     final appRepository = context.read<AppRepository>();
@@ -62,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       await homeBloc.load();
       if (!mounted) return;
+      _refreshDashboardStats();
 
       messenger.showSnackBar(
         const SnackBar(
@@ -151,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await homeBloc.deleteProfile(profile['id'].toString());
       if (!mounted) return;
+      _refreshDashboardStats();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('School profile deleted successfully.')),
       );
@@ -256,6 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
         udiseCode: values['udiseCode']!,
       );
       if (!mounted) return;
+      _refreshDashboardStats();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(profile == null
@@ -278,6 +296,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _dashboardStatsFuture =
+        context.read<SchoolRepository>().getDashboardStats();
     context.read<HomeBloc>().add(const HomeLoadRequested());
   }
 
@@ -365,6 +385,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                         children: [
+                          _dashboardSection(state.profiles.length),
+                          const SizedBox(height: 18),
                           Container(
                             padding: const EdgeInsets.all(18),
                             decoration: BoxDecoration(
@@ -425,6 +447,122 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
     );
       },
+    );
+  }
+
+  Widget _dashboardSection(int schoolCount) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'School Dashboard',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Overview of student data across all school profiles',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<Map<String, int>>(
+          future: _dashboardStatsFuture,
+          builder: (context, snapshot) {
+            final stats = snapshot.data ?? const <String, int>{};
+            final loading = snapshot.connectionState == ConnectionState.waiting;
+            final items = <({String label, int value, IconData icon, Color color})>[
+              (
+                label: 'Schools',
+                value: schoolCount,
+                icon: Icons.school_rounded,
+                color: scheme.primary,
+              ),
+              (
+                label: 'PSP Students',
+                value: stats['pspStudents'] ?? 0,
+                icon: Icons.people_alt_rounded,
+                color: Colors.teal,
+              ),
+              (
+                label: 'UDISE Students',
+                value: stats['udiseStudents'] ?? 0,
+                icon: Icons.groups_rounded,
+                color: Colors.deepPurple,
+              ),
+              (
+                label: 'Both Data Sets',
+                value: stats['completeSchools'] ?? 0,
+                icon: Icons.verified_rounded,
+                color: Colors.green,
+              ),
+            ];
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 560 ? 4 : 2;
+                final gap = 10.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: items.map((item) {
+                    return SizedBox(
+                      width: width,
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        elevation: 0,
+                        color: scheme.surfaceContainerLow,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: scheme.outlineVariant),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: item.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(item.icon, color: item.color),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                loading ? '—' : item.value.toString(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                item.label,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 
