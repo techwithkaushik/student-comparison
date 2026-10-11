@@ -460,7 +460,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 _classSortOrder(b['name'].toString()),
               ));
         final total = psp + udise;
-        final gap = (psp - udise).abs();
         final dataState = psp > 0 && udise > 0
             ? 'Both datasets available'
             : psp > 0
@@ -604,30 +603,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _metricTile(String label, int value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 17),
-          const SizedBox(height: 7),
-          Text(value.toString(),
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
-          const SizedBox(height: 2),
-          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        ],
-      ),
     );
   }
 
