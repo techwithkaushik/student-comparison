@@ -86,7 +86,7 @@ class ComparisonState extends Equatable {
     if (id.isNotEmpty) return 'GENERATED';
     return '__MISSING__';
   }
-  static String _aadhaarStatusKey(ComparisonRow row) {
+  static Set<String> _aadhaarStatusKeys(ComparisonRow row) {
     final psp = row.psp;
     final udise = row.udise;
     final pspHasAadhaar = psp?.aadhaarLast4.isNotEmpty ?? false;
@@ -94,20 +94,27 @@ class ComparisonState extends Equatable {
     final verificationStatus =
         udise?.raw['uuidStatus']?.toString().trim() ?? '';
 
-    // Failed verification takes priority even if PSP Aadhaar is absent.
-    if (udiseHasAadhaar && verificationStatus == '2') return 'FAILED';
+    final statuses = <String>{};
+    final digitsMismatch = pspHasAadhaar &&
+        udiseHasAadhaar &&
+        psp!.aadhaarLast4 != udise!.uuidLast4;
 
-    // No Aadhaar on either side means not found; this includes UDISE-only or
-    // PSP-only Aadhaar cases as requested.
-    if (!pspHasAadhaar || !udiseHasAadhaar) return 'NOT_FOUND';
-
-    // Verification status 1 means UDISE has verified its Aadhaar; with both
-    // source values present this option takes precedence over digit comparison.
-    if (verificationStatus == '1') return 'VERIFIED';
-
-    if (psp!.aadhaarLast4 != udise!.uuidLast4) return 'MISMATCH';
-    if (verificationStatus == '2') return 'FAILED';
-    return verificationStatus == '0' ? 'NOT_FOUND' : 'NOT_FOUND';
+    // Statuses are multi-label: missing data, verification result, and digit
+    // comparison are independent facts, so one row may match several options.
+    if (!pspHasAadhaar || !udiseHasAadhaar || verificationStatus == '0') {
+      statuses.add('NOT_FOUND');
+    }
+    if (udiseHasAadhaar && verificationStatus == '1') {
+      statuses.add('VERIFIED');
+    }
+    if (udiseHasAadhaar && verificationStatus == '2') {
+      statuses.add('FAILED');
+    }
+    if (digitsMismatch) {
+      statuses.add('MISMATCH');
+    }
+    if (statuses.isEmpty) statuses.add('NOT_FOUND');
+    return statuses;
   }
   static ComparisonState derive({
     required List<ComparisonRow> rows,
@@ -158,7 +165,7 @@ class ComparisonState extends Equatable {
       }
       if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
       if (aadhaarStatusFilters.isNotEmpty &&
-          !aadhaarStatusFilters.contains(_aadhaarStatusKey(row))) return false;
+          !aadhaarStatusFilters.any(_aadhaarStatusKeys(row).contains)) return false;
       if (classFilter.isNotEmpty) {
         final cls = hasUdise ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '') : (row.psp?.classCanonValue ?? '');
         if (cls != classFilter) return false;
