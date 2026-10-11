@@ -670,10 +670,14 @@ class AppDatabase {
     final schoolPspId = _text(profile['pspCode']);
 
     await db.transaction((txn) async {
+      // Remove all rows belonging to this school, including legacy rows
+      // that were stored with a missing/stale school_profile_id but still
+      // carry this school's PSP code. Otherwise removed students survive an
+      // import and the visible count never decreases.
       await txn.delete(
         'psp_students',
-        where: 'school_profile_id = ?',
-        whereArgs: [schoolProfileId],
+        where: 'school_profile_id = ? OR LOWER(school_psp_id) = LOWER(?)',
+        whereArgs: [schoolProfileId, schoolPspId],
       );
 
       final batch = txn.batch();
@@ -716,10 +720,12 @@ class AppDatabase {
     final schoolUdiseCode = _text(profile['udiseCode']);
 
     await db.transaction((txn) async {
+      // Include legacy/unlinked rows for this UDISE code so a replace
+      // import truly reflects the selected JSON file's student count.
       await txn.delete(
         'udise_students',
-        where: 'school_profile_id = ?',
-        whereArgs: [schoolProfileId],
+        where: 'school_profile_id = ? OR TRIM(school_udise_code) = TRIM(?)',
+        whereArgs: [schoolProfileId, schoolUdiseCode],
       );
 
       final batch = txn.batch();
