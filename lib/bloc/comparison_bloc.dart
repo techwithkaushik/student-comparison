@@ -163,7 +163,10 @@ class ComparisonState extends Equatable {
           !diffFilters.any((diff) => row.diffs.contains(diff))) {
         return false;
       }
-      if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
+      if (apaarStatusFilters.isNotEmpty &&
+          (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) {
+        return false;
+      }
       if (aadhaarStatusFilters.isNotEmpty &&
           !aadhaarStatusFilters.any(_aadhaarStatusKeys(row).contains)) return false;
       if (classFilter.isNotEmpty) {
@@ -176,7 +179,9 @@ class ComparisonState extends Equatable {
         if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
         if (filter == 'MISMATCH' &&
             row.type != MatchType.mismatch &&
-            !row.diffs.contains('AADHAAR_MISMATCH')) return false;
+            !row.diffs.contains('AADHAAR_MISMATCH')) {
+          return false;
+        }
         if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
         if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
         if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) return false;
