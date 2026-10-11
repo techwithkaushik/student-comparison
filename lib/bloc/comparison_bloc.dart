@@ -121,7 +121,13 @@ class ComparisonState extends Equatable {
       if (statusFilters.contains('MATCHED') && row.type != MatchType.matched) {
         return false;
       }
-      if (statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) {
+      // Show Aadhaar verification discrepancies in the MISMATCH view too,
+      // even when the core identity is otherwise matched. Aadhaar remains an
+      // informational verification field and does not reclassify identity.
+      final hasAadhaarMismatch = row.diffs.contains('AADHAAR_MISMATCH');
+      if (statusFilters.contains('MISMATCH') &&
+          row.type != MatchType.mismatch &&
+          !hasAadhaarMismatch) {
         return false;
       }
       // Stage 3: RTE is applied after source/class + match status.
@@ -142,7 +148,9 @@ class ComparisonState extends Equatable {
         if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) return false;
         if (filter == 'RTE' && !_isRte(row)) return false;
         if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
-        if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
+        if (filter == 'MISMATCH' &&
+            row.type != MatchType.mismatch &&
+            !row.diffs.contains('AADHAAR_MISMATCH')) return false;
         if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
         if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
         if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) return false;
