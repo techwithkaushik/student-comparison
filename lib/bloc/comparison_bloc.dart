@@ -86,10 +86,28 @@ class ComparisonState extends Equatable {
     if (id.isNotEmpty) return 'GENERATED';
     return '__MISSING__';
   }
-  static String _aadhaarStatusKey(UdiseStudent? student) {
-    if (student == null) return '__MISSING__';
-    final status = student.raw['uuidStatus']?.toString().trim() ?? '';
-    return status.isEmpty ? '__MISSING__' : status;
+  static String _aadhaarStatusKey(ComparisonRow row) {
+    final psp = row.psp;
+    final udise = row.udise;
+    final pspHasAadhaar = psp?.aadhaarLast4.isNotEmpty ?? false;
+    final udiseHasAadhaar = udise?.uuidLast4.isNotEmpty ?? false;
+    final verificationStatus =
+        udise?.raw['uuidStatus']?.toString().trim() ?? '';
+
+    // Failed verification takes priority even if PSP Aadhaar is absent.
+    if (udiseHasAadhaar && verificationStatus == '2') return 'FAILED';
+
+    // No Aadhaar on either side means not found; this includes UDISE-only or
+    // PSP-only Aadhaar cases as requested.
+    if (!pspHasAadhaar || !udiseHasAadhaar) return 'NOT_FOUND';
+
+    // Verification status 1 means UDISE has verified its Aadhaar; with both
+    // source values present this option takes precedence over digit comparison.
+    if (verificationStatus == '1') return 'VERIFIED';
+
+    if (psp!.aadhaarLast4 != udise!.uuidLast4) return 'MISMATCH';
+    if (verificationStatus == '2') return 'FAILED';
+    return verificationStatus == '0' ? 'NOT_FOUND' : 'NOT_FOUND';
   }
   static ComparisonState derive({
     required List<ComparisonRow> rows,
@@ -139,7 +157,8 @@ class ComparisonState extends Equatable {
         return false;
       }
       if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
-      if (aadhaarStatusFilters.isNotEmpty && (!hasUdise || !aadhaarStatusFilters.contains(_aadhaarStatusKey(row.udise)))) return false;
+      if (aadhaarStatusFilters.isNotEmpty &&
+          !aadhaarStatusFilters.contains(_aadhaarStatusKey(row))) return false;
       if (classFilter.isNotEmpty) {
         final cls = hasUdise ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '') : (row.psp?.classCanonValue ?? '');
         if (cls != classFilter) return false;
@@ -758,12 +777,22 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       .map((r) => ComparisonState._apaarStatusKey(r.udise))
       .toSet();
 
-  Set<String> get aadhaarStatusOptions => _stageThreeBaseRows
-      .where((r) => r.udise != null)
-      .map((r) => ComparisonState._aadhaarStatusKey(r.udise))
-      .toSet();
+  Set<String> get aadhaarStatusOptions => const {
+        'VERIFIED',
+        'NOT_FOUND',
+        'FAILED',
+        'MISMATCH',
+      };
   String apaarStatusLabel(String key) => key == '__MISSING__' ? 'Not Available' : key == 'GENERATED' ? 'Generated' : key;
-  String aadhaarStatusLabel(String key) { switch (key) { case '1': return 'Verified'; case '2': return 'Verification Failed'; case '0': return 'Not Verified'; default: return 'Not Available'; } }
+  String aadhaarStatusLabel(String key) {
+    switch (key) {
+      case 'VERIFIED': return 'Verified';
+      case 'NOT_FOUND': return 'Not Found';
+      case 'FAILED': return 'Failed';
+      case 'MISMATCH': return 'Mismatch';
+      default: return key;
+    }
+  }
 
   void setFilter(String value) => add(ComparisonFilterChanged(value));
   void toggleDiffFilter(String diff) => add(ComparisonDiffFilterToggled(diff));
