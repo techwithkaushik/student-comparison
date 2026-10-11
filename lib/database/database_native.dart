@@ -396,6 +396,63 @@ class AppDatabase {
     };
   }
 
+
+  /// Returns school-specific chart data for the homepage school card.
+  Future<Map<String, dynamic>> getSchoolProfileDashboardStats(
+    String profileId,
+  ) async {
+    final db = await database;
+    Future<int> count(String table) async {
+      final rows = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM $table WHERE school_profile_id = ?',
+        [profileId],
+      );
+      return int.tryParse(rows.first['total']?.toString() ?? '') ?? 0;
+    }
+
+    final pspRows = await db.rawQuery('''
+      SELECT COALESCE(NULLIF(TRIM(studying_class), ''), 'Unspecified') AS class_name,
+             COUNT(*) AS total
+      FROM psp_students
+      WHERE school_profile_id = ?
+      GROUP BY class_name
+    ''', [profileId]);
+    final udiseRows = await db.rawQuery('''
+      SELECT COALESCE(NULLIF(TRIM(class_desc), ''), NULLIF(TRIM(class_id), ''), 'Unspecified') AS class_name,
+             COUNT(*) AS total
+      FROM udise_students
+      WHERE school_profile_id = ?
+      GROUP BY class_name
+    ''', [profileId]);
+
+    final pspByClass = <String, int>{
+      for (final row in pspRows)
+        _text(row['class_name']): int.tryParse(row['total']?.toString() ?? '') ?? 0,
+    };
+    final udiseByClass = <String, int>{
+      for (final row in udiseRows)
+        _text(row['class_name']): int.tryParse(row['total']?.toString() ?? '') ?? 0,
+    };
+    final classNames = <String>{...pspByClass.keys, ...udiseByClass.keys}.toList()
+      ..sort((a, b) {
+        final ai = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), '')) ?? 999;
+        final bi = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), '')) ?? 999;
+        return ai != bi ? ai.compareTo(bi) : a.compareTo(b);
+      });
+    return {
+      'pspStudents': await count('psp_students'),
+      'udiseStudents': await count('udise_students'),
+      'classes': [
+        for (final name in classNames)
+          {
+            'name': name,
+            'psp': pspByClass[name] ?? 0,
+            'udise': udiseByClass[name] ?? 0,
+          },
+      ],
+    };
+  }
+
   Future<Map<String, dynamic>?> getActiveSchoolProfile() async {
     final profiles = await getSchoolProfiles();
     if (profiles.isEmpty) {
