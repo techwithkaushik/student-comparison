@@ -5,9 +5,9 @@ String _aadhaarState(PspStudent p, UdiseStudent u) {
   final pa = p.aadhaarLast4.isNotEmpty;
   final ua = u.uuidLast4.isNotEmpty;
 
-  if (!pa && !ua) return 'NOT_FOUND';
-  if (pa != ua) return 'MISMATCH';
-
+  // A missing Aadhaar on either source is a "not found" condition, not a
+  // mismatch. Only compare the last four digits when both sources have it.
+  if (!pa || !ua) return 'NOT_FOUND';
   return p.aadhaarLast4 == u.uuidLast4 ? 'MATCH' : 'MISMATCH';
 }
 
