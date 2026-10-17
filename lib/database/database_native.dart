@@ -363,6 +363,96 @@ class AppDatabase {
         .toList();
   }
 
+  /// Returns aggregate counts for the homepage dashboard across all schools.
+  Future<Map<String, int>> getSchoolDashboardStats() async {
+    final db = await database;
+
+    Future<int> count(String table) async {
+      final rows = await db.rawQuery('SELECT COUNT(*) AS total FROM $table');
+      return int.tryParse(rows.first['total']?.toString() ?? '') ?? 0;
+    }
+
+    final completeRows = await db.rawQuery('''
+      SELECT COUNT(*) AS total
+      FROM school_profiles s
+      WHERE EXISTS (
+        SELECT 1 FROM psp_students p
+        WHERE p.school_profile_id = s.id
+      )
+      AND EXISTS (
+        SELECT 1 FROM udise_students u
+        WHERE u.school_profile_id = s.id
+      )
+    ''');
+
+    return {
+      'schools': await count('school_profiles'),
+      'pspStudents': await count('psp_students'),
+      'udiseStudents': await count('udise_students'),
+      'completeSchools': int.tryParse(
+            completeRows.first['total']?.toString() ?? '',
+          ) ??
+          0,
+    };
+  }
+
+
+  /// Returns school-specific chart data for the homepage school card.
+  Future<Map<String, dynamic>> getSchoolProfileDashboardStats(
+    String profileId,
+  ) async {
+    final db = await database;
+    Future<int> count(String table) async {
+      final rows = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM $table WHERE school_profile_id = ?',
+        [profileId],
+      );
+      return int.tryParse(rows.first['total']?.toString() ?? '') ?? 0;
+    }
+
+    final pspRows = await db.rawQuery('''
+      SELECT COALESCE(NULLIF(TRIM(studying_class), ''), 'Unspecified') AS class_name,
+             COUNT(*) AS total
+      FROM psp_students
+      WHERE school_profile_id = ?
+      GROUP BY class_name
+    ''', [profileId]);
+    final udiseRows = await db.rawQuery('''
+      SELECT COALESCE(NULLIF(TRIM(class_desc), ''), NULLIF(TRIM(class_id), ''), 'Unspecified') AS class_name,
+             COUNT(*) AS total
+      FROM udise_students
+      WHERE school_profile_id = ?
+      GROUP BY class_name
+    ''', [profileId]);
+
+    final pspByClass = <String, int>{
+      for (final row in pspRows)
+        _text(row['class_name']): int.tryParse(row['total']?.toString() ?? '') ?? 0,
+    };
+    final udiseByClass = <String, int>{
+      for (final row in udiseRows)
+        _text(row['class_name']): int.tryParse(row['total']?.toString() ?? '') ?? 0,
+    };
+    final classNames = <String>{...pspByClass.keys, ...udiseByClass.keys}.toList()
+      ..sort((a, b) {
+        final ai = int.tryParse(a.replaceAll(RegExp(r'[^0-9]'), '')) ?? 999;
+        final bi = int.tryParse(b.replaceAll(RegExp(r'[^0-9]'), '')) ?? 999;
+        return ai != bi ? ai.compareTo(bi) : a.compareTo(b);
+      });
+    return {
+      'pspStudents': await count('psp_students'),
+      'udiseStudents': await count('udise_students'),
+      'classes': [
+        for (final name in classNames)
+          {
+            'name': name,
+            'psp': pspByClass[name] ?? 0,
+            'udise': udiseByClass[name] ?? 0,
+          },
+      ],
+    };
+  }
+
   Future<Map<String, dynamic>?> getActiveSchoolProfile() async {
     final profiles = await getSchoolProfiles();
     if (profiles.isEmpty) {
@@ -580,10 +670,14 @@ class AppDatabase {
     final schoolPspId = _text(profile['pspCode']);
 
     await db.transaction((txn) async {
+      // Remove all rows belonging to this school, including legacy rows
+      // that were stored with a missing/stale school_profile_id but still
+      // carry this school's PSP code. Otherwise removed students survive an
+      // import and the visible count never decreases.
       await txn.delete(
         'psp_students',
-        where: 'school_profile_id = ?',
-        whereArgs: [schoolProfileId],
+        where: 'school_profile_id = ? OR LOWER(school_psp_id) = LOWER(?)',
+        whereArgs: [schoolProfileId, schoolPspId],
       );
 
       final batch = txn.batch();
@@ -626,10 +720,12 @@ class AppDatabase {
     final schoolUdiseCode = _text(profile['udiseCode']);
 
     await db.transaction((txn) async {
+      // Include legacy/unlinked rows for this UDISE code so a replace
+      // import truly reflects the selected JSON file's student count.
       await txn.delete(
         'udise_students',
-        where: 'school_profile_id = ?',
-        whereArgs: [schoolProfileId],
+        where: 'school_profile_id = ? OR TRIM(school_udise_code) = TRIM(?)',
+        whereArgs: [schoolProfileId, schoolUdiseCode],
       );
 
       final batch = txn.batch();

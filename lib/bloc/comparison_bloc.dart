@@ -86,10 +86,35 @@ class ComparisonState extends Equatable {
     if (id.isNotEmpty) return 'GENERATED';
     return '__MISSING__';
   }
-  static String _aadhaarStatusKey(UdiseStudent? student) {
-    if (student == null) return '__MISSING__';
-    final status = student.raw['uuidStatus']?.toString().trim() ?? '';
-    return status.isEmpty ? '__MISSING__' : status;
+  static Set<String> _aadhaarStatusKeys(ComparisonRow row) {
+    final psp = row.psp;
+    final udise = row.udise;
+    final pspHasAadhaar = psp?.aadhaarLast4.isNotEmpty ?? false;
+    final udiseHasAadhaar = udise?.uuidLast4.isNotEmpty ?? false;
+    final verificationStatus =
+        udise?.raw['uuidStatus']?.toString().trim() ?? '';
+
+    final statuses = <String>{};
+    final digitsMismatch = pspHasAadhaar &&
+        udiseHasAadhaar &&
+        psp!.aadhaarLast4 != udise!.uuidLast4;
+
+    // Statuses are multi-label: missing data, verification result, and digit
+    // comparison are independent facts, so one row may match several options.
+    if (!pspHasAadhaar || !udiseHasAadhaar || verificationStatus == '0') {
+      statuses.add('NOT_FOUND');
+    }
+    if (udiseHasAadhaar && verificationStatus == '1') {
+      statuses.add('VERIFIED');
+    }
+    if (udiseHasAadhaar && verificationStatus == '2') {
+      statuses.add('FAILED');
+    }
+    if (digitsMismatch) {
+      statuses.add('MISMATCH');
+    }
+    if (statuses.isEmpty) statuses.add('NOT_FOUND');
+    return statuses;
   }
   static ComparisonState derive({
     required List<ComparisonRow> rows,
@@ -121,7 +146,13 @@ class ComparisonState extends Equatable {
       if (statusFilters.contains('MATCHED') && row.type != MatchType.matched) {
         return false;
       }
-      if (statusFilters.contains('MISMATCH') && row.type != MatchType.mismatch) {
+      // Show Aadhaar verification discrepancies in the MISMATCH view too,
+      // even when the core identity is otherwise matched. Aadhaar remains an
+      // informational verification field and does not reclassify identity.
+      final hasAadhaarMismatch = row.diffs.contains('AADHAAR_MISMATCH');
+      if (statusFilters.contains('MISMATCH') &&
+          row.type != MatchType.mismatch &&
+          !hasAadhaarMismatch) {
         return false;
       }
       // Stage 3: RTE is applied after source/class + match status.
@@ -132,8 +163,14 @@ class ComparisonState extends Equatable {
           !diffFilters.any((diff) => row.diffs.contains(diff))) {
         return false;
       }
-      if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
-      if (aadhaarStatusFilters.isNotEmpty && (!hasUdise || !aadhaarStatusFilters.contains(_aadhaarStatusKey(row.udise)))) return false;
+      if (apaarStatusFilters.isNotEmpty &&
+          (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) {
+        return false;
+      }
+      if (aadhaarStatusFilters.isNotEmpty &&
+          !aadhaarStatusFilters.any(_aadhaarStatusKeys(row).contains)) {
+        return false;
+      }
       // PSP is the authoritative source for class filtering. A matched student's
       // UDISE class may differ, but that must not move the student into another
       // class bucket or hide them from the PSP class selected by the user.
@@ -142,10 +179,20 @@ class ComparisonState extends Equatable {
         if (cls != classFilter) return false;
       }
       if (statusFilters.isEmpty && diffFilters.isEmpty) {
-        if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) return false;
-        if (filter == 'RTE' && !_isRte(row)) return false;
-        if (filter == 'MATCHED' && row.type != MatchType.matched) return false;
-        if (filter == 'MISMATCH' && row.type != MatchType.mismatch) return false;
+        if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) {
+          return false;
+        }
+        if (filter == 'RTE' && !_isRte(row)) {
+          return false;
+        }
+        if (filter == 'MATCHED' && row.type != MatchType.matched) {
+          return false;
+        }
+        if (filter == 'MISMATCH' &&
+            row.type != MatchType.mismatch &&
+            !row.diffs.contains('AADHAAR_MISMATCH')) {
+          return false;
+        }
         if (filter == 'PSP_ONLY' && row.type != MatchType.notInUdise) return false;
         if (filter == 'UDISE_ONLY' && row.type != MatchType.notInPsp) return false;
         if (filter.startsWith('DIFF:') && !row.diffs.contains(filter.substring(5))) return false;
@@ -688,7 +735,8 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
   Set<String> get mismatchDiffOptions {
     final options = <String>{};
     for (final row in state.rows) {
-      if (row.type != MatchType.mismatch) { continue; }
+      if (row.type != MatchType.mismatch &&
+          !row.diffs.contains('AADHAAR_MISMATCH')) { continue; }
       if (state.sourceFilter == 'PSP' && row.psp == null) { continue; }
       if (state.sourceFilter == 'UDISE' && row.udise == null) { continue; }
       if (state.sourceFilter == 'PSP_ONLY' && row.type != MatchType.notInUdise) { continue; }
@@ -752,12 +800,22 @@ class ComparisonBloc extends Bloc<ComparisonEvent, ComparisonState> {
       .map((r) => ComparisonState._apaarStatusKey(r.udise))
       .toSet();
 
-  Set<String> get aadhaarStatusOptions => _stageThreeBaseRows
-      .where((r) => r.udise != null)
-      .map((r) => ComparisonState._aadhaarStatusKey(r.udise))
-      .toSet();
+  Set<String> get aadhaarStatusOptions => const {
+        'VERIFIED',
+        'NOT_FOUND',
+        'FAILED',
+        'MISMATCH',
+      };
   String apaarStatusLabel(String key) => key == '__MISSING__' ? 'Not Available' : key == 'GENERATED' ? 'Generated' : key;
-  String aadhaarStatusLabel(String key) { switch (key) { case '1': return 'Verified'; case '2': return 'Verification Failed'; case '0': return 'Not Verified'; default: return 'Not Available'; } }
+  String aadhaarStatusLabel(String key) {
+    switch (key) {
+      case 'VERIFIED': return 'Verified';
+      case 'NOT_FOUND': return 'Not Found';
+      case 'FAILED': return 'Failed';
+      case 'MISMATCH': return 'Mismatch';
+      default: return key;
+    }
+  }
 
   void setFilter(String value) => add(ComparisonFilterChanged(value));
   void toggleDiffFilter(String diff) => add(ComparisonDiffFilterToggled(diff));

@@ -17,7 +17,28 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<void> _loadProfiles() => context.read<HomeBloc>().load();
+  final Map<String, Future<Map<String, dynamic>>> _profileDashboardFutures = {};
+
+  Future<void> _loadProfiles() async {
+    _profileDashboardFutures.clear();
+    await context.read<HomeBloc>().load();
+    if (mounted) setState(() {});
+  }
+
+  void _refreshDashboardStats() {
+    _profileDashboardFutures.clear();
+    if (mounted) setState(() {});
+  }
+
+  Future<Map<String, dynamic>> _profileDashboardFuture(
+    Map<String, dynamic> profile,
+  ) {
+    final id = profile['id']?.toString() ?? '';
+    return _profileDashboardFutures.putIfAbsent(
+      id,
+      () => context.read<SchoolRepository>().getProfileDashboardStats(id),
+    );
+  }
 
   Future<void> _importDatabase() async {
     final appRepository = context.read<AppRepository>();
@@ -62,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       await homeBloc.load();
       if (!mounted) return;
+      _refreshDashboardStats();
 
       messenger.showSnackBar(
         const SnackBar(
@@ -151,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await homeBloc.deleteProfile(profile['id'].toString());
       if (!mounted) return;
+      _refreshDashboardStats();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('School profile deleted successfully.')),
       );
@@ -256,6 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
         udiseCode: values['udiseCode']!,
       );
       if (!mounted) return;
+      _refreshDashboardStats();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(profile == null
@@ -365,59 +389,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  scheme.primaryContainer,
-                                  scheme.secondaryContainer,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 54,
-                                  height: 54,
-                                  decoration: BoxDecoration(
-                                    color: scheme.surface.withValues(alpha: 0.8),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Icon(
-                                    Icons.account_balance_rounded,
-                                    color: scheme.primary,
-                                    size: 30,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Your schools',
-                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${state.profiles.length} school profile${state.profiles.length == 1 ? '' : 's'} · Choose a school to compare its data',
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 18),
                           ...state.profiles.map((profile) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.only(bottom: 14),
                                 child: _profileCard(profile, scheme),
                               )),
                         ],
@@ -425,6 +398,246 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
     );
       },
+    );
+  }
+
+
+  int _classSortOrder(String rawName) {
+    final name = rawName.trim().toLowerCase();
+    const wordRanks = <String, int>{
+      'pre-primary': 0, 'nursery': 0, 'lkg': 0, 'ukg': 0, 'kindergarten': 0,
+      'first': 1, '1st': 1, 'i': 1,
+      'second': 2, '2nd': 2, 'ii': 2,
+      'third': 3, '3rd': 3, 'iii': 3,
+      'fourth': 4, '4th': 4, 'iv': 4,
+      'fifth': 5, '5th': 5, 'v': 5,
+      'sixth': 6, '6th': 6, 'vi': 6,
+      'seventh': 7, '7th': 7, 'vii': 7,
+      'eighth': 8, '8th': 8, 'viii': 8,
+      'ninth': 9, '9th': 9, 'ix': 9,
+      'tenth': 10, '10th': 10, 'x': 10,
+      'eleventh': 11, '11th': 11, 'xi': 11,
+      'twelfth': 12, '12th': 12, 'xii': 12,
+    };
+    if (wordRanks.containsKey(name)) return wordRanks[name]!;
+    final numeric = RegExp(r'\d+').firstMatch(name);
+    if (numeric != null) return int.parse(numeric.group(0)!);
+    return 1000;
+  }
+
+  Widget _schoolDashboard(Map<String, dynamic> profile) {
+    final scheme = Theme.of(context).colorScheme;
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _profileDashboardFuture(profile),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+        if (snapshot.hasError) {
+          return Text(
+            'Could not load school analytics',
+            style: TextStyle(color: scheme.error, fontSize: 12),
+          );
+        }
+        final stats = snapshot.data ?? const <String, dynamic>{};
+        final psp = stats['pspStudents'] as int? ?? 0;
+        final udise = stats['udiseStudents'] as int? ?? 0;
+        final rawClasses = stats['classes'] as List<dynamic>? ?? const [];
+        final classes = rawClasses
+            .whereType<Map>()
+            .map((row) => <String, dynamic>{
+                  'name': row['name']?.toString() ?? '—',
+                  'psp': row['psp'] as int? ?? 0,
+                  'udise': row['udise'] as int? ?? 0,
+                })
+            .toList()
+          ..sort((a, b) =>
+              _classSortOrder(a['name'].toString()).compareTo(
+                _classSortOrder(b['name'].toString()),
+              ));
+        final total = psp + udise;
+        final dataState = psp > 0 && udise > 0
+            ? 'Both datasets available'
+            : psp > 0
+                ? 'UDISE data pending'
+                : udise > 0
+                    ? 'PSP data pending'
+                    : 'No student data imported';
+
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                scheme.primaryContainer.withValues(alpha: 0.38),
+                scheme.tertiaryContainer.withValues(alpha: 0.28),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.65)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.insights_rounded, color: scheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('School analytics',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        const SizedBox(height: 2),
+                        Text(dataState,
+                            style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: psp > 0 && udise > 0
+                          ? Colors.green.withValues(alpha: 0.13)
+                          : Colors.orange.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      psp > 0 && udise > 0 ? 'READY' : 'INCOMPLETE',
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.w900,
+                        color: psp > 0 && udise > 0 ? Colors.green.shade800 : Colors.orange.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final stacked = constraints.maxWidth < 350;
+                  final pie = _chartPanel(
+                    title: 'DATA SHARE',
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 94,
+                          height: 94,
+                          child: CustomPaint(
+                            painter: _SchoolDonutPainter(psp: psp, udise: udise),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('$total', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+                                  const Text('records', style: TextStyle(fontSize: 9)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _legendDot(const Color(0xFF3977F6), 'PSP', psp),
+                              const SizedBox(height: 9),
+                              _legendDot(const Color(0xFF9B59D0), 'UDISE', udise),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                  final bars = _chartPanel(
+                    title: 'CLASS-WISE STUDENTS',
+                    child: classes.isEmpty
+                        ? const SizedBox(
+                            height: 94,
+                            child: Center(child: Text('Import data to view class chart', style: TextStyle(fontSize: 11))),
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: (classes.length * 48.0).clamp(160.0, 900.0).toDouble(),
+                              height: 112,
+                              child: CustomPaint(
+                                painter: _SchoolClassBarPainter(classes: classes),
+                              ),
+                            ),
+                          ),
+                  );
+                  if (stacked) {
+                    return Column(children: [pie, const SizedBox(height: 10), bars]);
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 4, child: pie),
+                      const SizedBox(width: 10),
+                      Expanded(flex: 6, child: bars),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _chartPanel({required String title, required Widget child}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(
+            fontSize: 9, letterSpacing: 0.8, fontWeight: FontWeight.w900,
+            color: scheme.onSurfaceVariant,
+          )),
+          const SizedBox(height: 9),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _legendDot(Color color, String label, int value) {
+    return Row(
+      children: [
+        Container(width: 9, height: 9,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
+        Text(value.toString(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+      ],
     );
   }
 
@@ -487,6 +700,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _codeLine(Icons.badge_outlined, 'PSP Code', profile['pspCode']?.toString() ?? ''),
               const SizedBox(height: 8),
               _codeLine(Icons.confirmation_number_outlined, 'UDISE Code', profile['udiseCode']?.toString() ?? ''),
+              const SizedBox(height: 14),
+              _schoolDashboard(profile),
               const SizedBox(height: 14),
               Align(
                 alignment: Alignment.centerRight,
@@ -557,4 +772,99 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+
+class _SchoolDonutPainter extends CustomPainter {
+  final int psp;
+  final int udise;
+
+  const _SchoolDonutPainter({required this.psp, required this.udise});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final base = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 13
+      ..color = const Color(0xFFE4E8F0);
+    canvas.drawArc(rect.deflate(8), 0, 6.28318, false, base);
+    final total = psp + udise;
+    if (total == 0) return;
+    final pspPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt
+      ..strokeWidth = 13
+      ..color = const Color(0xFF3977F6);
+    final udisePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.butt
+      ..strokeWidth = 13
+      ..color = const Color(0xFF9B59D0);
+    final start = -1.570796;
+    final pspSweep = 6.28318 * psp / total;
+    canvas.drawArc(rect.deflate(8), start, pspSweep, false, pspPaint);
+    canvas.drawArc(rect.deflate(8), start + pspSweep, 6.28318 - pspSweep, false, udisePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SchoolDonutPainter oldDelegate) =>
+      oldDelegate.psp != psp || oldDelegate.udise != udise;
+}
+
+class _SchoolClassBarPainter extends CustomPainter {
+  final List<Map<String, dynamic>> classes;
+
+  const _SchoolClassBarPainter({required this.classes});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const left = 4.0;
+    const bottom = 22.0;
+    const top = 8.0;
+    final chartHeight = size.height - bottom - top;
+    final maxValue = classes.fold<int>(1, (max, row) {
+      final psp = row['psp'] as int? ?? 0;
+      final udise = row['udise'] as int? ?? 0;
+      return [max, psp, udise].reduce((a, b) => a > b ? a : b);
+    });
+    final textStyle = const TextStyle(fontSize: 9, color: Color(0xFF667085));
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE8ECF3)
+      ..strokeWidth = 1;
+    for (var i = 0; i < 3; i++) {
+      final y = top + chartHeight * i / 2;
+      canvas.drawLine(Offset(left, y), Offset(size.width, y), gridPaint);
+    }
+    final slot = (size.width - left) / classes.length;
+    for (var i = 0; i < classes.length; i++) {
+      final row = classes[i];
+      final psp = row['psp'] as int? ?? 0;
+      final udise = row['udise'] as int? ?? 0;
+      final barWidth = (slot * 0.25).clamp(4.0, 13.0).toDouble();
+      final center = left + slot * i + slot / 2;
+      final pspHeight = chartHeight * psp / maxValue;
+      final udiseHeight = chartHeight * udise / maxValue;
+      final pspRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(center - barWidth - 1, top + chartHeight - pspHeight, barWidth, pspHeight),
+        const Radius.circular(3),
+      );
+      final udiseRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(center + 1, top + chartHeight - udiseHeight, barWidth, udiseHeight),
+        const Radius.circular(3),
+      );
+      canvas.drawRRect(pspRect, Paint()..color = const Color(0xFF3977F6));
+      canvas.drawRRect(udiseRect, Paint()..color = const Color(0xFF9B59D0));
+      final tp = TextPainter(
+        text: TextSpan(text: row['name']?.toString() ?? '', style: textStyle),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout(maxWidth: slot);
+      tp.paint(canvas, Offset(center - tp.width / 2, size.height - 15));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SchoolClassBarPainter oldDelegate) =>
+      oldDelegate.classes != classes;
 }

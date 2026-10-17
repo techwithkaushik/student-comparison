@@ -95,7 +95,6 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
       - name: Verify APK signature
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           set -e
           APK="build/app/outputs/flutter-apk/app-release.apk"
@@ -104,7 +103,6 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
           "$APKSIGNER" verify --verbose "$APK"
       - name: Upload signed APK
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: student-comparison-arm32-signed
