@@ -537,14 +537,32 @@ class _HomeScreenState extends State<HomeScreen> {
         final psp = stats['pspStudents'] as int? ?? 0;
         final udise = stats['udiseStudents'] as int? ?? 0;
         final rawClasses = stats['classes'] as List<dynamic>? ?? const [];
-        final classes = rawClasses
-            .whereType<Map>()
-            .map((row) => <String, dynamic>{
-                  'name': row['name']?.toString() ?? '—',
-                  'psp': row['psp'] as int? ?? 0,
-                  'udise': row['udise'] as int? ?? 0,
-                })
-            .toList()
+        // PSP and UDISE often spell the same grade differently (First, I, 1).
+        // Merge numbered grades for this visualization so aliases do not become
+        // separate bars or inflate the data-quality mismatch count.
+        const canonicalClassNames = <int, String>{
+          1: 'First', 2: 'Second', 3: 'Third', 4: 'Fourth',
+          5: 'Fifth', 6: 'Sixth', 7: 'Seventh', 8: 'Eighth',
+          9: 'Ninth', 10: 'Tenth', 11: 'Eleventh', 12: 'Twelfth',
+        };
+        final classGroups = <String, Map<String, dynamic>>{};
+        for (final rawRow in rawClasses.whereType<Map>()) {
+          final name = rawRow['name']?.toString().trim() ?? '—';
+          final rank = _classSortOrder(name);
+          final key = rank >= 1 && rank <= 12
+              ? 'grade:$rank'
+              : 'name:${name.toLowerCase()}';
+          final group = classGroups.putIfAbsent(key, () => <String, dynamic>{
+                'name': rank >= 1 && rank <= 12
+                    ? canonicalClassNames[rank]!
+                    : name,
+                'psp': 0,
+                'udise': 0,
+              });
+          group['psp'] = (group['psp'] as int) + (rawRow['psp'] as int? ?? 0);
+          group['udise'] = (group['udise'] as int) + (rawRow['udise'] as int? ?? 0);
+        }
+        final classes = classGroups.values.toList()
           ..sort((a, b) =>
               _classSortOrder(a['name'].toString()).compareTo(
                 _classSortOrder(b['name'].toString()),
