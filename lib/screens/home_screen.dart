@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final Map<String, Future<Map<String, dynamic>>> _profileDashboardFutures = {};
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   Future<void> _loadProfiles() async {
@@ -307,6 +308,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
@@ -402,6 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: TextField(
+                              controller: _searchController,
                               onChanged: (value) => setState(() => _searchQuery = value),
                               textInputAction: TextInputAction.search,
                               decoration: InputDecoration(
@@ -411,7 +419,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ? null
                                     : IconButton(
                                         tooltip: 'Clear search',
-                                        onPressed: () => setState(() => _searchQuery = ''),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          setState(() => _searchQuery = '');
+                                        },
                                         icon: const Icon(Icons.close_rounded),
                                       ),
                                 filled: true,
