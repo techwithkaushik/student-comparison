@@ -550,6 +550,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 _classSortOrder(b['name'].toString()),
               ));
         final total = psp + udise;
+        final countGap = (psp - udise).abs();
+        final classesWithDifferentCounts = classes.where((row) =>
+          (row['psp'] as int) != (row['udise'] as int),
+        ).length;
         final dataState = psp > 0 && udise > 0
             ? 'Both datasets available'
             : psp > 0
@@ -655,6 +659,43 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.65)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.fact_check_outlined, size: 16, color: scheme.primary),
+                        const SizedBox(width: 7),
+                        const Expanded(child: Text('DATA QUALITY CHECK',
+                          style: TextStyle(fontSize: 9, letterSpacing: 0.7,
+                            fontWeight: FontWeight.w900))),
+                        Text('$classesWithDifferentCounts class labels differ',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                            color: classesWithDifferentCounts == 0
+                                ? Colors.green.shade800 : scheme.onSurfaceVariant)),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _qualityChip('PSP', psp > 0 ? 'Imported' : 'Missing', psp > 0),
+                        _qualityChip('UDISE', udise > 0 ? 'Imported' : 'Missing', udise > 0),
+                        _qualityChip('Count gap', countGap.toString(), countGap == 0),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -701,15 +742,29 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 94,
                             child: Center(child: Text('Import data to view class chart', style: TextStyle(fontSize: 11))),
                           )
-                        : SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(
-                              width: (classes.length * 48.0).clamp(160.0, 900.0).toDouble(),
-                              height: 112,
-                              child: CustomPaint(
-                                painter: _SchoolClassBarPainter(classes: classes),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 4,
+                                children: [
+                                  _legendDot(const Color(0xFF3977F6), 'PSP', psp),
+                                  _legendDot(const Color(0xFF9B59D0), 'UDISE', udise),
+                                ],
                               ),
-                            ),
+                              const SizedBox(height: 4),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: SizedBox(
+                                  width: (classes.length * 58.0).clamp(174.0, 1100.0).toDouble(),
+                                  height: 132,
+                                  child: CustomPaint(
+                                    painter: _SchoolClassBarPainter(classes: classes),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                   );
                   if (stacked) {
@@ -729,6 +784,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _qualityChip(String label, String value, bool healthy) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = healthy ? Colors.green.shade800 : scheme.error;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Text('$label: $value', style: TextStyle(
+        fontSize: 10, fontWeight: FontWeight.w700, color: color,
+      )),
     );
   }
 
@@ -983,8 +1054,8 @@ class _SchoolClassBarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const left = 4.0;
-    const bottom = 22.0;
-    const top = 8.0;
+    const bottom = 24.0;
+    const top = 18.0;
     final chartHeight = size.height - bottom - top;
     final maxValue = classes.fold<int>(1, (max, row) {
       final psp = row['psp'] as int? ?? 0;
@@ -1018,6 +1089,23 @@ class _SchoolClassBarPainter extends CustomPainter {
       );
       canvas.drawRRect(pspRect, Paint()..color = const Color(0xFF3977F6));
       canvas.drawRRect(udiseRect, Paint()..color = const Color(0xFF9B59D0));
+      for (final item in <({double x, double height, int value, Color color})>[
+        (x: center - barWidth - 1, height: pspHeight, value: psp, color: const Color(0xFF3977F6)),
+        (x: center + 1, height: udiseHeight, value: udise, color: const Color(0xFF9B59D0)),
+      ]) {
+        if (item.value == 0) continue;
+        final valuePainter = TextPainter(
+          text: TextSpan(text: item.value.toString(), style: TextStyle(
+            fontSize: 8, fontWeight: FontWeight.w800, color: item.color,
+          )),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+        )..layout(maxWidth: slot / 2);
+        valuePainter.paint(canvas, Offset(
+          item.x + barWidth / 2 - valuePainter.width / 2,
+          (top + chartHeight - item.height - 11).clamp(0.0, size.height - bottom),
+        ));
+      }
       final tp = TextPainter(
         text: TextSpan(text: row['name']?.toString() ?? '', style: textStyle),
         textDirection: TextDirection.ltr,
