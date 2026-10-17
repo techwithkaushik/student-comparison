@@ -171,11 +171,12 @@ class ComparisonState extends Equatable {
           !aadhaarStatusFilters.any(_aadhaarStatusKeys(row).contains)) {
         return false;
       }
+      // PSP is the authoritative source for class filtering. A matched student's
+      // UDISE class may differ, but that must not move the student into another
+      // class bucket or hide them from the PSP class selected by the user.
       if (classFilter.isNotEmpty) {
-        final cls = hasUdise ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '') : (row.psp?.classCanonValue ?? '');
-        if (cls != classFilter) {
-          return false;
-        }
+        final cls = row.psp?.classCanonValue ?? '';
+        if (cls != classFilter) return false;
       }
       if (statusFilters.isEmpty && diffFilters.isEmpty) {
         if (filter == 'REMARKED' && !immutableRemarks.containsKey(_remarkKey(row))) {
