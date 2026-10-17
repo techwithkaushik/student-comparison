@@ -1096,9 +1096,9 @@ class _SchoolClassBarPainter extends CustomPainter {
       );
       canvas.drawRRect(pspRect, Paint()..color = const Color(0xFF3977F6));
       canvas.drawRRect(udiseRect, Paint()..color = const Color(0xFF9B59D0));
-      for (final item in <({double x, int value, Color color})>[
-        (x: center - barWidth - 1, value: psp, color: const Color(0xFF3977F6)),
-        (x: center + 1, value: udise, color: const Color(0xFF9B59D0)),
+      for (final item in <({double x, double height, int value, Color color})>[
+        (x: center - barWidth - 1, height: pspHeight, value: psp, color: const Color(0xFF3977F6)),
+        (x: center + 1, height: udiseHeight, value: udise, color: const Color(0xFF9B59D0)),
       ]) {
         if (item.value == 0) continue;
         final valuePainter = TextPainter(
