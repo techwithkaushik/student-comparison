@@ -372,10 +372,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Add school',
         onPressed: () => _showProfileForm(),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add School'),
+        child: const Icon(Icons.add_rounded),
       ),
       body: (state.status == HomeStatus.loading ||
               state.status == HomeStatus.initial)
@@ -671,22 +671,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.fact_check_outlined, size: 16, color: scheme.primary),
                         const SizedBox(width: 7),
-                        const Expanded(child: Text('DATA QUALITY CHECK',
-                          style: TextStyle(fontSize: 9, letterSpacing: 0.7,
-                            fontWeight: FontWeight.w900))),
-                        Text(
-                          classes.isEmpty
-                              ? 'No class data yet'
-                              : '$classesWithDifferentCounts class labels differ',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                            color: classes.isEmpty
-                                ? scheme.onSurfaceVariant
-                                : classesWithDifferentCounts == 0
-                                    ? Colors.green.shade800
-                                    : scheme.onSurfaceVariant),
+                        const Expanded(
+                          child: Text('DATA QUALITY CHECK',
+                            style: TextStyle(fontSize: 10, letterSpacing: 0.45,
+                              fontWeight: FontWeight.w900)),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            classes.isEmpty
+                                ? 'No class data yet'
+                                : '$classesWithDifferentCounts classes have count gaps',
+                            textAlign: TextAlign.end,
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                              color: classes.isEmpty
+                                  ? scheme.onSurfaceVariant
+                                  : classesWithDifferentCounts == 0
+                                      ? Colors.green.shade800
+                                      : scheme.onSurfaceVariant),
+                          ),
                         ),
                       ],
                     ),
@@ -818,7 +825,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      constraints: const BoxConstraints(minHeight: 104),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(13),
@@ -828,19 +836,21 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 5),
               Expanded(
-                child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 8, letterSpacing: 0.45,
+                child: Text(label, maxLines: 2, softWrap: true,
+                    overflow: TextOverflow.visible,
+                    style: TextStyle(fontSize: 9, height: 1.15,
                         fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant)),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const Spacer(),
           Text(value.toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 20, height: 1.05,
+              style: TextStyle(fontSize: 22, height: 1.05,
                   fontWeight: FontWeight.w900, color: scheme.onSurface)),
         ],
       ),
