@@ -134,8 +134,11 @@ class ComparisonState extends Equatable {
       }
       if (apaarStatusFilters.isNotEmpty && (!hasUdise || !apaarStatusFilters.contains(_apaarStatusKey(row.udise)))) return false;
       if (aadhaarStatusFilters.isNotEmpty && (!hasUdise || !aadhaarStatusFilters.contains(_aadhaarStatusKey(row.udise)))) return false;
+      // PSP is the authoritative source for class filtering. A matched student's
+      // UDISE class may differ, but that must not move the student into another
+      // class bucket or hide them from the PSP class selected by the user.
       if (classFilter.isNotEmpty) {
-        final cls = hasUdise ? (row.udise?.classIdCanon ?? row.udise?.classDescCanon ?? '') : (row.psp?.classCanonValue ?? '');
+        final cls = row.psp?.classCanonValue ?? '';
         if (cls != classFilter) return false;
       }
       if (statusFilters.isEmpty && diffFilters.isEmpty) {
