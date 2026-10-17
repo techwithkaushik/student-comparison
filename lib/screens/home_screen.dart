@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final Map<String, Future<Map<String, dynamic>>> _profileDashboardFutures = {};
+  String _searchQuery = '';
 
   Future<void> _loadProfiles() async {
     _profileDashboardFutures.clear();
@@ -310,6 +311,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
     final scheme = Theme.of(context).colorScheme;
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredProfiles = state.profiles.where((profile) {
+      if (query.isEmpty) return true;
+      return [
+        profile['schoolName'],
+        profile['pspCode'],
+        profile['udiseCode'],
+      ].any((value) => value?.toString().toLowerCase().contains(query) ?? false);
+    }).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -389,10 +399,79 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                         children: [
-                          ...state.profiles.map((profile) => Padding(
-                                padding: const EdgeInsets.only(bottom: 14),
-                                child: _profileCard(profile, scheme),
-                              )),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TextField(
+                              onChanged: (value) => setState(() => _searchQuery = value),
+                              textInputAction: TextInputAction.search,
+                              decoration: InputDecoration(
+                                hintText: 'Search school name or code',
+                                prefixIcon: const Icon(Icons.search_rounded),
+                                suffixIcon: _searchQuery.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        tooltip: 'Clear search',
+                                        onPressed: () => setState(() => _searchQuery = ''),
+                                        icon: const Icon(Icons.close_rounded),
+                                      ),
+                                filled: true,
+                                fillColor: scheme.surfaceContainerLow,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+                            child: Row(
+                              children: [
+                                Text(
+                                  query.isEmpty
+                                      ? 'SCHOOL WORKSPACES'
+                                      : 'SEARCH RESULTS',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    letterSpacing: 1.1,
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${filteredProfiles.length} of ${state.profiles.length}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (filteredProfiles.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.search_off_rounded,
+                                      size: 42, color: scheme.onSurfaceVariant),
+                                  const SizedBox(height: 12),
+                                  const Text('No schools match your search',
+                                      style: TextStyle(fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 4),
+                                  Text('Try a school name, PSP code or UDISE code.',
+                                      style: TextStyle(color: scheme.onSurfaceVariant),
+                                      textAlign: TextAlign.center),
+                                ],
+                              ),
+                            )
+                          else
+                            ...filteredProfiles.map((profile) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 14),
+                                  child: _profileCard(profile, scheme),
+                                )),
                         ],
                       ),
                     ),
@@ -532,6 +611,42 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 14),
               LayoutBuilder(
                 builder: (context, constraints) {
+                  final metricWidth = (constraints.maxWidth - 16) / 3;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      SizedBox(
+                        width: metricWidth,
+                        child: _metricTile(
+                          label: 'PSP STUDENTS', value: psp,
+                          icon: Icons.groups_2_rounded,
+                          color: const Color(0xFF3977F6),
+                        ),
+                      ),
+                      SizedBox(
+                        width: metricWidth,
+                        child: _metricTile(
+                          label: 'UDISE STUDENTS', value: udise,
+                          icon: Icons.school_rounded,
+                          color: const Color(0xFF9B59D0),
+                        ),
+                      ),
+                      SizedBox(
+                        width: metricWidth,
+                        child: _metricTile(
+                          label: 'CLASSES', value: classes.length,
+                          icon: Icons.stacked_bar_chart_rounded,
+                          color: const Color(0xFF0F9D83),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
                   final stacked = constraints.maxWidth < 350;
                   final pie = _chartPanel(
                     title: 'DATA SHARE',
@@ -547,7 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text('$total', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
-                                  const Text('records', style: TextStyle(fontSize: 9)),
+                                  const Text('source entries', style: TextStyle(fontSize: 8)),
                                 ],
                               ),
                             ),
@@ -606,6 +721,43 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _metricTile({
+    required String label,
+    required int value,
+    required IconData icon,
+    required Color color,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 8, letterSpacing: 0.45,
+                        fontWeight: FontWeight.w800, color: scheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(value.toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 20, height: 1.05,
+                  fontWeight: FontWeight.w900, color: scheme.onSurface)),
+        ],
+      ),
+    );
+  }
+
   Widget _chartPanel({required String title, required Widget child}) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -646,20 +798,20 @@ class _HomeScreenState extends State<HomeScreen> {
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.8)),
       ),
       child: InkWell(
         onTap: () => _openProfile(profile),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 46,
+                    width: 48,
                     height: 46,
                     decoration: BoxDecoration(
                       color: scheme.primaryContainer,
